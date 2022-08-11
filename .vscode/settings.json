@@ -1,0 +1,21 @@
+{
+	"editor.detectIndentation": false,
+	"editor.insertSpaces": false,
+	"editor.tabSize": 4,
+	"files.encoding": "utf8",
+	"files.eol": "\r\n",
+	"files.insertFinalNewline": true,
+	"files.trimFinalNewlines": false,
+	"files.trimTrailingWhitespace": true,
+	"files.exclude": {
+		"**/.classpath": true,
+		"**/.DS_Store": true,
+		"**/.factorypath": true,
+		"**/.git": true,
+		"**/.hg": true,
+		"**/.project": true,
+		"**/.settings": true,
+		"**/.svn": true,
+		"**/CVS": true,
+	},
+}
