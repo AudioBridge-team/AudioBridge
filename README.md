@@ -26,10 +26,10 @@
 		<img alt="[CI status]"
 		src="./../../actions/workflows/main.yml/badge.svg"/>
 	</a>˙ -->
-	<a href="./../../commits/">
+	<!-- <a href="./../../commits/">
 		<img alt="[Last Commit]"
-		src="http://github.com/shonqwezon-team/AudioBridge"/>
-	</a>
+		src="https://img.shields.io/github/last-commit/shonqwezon-team/AudioBridge"/>
+	</a> -->
 </p>
 
 ---
