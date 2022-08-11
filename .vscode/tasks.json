@@ -1,0 +1,36 @@
+{
+	// See https://go.microsoft.com/fwlink/?LinkId=733558
+	// for the documentation about the tasks.json format
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Install requirements",
+			"type": "shell",
+			"command": "pip install -r requirements.txt"
+		},
+		{
+			"label": "Run file",
+			"command": "python ${file}",
+			"type": "shell",
+			"presentation": {
+				"reveal": "always",
+				"panel": "new",
+				"focus": true
+			}
+		},
+		{
+			"label": "Run main project file",
+			"command": "python './src/audioBridge.py'",
+			"type": "shell",
+			"presentation": {
+				"reveal": "always",
+				"panel": "new",
+				"focus": true
+			},
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+		},
+	]
+}
