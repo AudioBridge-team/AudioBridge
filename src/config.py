@@ -18,3 +18,5 @@ class Cfg(Enum):
     PLAYLIST_COPYRIGHT = 2
     PLAYLIST_UNSTATE   = 3
 
+    man = 228822387
+

@@ -6,31 +6,34 @@
 		{
 			"label": "Install requirements",
 			"type": "shell",
-			"command": "pip install -r requirements.txt"
+			"command": "pip install -Ur requirements.txt",
+			"problemMatcher": [ "$tsc" ]
 		},
 		{
-			"label": "Run file",
+			"label": "Run file...",
 			"command": "python ${file}",
 			"type": "shell",
 			"presentation": {
 				"reveal": "always",
 				"panel": "new",
 				"focus": true
-			}
+			},
+			"problemMatcher": [ "$tsc" ]
 		},
 		{
 			"label": "Run main project file",
-			"command": "python './src/audioBridge.py'",
+			"command": "py -3 './src/audioBridge.py'",
 			"type": "shell",
 			"presentation": {
 				"reveal": "always",
 				"panel": "new",
 				"focus": true
 			},
+			"problemMatcher": [ "$tsc" ],
 			"group": {
 				"kind": "build",
 				"isDefault": true
-			},
-		},
+			}
+		}
 	]
 }
