@@ -1,0 +1,6 @@
+
+[core]
+	autocrlf = false
+
+#git config core.autocrlf false
+

@@ -667,3 +667,4 @@ if __name__ == '__main__':
 	while True:
 		vkBotWorker.listen_longpoll()
 
+
