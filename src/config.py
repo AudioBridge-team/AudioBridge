@@ -1,4 +1,3 @@
-
 from enum import Enum
 
 class Cfg(Enum):
@@ -17,7 +16,3 @@ class Cfg(Enum):
     PLAYLIST_SUCCESFUL = 1
     PLAYLIST_COPYRIGHT = 2
     PLAYLIST_UNSTATE   = 3
-
-    man = 228822387
-
-

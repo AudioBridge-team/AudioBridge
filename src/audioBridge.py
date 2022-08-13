@@ -13,7 +13,6 @@ from dotenv import load_dotenv
 
 from config import Cfg
 from commands import Commands
-import auth
 from CustomErrors import CustomError
 
 
@@ -530,13 +529,11 @@ class VkBotWorker():
 			msg = event.obj.message
 			user_id = msg.get('peer_id')
 			message_id = msg.get('id')
-
 			if platform == 'win32':
-				if user_id != os.environ['OWNER_ID']:
+				if not user_id in json.loads(os.environ['DEVELOPERS_ID']):
 					#vk.messages.send(peer_id = user_id, message = 'Бот обновляется. Повторите свой запрос приблизительно через час.', reply_to = message_id, random_id = get_random_id())
-					#self.sayOrReply(self, user_id, 'Бот обновляется. Повторите свой запрос приблизительно через час.', message_id)
+					#self.sayOrReply(user_id, 'Бот обновляется. Повторите свой запрос приблизительно через час.', message_id)
 					continue
-
 			options = list(filter(None, event.obj.message.get('text').split('\n')))
 			logger.debug(f'New message: ({len(options)}) {options}')
 
@@ -551,17 +548,17 @@ class VkBotWorker():
 
 			if userRequests.get(user_id) < 0:
 				#vk.messages.send(peer_id = user_id, message = 'Дождитесь окончания загрузки плейлиста!', random_id = get_random_id())
-				self.sayOrReply(self, user_id, 'Ошибка: Пожалуйста, дождитесь окончания загрузки плейлиста.')
+				self.sayOrReply(user_id, 'Ошибка: Пожалуйста, дождитесь окончания загрузки плейлиста.')
 				continue
 
 			if userRequests.get(user_id) == Cfg.MAX_REQUESTS_QUEUE.value:
 				#vk.messages.send(peer_id = user_id, message = 'Ваше количество запросов в общей очереди не может превышать {0}!'.format(Cfg.MAX_REQUESTS_QUEUE.value), random_id = get_random_id())
-				self.sayOrReply(self, user_id, 'Ошибка: Кол-во ваших запросов в общей очереди не может превышать {0}.'.format(Cfg.MAX_REQUESTS_QUEUE.value))
+				self.sayOrReply(user_id, 'Ошибка: Кол-во ваших запросов в общей очереди не может превышать {0}.'.format(Cfg.MAX_REQUESTS_QUEUE.value))
 				continue
 
 			if len(options) > 5:
 				#vk.messages.send(peer_id = user_id, message = 'Слишком много аргументов!', reply_to = message_id, random_id = get_random_id())
-				self.sayOrReply(self, user_id, 'Ошибка: Слишком много аргументов.', message_id)
+				self.sayOrReply(user_id, 'Ошибка: Слишком много аргументов.', message_id)
 				continue
 
 			attachment_info = msg.get('attachments')
@@ -599,43 +596,43 @@ class VkBotWorker():
 					else:
 						if not options:
 							#vk.messages.send(peer_id = user_id, message = 'Ошибка обработки запроса!', reply_to = message_id, random_id = get_random_id())
-							self.sayOrReply(self, user_id, 'Ошибка обработки запроса.', message_id)
+							self.sayOrReply(user_id, 'Ошибка обработки запроса.', message_id)
 							continue
 
 				except Exception as er:
 					logger.warning(f'Attachment: {er}')
 					if not options:
 						#vk.messages.send(peer_id = user_id, message = 'Невозможно обработать запрос (возможно, вы прикрепили видео вместо ссылки на видео)!', reply_to = message_id, random_id = get_random_id())
-						self.sayOrReply(self, user_id, 'Ошибка: Невозможно обработать запрос. Возможно, вы прикрепили видео вместо ссылки на видео.', message_id)
+						self.sayOrReply(user_id, 'Ошибка: Невозможно обработать запрос. Возможно, вы прикрепили видео вместо ссылки на видео.', message_id)
 						continue
 
 			if not options:
 				#vk.messages.send(peer_id = user_id, message = 'Некорректный запрос!', reply_to = message_id, random_id = get_random_id())
-				self.sayOrReply(self, user_id, 'Ошибка: Некорректный запрос.', message_id)
+				self.sayOrReply(user_id, 'Ошибка: Некорректный запрос.', message_id)
 				continue
 
 			if (Cfg.INDEX_PLAYLIST.value in options[0]):
 				if (userRequests.get(user_id)):
 					#vk.messages.send(peer_id = user_id, message = 'Для загрузки плейлиста очередь запросов должна быть пуста!', random_id = get_random_id())
-					self.sayOrReply(self, user_id, 'Ошибка: Для загрузки плейлиста очередь запросов должна быть пуста.')
+					self.sayOrReply(user_id, 'Ошибка: Для загрузки плейлиста очередь запросов должна быть пуста.')
 					continue
 
 				if len(options) < 2:
 					#vk.messages.send(peer_id = user_id, message = 'Отсутсвуют необходимые параметры для загрузки плейлиста!', reply_to = message_id, random_id = get_random_id())
-					self.sayOrReply(self, user_id, 'Ошибка: Отсутсвуют необходимые параметры для загрузки плейлиста.', message_id)
+					self.sayOrReply(user_id, 'Ошибка: Отсутсвуют необходимые параметры для загрузки плейлиста.', message_id)
 				elif len(options) > 2:
 					#vk.messages.send(peer_id = user_id, message = 'Неверные параметры для загрузки плейлиста!', reply_to = message_id, random_id = get_random_id())
-					self.sayOrReply(self, user_id, 'Ошибка: Неверные параметры для загрузки плейлиста.', message_id)
+					self.sayOrReply(user_id, 'Ошибка: Неверные параметры для загрузки плейлиста.', message_id)
 				else:
 					userRequests[user_id] = -1
 					#msg_start_id = vk.messages.send(peer_id = user_id, message = 'Запрос добавлен в очередь (плейлист)', random_id = get_random_id())
-					msg_start_id = self.sayOrReply(self, user_id, 'Запрос добавлен в очередь (плейлист)')
+					msg_start_id = self.sayOrReply(user_id, 'Запрос добавлен в очередь (плейлист)')
 					task = [[msg_start_id, user_id, message_id], options]
 					threading.Thread(target = audioTools.playlist_processing(task)).start()
 			else:
 				userRequests[user_id] += 1
 				#msg_start_id = vk.messages.send(peer_id = user_id, message = , random_id = get_random_id())
-				msg_start_id = self.sayOrReply(self, user_id, 'Запрос добавлен в очередь ({0}/{1})'.format(userRequests.get(user_id), Cfg.MAX_REQUESTS_QUEUE.value))
+				msg_start_id = self.sayOrReply(user_id, 'Запрос добавлен в очередь ({0}/{1})'.format(userRequests.get(user_id), Cfg.MAX_REQUESTS_QUEUE.value))
 				task = [[msg_start_id, user_id, message_id], options]
 				queueHandler.add_new_request(task)
 
@@ -659,14 +656,14 @@ if __name__ == '__main__':
 
 	load_dotenv()
 
-	logger.info(f'Current version {os.environ["VERSION"]}, Bot Group ID: {os.environ["BOT_ID"]}, Owner ID: {os.environ["OWNER_ID"]}')
+	logger.info(f'Current version {os.environ["VERSION"]}, Bot Group ID: {os.environ["BOT_ID"]}, Developers ID: {os.environ["DEVELOPERS_ID"]}')
 	logger.info('Logging into VKontakte...')
 
-	vk_session_music = vk_api.VkApi(token = auth.token_music)
+	vk_session_music = vk_api.VkApi(token = os.environ["AGENT_TOKEN"])
 	upload           = vk_api.VkUpload(vk_session_music)
 	vk_user          = vk_session_music.get_api()
 
-	vk_session = vk_api.VkApi(token = auth.token_bot)
+	vk_session = vk_api.VkApi(token = os.environ["BOT_TOKEN"])
 	vk         = vk_session.get_api()
 
 	userRequests = {}  #для отслеживания кол-ва запросов от одного пользователя MAX_REQUESTS_QUEUE
