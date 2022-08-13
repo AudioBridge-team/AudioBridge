@@ -1,4 +1,4 @@
 vk_api
 pydub
 python-dotenv
-
+youtube-dl

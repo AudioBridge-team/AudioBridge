@@ -2,9 +2,9 @@
 # -*- coding: utf-8 -*-
 
 echo 'Update in progress.'
-docker rm --force vkbot
-docker build -t vkbot .
+docker rm --force vkbot_container
+docker build -t vkbot_container .
 docker rmi $(docker images --filter "dangling=true" -q --no-trunc)
-./runVkBot
+./run_legacy.zsh
 echo 'Update done.'
 
