@@ -66,7 +66,7 @@ class AudioTools():
 		user_id      = param[1]  #id пользователя
 		msg_id       = param[2]  #id сообщения пользователя (необходимо для ответа на него)
 
-		urls = []  #url состовляющих плейлист
+		urls = []  #url составляющих плейлист
 		try:
 			informationString = ''
 			if (options[1].isdigit()):
@@ -133,7 +133,7 @@ class AudioTools():
 		else:
 			self.playlist_result[user_id] = {'msg_id' : msg_id}  # отчёт скачивания плейлиста
 			for i, url in enumerate(urls):
-				self.playlist_result[user_id][url[1]] = Cfg.PLAYLIST_UNSTATE.value
+				self.playlist_result[user_id][url[1]] = Cfg.PLAYLIST_UNSTATED.value
 				userRequests[user_id] -= 1
 				queueHandler.add_new_request([param, [url[0]], [i+1, len(urls)]])
 
@@ -153,15 +153,15 @@ class AudioTools():
 						summary[status].append(title)
 				logger.debug(f'Сводка по плейлисту: {summary}')
 
-				if summary.get(Cfg.PLAYLIST_SUCCESFUL.value):
+				if summary.get(Cfg.PLAYLIST_SUCCESSFUL.value):
 					msg_summary += 'Успешно:\n'
-					for title in summary[Cfg.PLAYLIST_SUCCESFUL.value]: msg_summary += ('• ' + title + '\n')
+					for title in summary[Cfg.PLAYLIST_SUCCESSFUL.value]: msg_summary += ('• ' + title + '\n')
 				if summary.get(Cfg.PLAYLIST_COPYRIGHT.value):
 					msg_summary += '\nЗаблокировано из-за авторских прав:\n'
 					for title in summary[Cfg.PLAYLIST_COPYRIGHT.value]: msg_summary += ('• ' + title + '\n')
-				if summary.get(Cfg.PLAYLIST_UNSTATE.value):
+				if summary.get(Cfg.PLAYLIST_UNSTATED.value):
 					msg_summary += '\nНе загружено:\n'
-					for title in summary[Cfg.PLAYLIST_UNSTATE.value]: msg_summary += ('• ' + title + '\n')
+					for title in summary[Cfg.PLAYLIST_UNSTATED.value]: msg_summary += ('• ' + title + '\n')
 				del self.playlist_result[user_id]
 				vk.messages.send(peer_id = user_id, message = msg_summary, reply_to = msg_id, random_id = get_random_id())
 
@@ -193,7 +193,7 @@ class AudioWorker(threading.Thread):
 			self.msg_start_id = param[0]    #id сообщения с размером очереди (необходимо для удаления в конце обработки запроса)
 			self.user_id = param[1]         #id пользователя
 			self.msg_id = param[2]          #id сообщения пользователя (необходимо для ответа на него)
-			self.path = ''                  #путь сохранения фалйа
+			self.path = ''                  #путь сохранения файла
 			self.progress_msg_id = 0        #id сообщения с прогрессом загрузки
 
 			if options[0][0] == '-':
@@ -293,7 +293,7 @@ class AudioWorker(threading.Thread):
 					break
 			logger.debug(f'Скачивание видео, попытки: {attempts}')
 
-			# проверка валидности пути сохранения фалйа
+			# проверка валидности пути сохранения файла
 			if not self.path:
 				logger.error(f'Путь: попытки: {attempts}')
 				raise CustomError('Ошибка: Некорректный адрес Youtube-видео.')
@@ -359,7 +359,7 @@ class AudioWorker(threading.Thread):
 
 				if self._playlist:
 					vk.messages.send(peer_id = self.user_id, attachment = attachment, random_id = get_random_id())
-					audioTools.playlist_result[self.user_id][self.title] = Cfg.PLAYLIST_SUCCESFUL.value
+					audioTools.playlist_result[self.user_id][self.title] = Cfg.PLAYLIST_SUCCESSFUL.value
 				else:
 					vk.messages.send(peer_id = self.user_id, attachment = attachment, reply_to = self.msg_id, random_id = get_random_id())
 
@@ -618,8 +618,8 @@ class VkBotWorker():
 					continue
 
 				if len(options) < 2:
-					#vk.messages.send(peer_id = user_id, message = 'Отсутсвуют необходимые параметры для загрузки плейлиста!', reply_to = message_id, random_id = get_random_id())
-					self.sayOrReply(user_id, 'Ошибка: Отсутсвуют необходимые параметры для загрузки плейлиста.', message_id)
+					#vk.messages.send(peer_id = user_id, message = 'Отсутствуют необходимые параметры для загрузки плейлиста!', reply_to = message_id, random_id = get_random_id())
+					self.sayOrReply(user_id, 'Ошибка: Отсутствуют необходимые параметры для загрузки плейлиста.', message_id)
 				elif len(options) > 2:
 					#vk.messages.send(peer_id = user_id, message = 'Неверные параметры для загрузки плейлиста!', reply_to = message_id, random_id = get_random_id())
 					self.sayOrReply(user_id, 'Ошибка: Неверные параметры для загрузки плейлиста.', message_id)

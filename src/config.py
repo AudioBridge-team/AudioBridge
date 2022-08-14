@@ -13,6 +13,6 @@ class Cfg(Enum):
 
     INDEX_PLAYLIST = "/playlist"            # показатель плейлиста
 
-    PLAYLIST_SUCCESFUL = 1
-    PLAYLIST_COPYRIGHT = 2
-    PLAYLIST_UNSTATE   = 3
+    PLAYLIST_SUCCESSFUL = 1
+    PLAYLIST_COPYRIGHT  = 2
+    PLAYLIST_UNSTATED   = 3
