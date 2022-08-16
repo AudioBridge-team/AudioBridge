@@ -12,13 +12,14 @@ on:
 # A workflow
 jobs:
   Deploy:
-    name: Deploying
+    name: Deploy
     runs-on: ubuntu-latest
 
     steps:
     #Connecting to server
     - name: SSH Setup
       uses: MrSquaare/ssh-setup-action@v1.0.1
+      run: echo "${{ secrets.HOST_NAME }}"
       with:
         host: ${{ secrets.HOST_NAME }}
         private-key: ${{ secrets.PRIVATE_KEY }}
