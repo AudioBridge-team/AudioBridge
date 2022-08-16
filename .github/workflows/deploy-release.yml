@@ -16,13 +16,13 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+    #Check
+    - name: Test command
+      run: echo "${{ secrets.HOST_NAME }}"
+
     #Connecting to server
     - name: SSH Setup
       uses: MrSquaare/ssh-setup-action@v1.0.1
-      run: echo "${{ secrets.HOST_NAME }}"
       with:
         host: ${{ secrets.HOST_NAME }}
         private-key: ${{ secrets.PRIVATE_KEY }}
-    #Check
-    - name: Test command
-      run : ls
