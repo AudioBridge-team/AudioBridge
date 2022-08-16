@@ -3,7 +3,7 @@
 	"editor.insertSpaces": false,
 	"editor.tabSize": 4,
 	"files.encoding": "utf8",
-	"files.eol": "\r\n",
+	"files.eol": "\n",
 	"files.insertFinalNewline": true,
 	"files.trimFinalNewlines": false,
 	"files.trimTrailingWhitespace": true,
@@ -18,4 +18,12 @@
 		"**/.svn": true,
 		"**/CVS": true,
 	},
+	"keep-a-changelog.defaultAuthor": "shonqwezon-team",
+	"keep-a-changelog.defaultRepository": "AudioBridge",
+	"keep-a-changelog.dateFormat": "DD/MM/YYYY",
+	"keep-a-changelog.validFiles": [
+
+
+		"changelog"
+	],
 }
