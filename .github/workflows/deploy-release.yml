@@ -12,20 +12,22 @@ on:
 # A workflow
 jobs:
   Deploy:
-    name: Deploy
+    name: Deploying
     runs-on: ubuntu-latest
 
     steps:
 
       #Connecting to server
-      - id: ssh
-        uses: invi5H/ssh-action@v1
+      - name: Connecting to server
+        uses: appleboy/ssh-action@master
         with:
-          SSH_HOST: ${{ secrets.SSH_HOST }}
-          SSH_PORT: ${{ secrets.SSH_PORT }}
-          SSH_USER: ${{ secrets.SSH_USER }}
-          SSH_KEY: ${{ secrets.SSH_KEY }}
-      - run: ssh ${{ steps.ssh.outputs.SERVER }} pwd
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          script: |
+            whoami
+            ls -al
 
       #Check
       - name: Test command
