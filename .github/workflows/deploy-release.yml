@@ -1,0 +1,27 @@
+# The script for auto-deploy releases
+
+name: Deploy-Release
+
+# The workflow will run when release is published
+on:
+  push:
+    branches: [ develop ]
+  #release:
+    #types: [published]
+
+# A workflow
+jobs:
+  Deploy:
+    name: Deploying
+    runs-on: ubuntu-latest
+
+    steps:
+    #Connecting to server
+    - name: SSH Setup
+      uses: MrSquaare/ssh-setup-action@v1.0.1
+      with:
+        host: ${{ secrets.HOST_NAME }}
+        private-key: ${{ secrets.PRIVATE_KEY }}
+    #Check
+    - name: Test command
+      run : ls
