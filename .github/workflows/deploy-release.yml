@@ -18,7 +18,7 @@ jobs:
       #Connecting to server
       - name: Connecting to server
         env:
-          tag_release: "${{ github.event.release.tag_name }}"
+          TAG_RELEASE: "${{ github.event.release.tag_name }}"
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.SSH_HOST }}
@@ -26,10 +26,10 @@ jobs:
           key: ${{ secrets.SSH_KEY }}
           port: ${{ secrets.SSH_PORT }}
           script: |
-            echo "$tag_release"
+            echo "$TAG_RELEASE"
             cd /root/AudioBridge1
-            ls
             rm -rfv AudioBridge
             git clone -b "${{ github.event.release.tag_name }}" --single-branch git@github.com:shonqwezon-team/AudioBridge.git
             cd AudioBridge
-            ls
+            chmod u+x install.zsh
+            ./install.zsh
