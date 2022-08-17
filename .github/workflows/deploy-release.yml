@@ -29,6 +29,6 @@ jobs:
             cd AudioBridge1/
             ls
             rm -rf AudioBridge/
-            git clone -b $tag_release --single-branch git@github.com:shonqwezon-team/AudioBridge.git
+            git clone --branch "$tag_release" --single-branch git@github.com:shonqwezon-team/AudioBridge.git
             cd AudioBridge/
             ls
