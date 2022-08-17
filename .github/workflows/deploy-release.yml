@@ -4,15 +4,14 @@ name: Deploy-Release
 
 # The workflow will run when release is published
 on:
-  push:
-    branches: [ develop ]
-  #release:
-    #types: [published]
+  #push:
+    #branches: [ develop ]
+  release:
+    types: [published]
 
 # A workflow
 jobs:
   Deploy:
-    name: Deploying
     runs-on: ubuntu-latest
 
     steps:
@@ -26,9 +25,6 @@ jobs:
           key: ${{ secrets.SSH_KEY }}
           port: ${{ secrets.SSH_PORT }}
           script: |
-            whoami
-            ls -al
-
-      #Check
-      - name: Test command
-        run: ls
+            cd AudioBridge/
+            ls
+            echo "${{ github.event.release.tag_name }}"
