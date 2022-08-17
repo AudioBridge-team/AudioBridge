@@ -2,6 +2,9 @@
 
 name: Deploy-Release
 
+env:
+  path1: "/root/AudioBridge1/nice2"
+
 # The workflow will run when release is published
 on:
   #push:
@@ -11,24 +14,25 @@ on:
 
 # A workflow
 jobs:
-  Deploy:
+  AutoDeploy:
     runs-on: ubuntu-latest
 
     steps:
       #Connecting to server
       - name: Connecting to server
-        env:
-          TAG_RELEASE: "${{ github.event.release.tag_name }}"
         uses: appleboy/ssh-action@master
+        env:
+          path2: "/root/AudioBridge1/nice1"
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_KEY }}
           port: ${{ secrets.SSH_PORT }}
           script: |
-            echo "$TAG_RELEASE"
+            echo "${{env.path1}}"
+            echo "${{env.path2}}"
             cd /root/AudioBridge1
-            rm -rfv AudioBridge
+            rm -rf AudioBridge
             git clone -b "${{ github.event.release.tag_name }}" --single-branch git@github.com:shonqwezon-team/AudioBridge.git
             cd AudioBridge
             chmod u+x install.zsh
