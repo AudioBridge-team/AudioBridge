@@ -9,7 +9,6 @@ from datetime import datetime
 import vk_api
 from vk_api.bot_longpoll import VkBotLongPoll, VkBotEventType
 from vk_api.utils import get_random_id
-from dotenv import load_dotenv
 
 from config import Cfg
 from commands import Commands
@@ -653,8 +652,6 @@ if __name__ == '__main__':
 	logger.info('Program started.')
 	logger.info(f'Running platform: {platform} {"(debug mode)" if platform == "win32" else ""}')
 	logger.info(f'Filesystem encoding: {sys.getfilesystemencoding()}, Preferred encoding: {locale.getpreferredencoding()}')
-
-	load_dotenv()
 
 	logger.info(f'Current version {os.environ["VERSION"]}, Bot Group ID: {os.environ["BOT_ID"]}, Developers ID: {os.environ["DEVELOPERS_ID"]}')
 	logger.info('Logging into VKontakte...')
