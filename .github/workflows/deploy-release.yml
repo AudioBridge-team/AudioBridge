@@ -15,9 +15,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-
       #Connecting to server
       - name: Connecting to server
+        env:
+          tag_release: "${{ github.event.release.tag_name }}"
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.SSH_HOST }}
@@ -25,6 +26,9 @@ jobs:
           key: ${{ secrets.SSH_KEY }}
           port: ${{ secrets.SSH_PORT }}
           script: |
+            cd AudioBridge1/
+            ls
+            rm -rf AudioBridge/
+            git clone -b $tag_release --single-branch git@github.com:shonqwezon-team/AudioBridge.git
             cd AudioBridge/
             ls
-            echo "${{ github.event.release.tag_name }}"
