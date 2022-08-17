@@ -2,15 +2,10 @@
 
 name: Deploy-Release
 
-env:
-  path1: "/root/AudioBridge1/nice2"
-
 # The workflow will run when release is published
 on:
-  #push:
-    #branches: [ develop ]
   release:
-    types: [published]
+    types: [ published ]
 
 # A workflow
 jobs:
@@ -21,19 +16,15 @@ jobs:
       #Connecting to server
       - name: Connecting to server
         uses: appleboy/ssh-action@master
-        env:
-          path2: "/root/AudioBridge1/nice1"
         with:
-          host: ${{ secrets.SSH_HOST }}
+          host    : ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_KEY }}
-          port: ${{ secrets.SSH_PORT }}
+          key     : ${{ secrets.SSH_KEY }}
+          port    : ${{ secrets.SSH_PORT }}
           script: |
-            echo "${{env.path1}}"
-            echo "${{env.path2}}"
-            cd /root/AudioBridge1
+            cd /root
             rm -rf AudioBridge
-            git clone -b "${{ github.event.release.tag_name }}" --single-branch git@github.com:shonqwezon-team/AudioBridge.git
+            git clone -b "${{ github.event.release.tag_name }}" --single-branch git@github.com: shonqwezon-team/AudioBridge.git
             cd AudioBridge
             chmod u+x install.zsh
             ./install.zsh
