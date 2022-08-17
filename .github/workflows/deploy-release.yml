@@ -26,10 +26,10 @@ jobs:
           key: ${{ secrets.SSH_KEY }}
           port: ${{ secrets.SSH_PORT }}
           script: |
-            pwd
+            echo "$tag_release"
             cd /root/AudioBridge1
             ls
             rm -rfv AudioBridge
-            git clone -b $tag_release --single-branch git@github.com:shonqwezon-team/AudioBridge.git
+            git clone -b "${{ github.event.release.tag_name }}" --single-branch git@github.com:shonqwezon-team/AudioBridge.git
             cd AudioBridge
             ls
