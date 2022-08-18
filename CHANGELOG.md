@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning].
 
 ## [Unreleased]
 
+## [1.2.4] - 17-08-2022
+### Added
+- авто-деплой релиза черезе tag
+
+### Fixed
+- Формат введения `.env` для поддержки `Docker`
+
 ## [1.2.3] - 13-08-2022
 ### Added
 - Обработка плейлиста
@@ -52,6 +59,7 @@ and this project adheres to [Semantic Versioning].
 
 <!-- Versions -->
 [unreleased]: https://github.com/shonqwezon-team/AudioBridge/compare/main...develop
+[1.2.4]: https://github.com/shonqwezon-team/AudioBridge/compare/v1.2.3...v1.2.4
 [1.2.3]: https://github.com/shonqwezon-team/AudioBridge/compare/v1.1.7...v1.2.3
 [1.1.7]: https://github.com/shonqwezon-team/AudioBridge/compare/v1.1.2...v1.1.7
 [1.1.2]: https://github.com/shonqwezon-team/AudioBridge/compare/v1.0.0...v1.1.2
