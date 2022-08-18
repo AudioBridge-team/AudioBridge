@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning].
 
 ## [1.2.4] - 17-08-2022
 ### Added
-- авто-деплой релиза черезе tag
+- Авто-деплой релиза через tag
 
 ### Fixed
 - Формат введения `.env` для поддержки `Docker`
