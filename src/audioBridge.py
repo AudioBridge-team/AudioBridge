@@ -641,18 +641,19 @@ if __name__ == '__main__':
 	parser.add_argument("-d", "--debug", action='store_true', help="Debug mode")
 	args = parser.parse_args()
 
-	path_logs = "/AudioBridge-data/release/logs-release.log"
+	path_logs = "/AudioBridge-data/logs/logs-release.log"
 	if args.debug:
-		path_logs = "/AudioBridge-data/debug/logs-debug.log"
+		path_logs = "/AudioBridge-data/logs/logs-debug.log"
+	os.makedirs(os.path.dirname(path_logs), exist_ok=True)
 
 	logger = logging.getLogger('logger')
 	logging.basicConfig(filename=path_logs,
                     	filemode='a',
+						encoding='utf-8',
 						#format = '[%(asctime)s, %(levelname)s] ~ %(threadName)s (%(funcName)s)\t~: %(message)s',
 						format = '[%(asctime)s, %(levelname)s] ~ (%(funcName)s)\t~: %(message)s',
 						datefmt = '%d-%m-%y %H:%M:%S',
-						level=logging.DEBUG,
-						stream=sys.stdout)
+						level=logging.DEBUG)
 
 	logger.info('Program started.')
 	logger.info(f'Debug mode is {args.debug}')
