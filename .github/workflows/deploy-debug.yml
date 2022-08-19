@@ -6,7 +6,8 @@ name: Deploy-Debug
 on: push
 
 env:
-  branch_name: "-add_sql_support"
+  branch_name: "add_sql_support"
+  bool_test: true
 
 # A workflow
 jobs:
@@ -19,6 +20,7 @@ jobs:
 
   Deploying:
       runs-on: ubuntu-latest
+      if: bool_test
       needs: CheckBranch
     
       steps:
