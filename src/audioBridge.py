@@ -1,8 +1,7 @@
 ﻿#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import os, sys, time, locale, json, logging, threading, subprocess
-from sys import platform
+import os, sys, time, locale, json, logging, threading, subprocess, argparse
 from logging import StreamHandler, Formatter
 from datetime import datetime
 
@@ -520,7 +519,7 @@ class VkBotWorker():
 			return vk.messages.send(peer_id = user_id, message = _message, reply_to = _reply_to, random_id = get_random_id())
 		return vk.messages.send(peer_id = user_id, message = _message, random_id = get_random_id())
 
-	def listen_longpoll(self):
+	def listen_longpoll(self, debug_mode = False):
 		for event in self.longpoll.listen():
 			if event.type != VkBotEventType.MESSAGE_NEW:
 				continue
@@ -528,7 +527,7 @@ class VkBotWorker():
 			msg = event.obj.message
 			user_id = msg.get('peer_id')
 			message_id = msg.get('id')
-			if platform == 'win32':
+			if debug_mode:
 				if not user_id in json.loads(os.environ['DEVELOPERS_ID']):
 					#vk.messages.send(peer_id = user_id, message = 'Бот обновляется. Повторите свой запрос приблизительно через час.', reply_to = message_id, random_id = get_random_id())
 					#self.sayOrReply(user_id, 'Бот обновляется. Повторите свой запрос приблизительно через час.', message_id)
@@ -649,11 +648,15 @@ if __name__ == '__main__':
 	)
 	logger.addHandler(handler)
 
-	logger.info('Program started.')
-	logger.info(f'Running platform: {platform} {"(debug mode)" if platform == "win32" else ""}')
-	logger.info(f'Filesystem encoding: {sys.getfilesystemencoding()}, Preferred encoding: {locale.getpreferredencoding()}')
+	parser = argparse.ArgumentParser()
+	parser.add_argument("-v", "--version", help="Version of the bot")
+	parser.add_argument("-d", "--debug", action='store_true', help="Debug mode")
+	args = parser.parse_args()
 
-	logger.info(f'Current version {os.environ["VERSION"]}, Bot Group ID: {os.environ["BOT_ID"]}, Developers ID: {os.environ["DEVELOPERS_ID"]}')
+	logger.info('Program started.')
+	logger.info(f'Debug mode is {args.debug}')
+	logger.info(f'Filesystem encoding: {sys.getfilesystemencoding()}, Preferred encoding: {locale.getpreferredencoding()}')
+	logger.info(f'Current version {args.version}, Bot Group ID: {os.environ["BOT_ID"]}, Developers ID: {os.environ["DEVELOPERS_ID"]}')
 	logger.info('Logging into VKontakte...')
 
 	vk_session_music = vk_api.VkApi(token = os.environ["AGENT_TOKEN"])
@@ -673,7 +676,7 @@ if __name__ == '__main__':
 	logger.info('Begin listening.')
 	while True:
 		try:
-			vkBotWorker.listen_longpoll()
+			vkBotWorker.listen_longpoll(debug_mode=args.debug)
 		except vk_api.exceptions.ApiError as er:
 			logger.error(f'VK API: {er}')
 	logger.info('You will never see this.')
