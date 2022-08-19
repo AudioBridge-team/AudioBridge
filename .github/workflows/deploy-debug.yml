@@ -7,7 +7,6 @@ on: push
 
 env:
   branch_name: "add_sql_support"
-  bool_test: true
 
 # A workflow
 jobs:
@@ -17,10 +16,13 @@ jobs:
       - name: Init
         run:
           echo "${{ github.ref_name == env.branch_name }}"
+      - name: Test
+        if: ${{ github.ref_name == env.branch_name }}
+        run:
+          echo "Works"
 
   Deploying:
       runs-on: ubuntu-latest
-      if: ${{env.bool_test}}=='true'
       needs: CheckBranch
     
       steps:
