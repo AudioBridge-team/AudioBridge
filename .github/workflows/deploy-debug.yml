@@ -1,0 +1,33 @@
+# The script for auto-deploy debugging in from certain branch
+
+name: Deploy-Debug
+
+env:
+  branch_name: <branch name>
+
+# The workflow will run when debugging is pushed into certain branch
+on:
+  push:
+    branches: [ "${{ env.branch_name }}" ]
+
+# A workflow
+jobs:
+  DebugDeploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      #Connecting to server
+      - name: Connecting to server
+        uses: appleboy/ssh-action@master
+        with:
+          host    : ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key     : ${{ secrets.SSH_KEY }}
+          port    : ${{ secrets.SSH_PORT }}
+          script: |
+            cd /root
+            rm -rf AudioBridge-debug
+            git clone -b "${{ env.branch_name }}" --single-branch git@github.com:shonqwezon-team/AudioBridge.git
+            cd AudioBridge-debug
+            chmod u+x install.zsh
+            ./install.zsh -d
