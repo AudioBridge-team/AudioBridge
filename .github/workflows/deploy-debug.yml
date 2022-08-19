@@ -3,30 +3,34 @@
 name: Deploy-Debug
 
 env:
-  branch_name: "add_sql_support-"
+  branch_name: "-add_sql_support"
 
 # The workflow will run when debugging is pushed into certain branch
 on: push
 
 # A workflow
 jobs:
-  DebugDeploy:
+  CheckBranch:
     runs-on: ubuntu-latest
+    if: github.ref_name == env.branch_name
 
-    steps:
-      #Connecting to server
-      - name: Connecting to server
-        if: github.ref_name == env.branch_name
-        uses: appleboy/ssh-action@master
-        with:
-          host    : ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          key     : ${{ secrets.SSH_KEY }}
-          port    : ${{ secrets.SSH_PORT }}
-          script: |
-            cd /root
-            rm -rf AudioBridge-debug
-            git clone -b "${{ env.branch_name }}" --single-branch git@github.com:shonqwezon-team/AudioBridge.git AudioBridge-debug
-            cd AudioBridge-debug
-            chmod u+x install.zsh
-            ./install.zsh -d
+  Deploying:
+      needs: CheckBranch
+      runs-on: ubuntu-latest
+
+      steps:
+        #Connecting to server
+        - name: Connecting to server
+          uses: appleboy/ssh-action@master
+          with:
+            host    : ${{ secrets.SSH_HOST }}
+            username: ${{ secrets.SSH_USER }}
+            key     : ${{ secrets.SSH_KEY }}
+            port    : ${{ secrets.SSH_PORT }}
+            script: |
+              cd /root
+              rm -rf AudioBridge-debug
+              git clone -b "${{ env.branch_name }}" --single-branch git@github.com:shonqwezon-team/AudioBridge.git AudioBridge-debug
+              cd AudioBridge-debug
+              chmod u+x install.zsh
+              ./install.zsh -d
