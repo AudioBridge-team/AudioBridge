@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import os, sys, time, locale, json, logging, threading, subprocess
+from sys import platform
 from logging import StreamHandler, Formatter
 from datetime import datetime
 
@@ -530,9 +531,8 @@ class VkBotWorker():
 			message_id = msg.get('id')
 			if _debug_mode:
 				if user_id not in json.loads(os.environ['DEVELOPERS_ID']):
-					#vk.messages.send(peer_id = user_id, message = 'Бот обновляется. Повторите свой запрос приблизительно через час.', reply_to = message_id, random_id = get_random_id())
-					#self.sayOrReply(user_id, 'Бот обновляется. Повторите свой запрос приблизительно через час.', message_id)
-					continue
+					logger.debug("_debug_mode = True")
+				continue
 			options = list(filter(None, event.obj.message.get('text').split('\n')))
 			logger.debug(f'New message: ({len(options)}) {options}')
 
@@ -667,7 +667,12 @@ if __name__ == '__main__':
 		program_version = args.version
 		logger.info('Program started.')
 
-	logger.info(f'Debug mode is {debug_mode} {program_version}')
+	logger.info(f'Platform is {platform}')
+	if platform == "win32":
+		from dotenv import load_dotenv
+		load_dotenv()
+
+	logger.info(f'Debug mode is {debug_mode}')
 	logger.info(f'Filesystem encoding: {sys.getfilesystemencoding()}, Preferred encoding: {locale.getpreferredencoding()}')
 	logger.info(f'Current version {program_version}, Bot Group ID: {os.environ["BOT_ID"]}, Developers ID: {os.environ["DEVELOPERS_ID"]}')
 	logger.info('Logging into VKontakte...')
