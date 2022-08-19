@@ -5,13 +5,14 @@ name: Deploy-Debug
 # The workflow will run when debugging is pushed into certain branch
 on: push
 
+env:
+  branch_name: "-add_sql_support"
+
 # A workflow
 jobs:
   CheckBranch:
-    env:
-      branch_name: "-add_sql_support"
     runs-on: ubuntu-latest
-    if: ${{ github.ref_name == branch_name }}
+    if: ${{ github.ref_name == env.branch_name }}
     steps:
       - name: Init
         run:
