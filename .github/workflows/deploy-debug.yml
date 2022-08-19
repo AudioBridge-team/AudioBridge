@@ -8,7 +8,7 @@ env:
 # The workflow will run when debugging is pushed into certain branch
 on:
   push:
-    branches: [ "${{ env.branch_name }}" ]
+    branches: [ add_sql_support ]
 
 # A workflow
 jobs:
