@@ -636,22 +636,23 @@ class VkBotWorker():
 
 
 if __name__ == '__main__':
-	logger = logging.getLogger('logger')
-	logger.setLevel(logging.DEBUG)
-	handler = StreamHandler(stream = sys.stdout)
-	handler.setFormatter(
-		Formatter(
-			#fmt = '[%(asctime)s, %(levelname)s] ~ %(threadName)s (%(funcName)s)\t~: %(message)s',
-			fmt = '[%(asctime)s, %(levelname)s] ~ (%(funcName)s)\t~: %(message)s',
-			datefmt = time.strftime('%d-%m-%y %H:%M:%S')
-		)
-	)
-	logger.addHandler(handler)
-
 	parser = argparse.ArgumentParser()
 	parser.add_argument("-v", "--version", help="Version of the bot")
 	parser.add_argument("-d", "--debug", action='store_true', help="Debug mode")
 	args = parser.parse_args()
+
+	path_logs = "/AudioBridge-data/release/logs-release.log"
+	if args.debug:
+		path_logs = "/AudioBridge-data/debug/logs-debug.log"
+
+	logger = logging.getLogger('logger')
+	logging.basicConfig(filename=path_logs,
+                    	filemode='a',
+						#format = '[%(asctime)s, %(levelname)s] ~ %(threadName)s (%(funcName)s)\t~: %(message)s',
+						format = '[%(asctime)s, %(levelname)s] ~ (%(funcName)s)\t~: %(message)s',
+						datefmt = '%d-%m-%y %H:%M:%S',
+						level=logging.DEBUG,
+						stream=sys.stdout)
 
 	logger.info('Program started.')
 	logger.info(f'Debug mode is {args.debug}')
