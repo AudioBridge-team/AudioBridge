@@ -10,26 +10,19 @@ on: push
 
 # A workflow
 jobs:
-  Deploying:
-      if: github.ref_name == "${{ env.branch_name }}"
-      runs-on: ubuntu-latest
+  CheckBranch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Init
+        run:
+          echo "${{ github.ref_name }} ${{ env.branch_name }}"
 
+  Deploying:
+      runs-on: ubuntu-latest
+      needs: CheckBranch
+    
       steps:
-        - name: Print current branch
-          run:
-            echo "${{ github.ref_name }}"
         #Connecting to server
         - name: Connecting to server
-          uses: appleboy/ssh-action@master
-          with:
-            host    : ${{ secrets.SSH_HOST }}
-            username: ${{ secrets.SSH_USER }}
-            key     : ${{ secrets.SSH_KEY }}
-            port    : ${{ secrets.SSH_PORT }}
-            script: |
-              cd /root
-              rm -rf AudioBridge-debug
-              git clone -b "${{ env.branch_name }}" --single-branch git@github.com:shonqwezon-team/AudioBridge.git AudioBridge-debug
-              cd AudioBridge-debug
-              chmod u+x install.zsh
-              ./install.zsh -d
+          run: 
+            echo "OK"
