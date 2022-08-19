@@ -12,11 +12,10 @@ env:
 jobs:
   CheckBranch:
     runs-on: ubuntu-latest
-    if: ${{ github.ref_name == env.branch_name }}
     steps:
       - name: Init
         run:
-          echo "${{ github.ref_name }} $branch_name"
+          echo "${{ github.ref_name == env.branch_name }}"
 
   Deploying:
       runs-on: ubuntu-latest
