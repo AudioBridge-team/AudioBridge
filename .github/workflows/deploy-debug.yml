@@ -10,12 +10,13 @@ env:
 
 # A workflow
 jobs:
-  CheckBranch:
+  VerifyBranch:
     runs-on: ubuntu-latest
     steps:
-      - name: Init
+      - name: Branch verification
+
         run:
-          echo "${{ github.ref_name == env.branch_name }}"
+          echo "${{ github.ref_name }} == ${{ env.branch_name }} is ${{ github.ref_name == env.branch_name }}"
       - name: Test
         if: ${{ github.ref_name == env.branch_name }}
         run:
