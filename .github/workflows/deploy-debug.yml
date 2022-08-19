@@ -6,7 +6,7 @@ name: Deploy-Debug
 on: push
 
 env:
-  branch_name: "add_sql_support"
+  branch_name: "-add_sql_support"
 
 # A workflow
 jobs:
@@ -19,7 +19,7 @@ jobs:
       - name: Test
         if: ${{ github.ref_name == env.branch_name }}
         run:
-          echo "Works"
+          echo "Finally"
 
   Deploying:
       runs-on: ubuntu-latest
