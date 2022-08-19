@@ -12,9 +12,9 @@ on: push
 jobs:
   CheckBranch:
     runs-on: ubuntu-latest
+    if: github.ref_name=="${{ env.branch_name }}"
     steps:
       - name: Init
-        if: github.ref_name=="${{ env.branch_name }}"
         run:
           echo "${{ github.ref_name }} ${{ env.branch_name }}"
 
