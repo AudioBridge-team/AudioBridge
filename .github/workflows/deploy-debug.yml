@@ -25,9 +25,9 @@ jobs:
           key     : ${{ secrets.SSH_KEY }}
           port    : ${{ secrets.SSH_PORT }}
           script: |
-            cd /root/AudioBridge-debug
-            rm -rf AudioBridge
-            git clone -b "${{ env.branch_name }}" --single-branch git@github.com:shonqwezon-team/AudioBridge.git
-            cd AudioBridge
+            cd /root
+            rm -rf AudioBridge-debug
+            git clone -b "${{ env.branch_name }}" --single-branch git@github.com:shonqwezon-team/AudioBridge.git AudioBridge-debug
+            cd AudioBridge-debug
             chmod u+x install.zsh
             ./install.zsh -d
