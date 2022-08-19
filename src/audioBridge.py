@@ -1,7 +1,7 @@
 ﻿#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import os, sys, time, locale, json, logging, threading, subprocess, argparse
+import os, sys, time, locale, json, logging, threading, subprocess
 from logging import StreamHandler, Formatter
 from datetime import datetime
 
@@ -11,7 +11,8 @@ from vk_api.utils import get_random_id
 
 from config import Cfg
 from commands import Commands
-from CustomErrors import CustomError
+from customErrors import CustomError
+from customErrors import ArgumentParser
 
 
 class MyVkBotLongPoll(VkBotLongPoll):
@@ -429,6 +430,7 @@ class AudioWorker(threading.Thread):
 	def stop(self):
 		self._stop = True
 
+
 class QueueHandler():
 	def __init__(self):
 		self._pool_req = []
@@ -519,7 +521,7 @@ class VkBotWorker():
 			return vk.messages.send(peer_id = user_id, message = _message, reply_to = _reply_to, random_id = get_random_id())
 		return vk.messages.send(peer_id = user_id, message = _message, random_id = get_random_id())
 
-	def listen_longpoll(self, debug_mode = False):
+	def listen_longpoll(self, _debug_mode = False):
 		for event in self.longpoll.listen():
 			if event.type != VkBotEventType.MESSAGE_NEW:
 				continue
@@ -527,7 +529,7 @@ class VkBotWorker():
 			msg = event.obj.message
 			user_id = msg.get('peer_id')
 			message_id = msg.get('id')
-			if debug_mode:
+			if _debug_mode:
 				if user_id not in json.loads(os.environ['DEVELOPERS_ID']):
 					#vk.messages.send(peer_id = user_id, message = 'Бот обновляется. Повторите свой запрос приблизительно через час.', reply_to = message_id, random_id = get_random_id())
 					#self.sayOrReply(user_id, 'Бот обновляется. Повторите свой запрос приблизительно через час.', message_id)
@@ -648,15 +650,27 @@ if __name__ == '__main__':
 	)
 	logger.addHandler(handler)
 
-	parser = argparse.ArgumentParser()
-	parser.add_argument("-v", "--version", help="Version of the bot")
+	parser = ArgumentParser()
+	parser.add_argument("-v", "--version", default="v1.0.0", help="Version of the bot")
 	parser.add_argument("-d", "--debug", action='store_true', help="Debug mode")
-	args = parser.parse_args()
 
-	logger.info('Program started.')
-	logger.info(f'Debug mode is {args.debug}')
+	debug_mode      = False
+	program_version = "v1.0.0"
+
+	try:
+		args = parser.parse_args()
+	except Exception as er:
+		logger.info(f'Invalid arguments: {er}')
+		parser.print_help()
+		logger.info(f'Started program in default mode.')
+	else:
+		debug_mode = args.debug
+		program_version = args.version
+		logger.info('Program started.')
+
+	logger.info(f'Debug mode is {debug_mode} {program_version}')
 	logger.info(f'Filesystem encoding: {sys.getfilesystemencoding()}, Preferred encoding: {locale.getpreferredencoding()}')
-	logger.info(f'Current version {args.version}, Bot Group ID: {os.environ["BOT_ID"]}, Developers ID: {os.environ["DEVELOPERS_ID"]}')
+	logger.info(f'Current version {program_version}, Bot Group ID: {os.environ["BOT_ID"]}, Developers ID: {os.environ["DEVELOPERS_ID"]}')
 	logger.info('Logging into VKontakte...')
 
 	vk_session_music = vk_api.VkApi(token = os.environ["AGENT_TOKEN"])
@@ -676,7 +690,7 @@ if __name__ == '__main__':
 	logger.info('Begin listening.')
 	while True:
 		try:
-			vkBotWorker.listen_longpoll(debug_mode=args.debug)
+			vkBotWorker.listen_longpoll(_debug_mode=debug_mode)
 		except vk_api.exceptions.ApiError as er:
 			logger.error(f'VK API: {er}')
 	logger.info('You will never see this.')
