@@ -10,15 +10,14 @@ on: push
 
 # A workflow
 jobs:
-  CheckBranch:
-    runs-on: ubuntu-latest
-    if: github.ref_name == env.branch_name
-
   Deploying:
-      needs: CheckBranch
+      if: github.ref_name == env.branch_name
       runs-on: ubuntu-latest
 
       steps:
+        - name: Print current branch
+          run:
+            echo "${{ github.ref_name }}"
         #Connecting to server
         - name: Connecting to server
           uses: appleboy/ssh-action@master
