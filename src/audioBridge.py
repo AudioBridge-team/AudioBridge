@@ -515,11 +515,113 @@ class QueueHandler():
 class VkBotWorker():
 	def __init__(self):
 		self.longpoll = MyVkBotLongPoll(vk_session, str(os.environ['BOT_ID']))
+		unanswered_messages = vk.messages.getDialogs(unanswered=1)
+
+		for user_message in unanswered_messages.get('items'):
+			msg = user_message.get('message')
+			msg['peer_id'] = msg.pop('user_id')
+			msg['text'] = msg.pop('body')
+			self.messageHandler(msg)
 
 	def sayOrReply(self, user_id, _message, _reply_to = None):
 		if _reply_to:
 			return vk.messages.send(peer_id = user_id, message = _message, reply_to = _reply_to, random_id = get_random_id())
 		return vk.messages.send(peer_id = user_id, message = _message, random_id = get_random_id())
+
+	def messageHandler(self, msg):
+		user_id = msg.get('peer_id')
+		message_id = msg.get('id')
+
+		options = list(filter(None, msg.get('text').split('\n')))
+		logger.debug(f'New message: ({len(options)}) {options}')
+
+		if (options):
+			command = options[0]
+			if (command.strip().lower() == Commands.CLEAR.value):
+				queueHandler.clear_pool(user_id)
+				return
+
+		if not userRequests.get(user_id):
+			userRequests[user_id] = 0
+
+		if userRequests.get(user_id) < 0:
+			self.sayOrReply(user_id, 'Ошибка: Пожалуйста, дождитесь окончания загрузки плейлиста.')
+			return
+
+		if userRequests.get(user_id) == Cfg.MAX_REQUESTS_QUEUE.value:
+			self.sayOrReply(user_id, 'Ошибка: Кол-во ваших запросов в общей очереди не может превышать {0}.'.format(Cfg.MAX_REQUESTS_QUEUE.value))
+			return
+
+		if len(options) > 5:
+			self.sayOrReply(user_id, 'Ошибка: Слишком много аргументов.', message_id)
+			return
+
+		attachment_info = msg.get('attachments')
+		#logger.debug(attachment_info)
+
+		if attachment_info:
+			try:
+				logger.debug(f'Attachments info: ({len(attachment_info)}) {attachment_info[0].get("type")}')
+				attachment_type = attachment_info[0].get('type')
+
+				if attachment_type == 'video':
+					video_info     = attachment_info[0].get('video')
+					video_owner_id = video_info.get('owner_id')
+					video_id       = video_info.get('id')
+
+					video = f'{video_owner_id}_{video_id}'
+					logger.debug(f'Attachment video: {video}')
+					response = vk_user.video.get(videos = video)
+
+					video_url = response.get('items')[0].get('player')
+					if len(options) > 4:
+						options[0] = video_url
+					else:
+						options.insert(0, video_url)
+
+				elif attachment_type == 'link':
+					link_url = attachment_info[0].get('link').get('url')
+					if options:
+						if link_url != options[0]:
+							logger.debug(f'Options[0] ({options[0]}) != attachment ({link_url})')
+							options.insert(0, link_url)
+					else:
+						options.insert(0, link_url)
+
+				else:
+					if not options:
+						self.sayOrReply(user_id, 'Ошибка обработки запроса.', message_id)
+						return
+
+			except Exception as er:
+				logger.warning(f'Attachment: {er}')
+				if not options:
+					self.sayOrReply(user_id, 'Ошибка: Невозможно обработать запрос. Возможно, вы прикрепили видео вместо ссылки на видео.', message_id)
+					return
+
+		if not options:
+			self.sayOrReply(user_id, 'Ошибка: Некорректный запрос.', message_id)
+			return
+
+		if (Cfg.INDEX_PLAYLIST.value in options[0]):
+			if (userRequests.get(user_id)):
+				self.sayOrReply(user_id, 'Ошибка: Для загрузки плейлиста очередь запросов должна быть пуста.')
+				return
+
+			if len(options) < 2:
+				self.sayOrReply(user_id, 'Ошибка: Отсутствуют необходимые параметры для загрузки плейлиста.', message_id)
+			elif len(options) > 2:
+				self.sayOrReply(user_id, 'Ошибка: Неверные параметры для загрузки плейлиста.', message_id)
+			else:
+				userRequests[user_id] = -1
+				msg_start_id = self.sayOrReply(user_id, 'Запрос добавлен в очередь (плейлист)')
+				task = [[msg_start_id, user_id, message_id], options]
+				threading.Thread(target = audioTools.playlist_processing(task)).start()
+		else:
+			userRequests[user_id] += 1
+			msg_start_id = self.sayOrReply(user_id, 'Запрос добавлен в очередь ({0}/{1})'.format(userRequests.get(user_id), Cfg.MAX_REQUESTS_QUEUE.value))
+			task = [[msg_start_id, user_id, message_id], options]
+			queueHandler.add_new_request(task)
 
 	def listen_longpoll(self, _debug_mode = False):
 		for event in self.longpoll.listen():
@@ -528,111 +630,11 @@ class VkBotWorker():
 
 			msg = event.obj.message
 			user_id = msg.get('peer_id')
-			message_id = msg.get('id')
 			if _debug_mode:
 				if user_id not in json.loads(os.environ['DEVELOPERS_ID']):
 					continue
-			options = list(filter(None, event.obj.message.get('text').split('\n')))
-			logger.debug(f'New message: ({len(options)}) {options}')
 
-			if (options):
-				command = options[0]
-				if (command.strip().lower() == Commands.CLEAR.value):
-					queueHandler.clear_pool(user_id)
-					continue
-
-			if not userRequests.get(user_id):
-				userRequests[user_id] = 0
-
-			if userRequests.get(user_id) < 0:
-				#vk.messages.send(peer_id = user_id, message = 'Дождитесь окончания загрузки плейлиста!', random_id = get_random_id())
-				self.sayOrReply(user_id, 'Ошибка: Пожалуйста, дождитесь окончания загрузки плейлиста.')
-				continue
-
-			if userRequests.get(user_id) == Cfg.MAX_REQUESTS_QUEUE.value:
-				#vk.messages.send(peer_id = user_id, message = 'Ваше количество запросов в общей очереди не может превышать {0}!'.format(Cfg.MAX_REQUESTS_QUEUE.value), random_id = get_random_id())
-				self.sayOrReply(user_id, 'Ошибка: Кол-во ваших запросов в общей очереди не может превышать {0}.'.format(Cfg.MAX_REQUESTS_QUEUE.value))
-				continue
-
-			if len(options) > 5:
-				#vk.messages.send(peer_id = user_id, message = 'Слишком много аргументов!', reply_to = message_id, random_id = get_random_id())
-				self.sayOrReply(user_id, 'Ошибка: Слишком много аргументов.', message_id)
-				continue
-
-			attachment_info = msg.get('attachments')
-			#logger.debug(attachment_info)
-
-			if attachment_info:
-				try:
-					logger.debug(f'Attachments info: ({len(attachment_info)}) {attachment_info[0].get("type")}')
-					attachment_type = attachment_info[0].get('type')
-
-					if attachment_type == 'video':
-						video_info     = attachment_info[0].get('video')
-						video_owner_id = video_info.get('owner_id')
-						video_id       = video_info.get('id')
-
-						video = f'{video_owner_id}_{video_id}'
-						logger.debug(f'Attachment video: {video}')
-						response = vk_user.video.get(videos = video)
-
-						video_url = response.get('items')[0].get('player')
-						if len(options) > 4:
-							options[0] = video_url
-						else:
-							options.insert(0, video_url)
-
-					elif attachment_type == 'link':
-						link_url = attachment_info[0].get('link').get('url')
-						if options:
-							if link_url != options[0]:
-								logger.debug(f'Options[0] ({options[0]}) != attachment ({link_url})')
-								options.insert(0, link_url)
-						else:
-							options.insert(0, link_url)
-
-					else:
-						if not options:
-							#vk.messages.send(peer_id = user_id, message = 'Ошибка обработки запроса!', reply_to = message_id, random_id = get_random_id())
-							self.sayOrReply(user_id, 'Ошибка обработки запроса.', message_id)
-							continue
-
-				except Exception as er:
-					logger.warning(f'Attachment: {er}')
-					if not options:
-						#vk.messages.send(peer_id = user_id, message = 'Невозможно обработать запрос (возможно, вы прикрепили видео вместо ссылки на видео)!', reply_to = message_id, random_id = get_random_id())
-						self.sayOrReply(user_id, 'Ошибка: Невозможно обработать запрос. Возможно, вы прикрепили видео вместо ссылки на видео.', message_id)
-						continue
-
-			if not options:
-				#vk.messages.send(peer_id = user_id, message = 'Некорректный запрос!', reply_to = message_id, random_id = get_random_id())
-				self.sayOrReply(user_id, 'Ошибка: Некорректный запрос.', message_id)
-				continue
-
-			if (Cfg.INDEX_PLAYLIST.value in options[0]):
-				if (userRequests.get(user_id)):
-					#vk.messages.send(peer_id = user_id, message = 'Для загрузки плейлиста очередь запросов должна быть пуста!', random_id = get_random_id())
-					self.sayOrReply(user_id, 'Ошибка: Для загрузки плейлиста очередь запросов должна быть пуста.')
-					continue
-
-				if len(options) < 2:
-					#vk.messages.send(peer_id = user_id, message = 'Отсутствуют необходимые параметры для загрузки плейлиста!', reply_to = message_id, random_id = get_random_id())
-					self.sayOrReply(user_id, 'Ошибка: Отсутствуют необходимые параметры для загрузки плейлиста.', message_id)
-				elif len(options) > 2:
-					#vk.messages.send(peer_id = user_id, message = 'Неверные параметры для загрузки плейлиста!', reply_to = message_id, random_id = get_random_id())
-					self.sayOrReply(user_id, 'Ошибка: Неверные параметры для загрузки плейлиста.', message_id)
-				else:
-					userRequests[user_id] = -1
-					#msg_start_id = vk.messages.send(peer_id = user_id, message = 'Запрос добавлен в очередь (плейлист)', random_id = get_random_id())
-					msg_start_id = self.sayOrReply(user_id, 'Запрос добавлен в очередь (плейлист)')
-					task = [[msg_start_id, user_id, message_id], options]
-					threading.Thread(target = audioTools.playlist_processing(task)).start()
-			else:
-				userRequests[user_id] += 1
-				#msg_start_id = vk.messages.send(peer_id = user_id, message = , random_id = get_random_id())
-				msg_start_id = self.sayOrReply(user_id, 'Запрос добавлен в очередь ({0}/{1})'.format(userRequests.get(user_id), Cfg.MAX_REQUESTS_QUEUE.value))
-				task = [[msg_start_id, user_id, message_id], options]
-				queueHandler.add_new_request(task)
+			self.messageHandler(msg)
 
 
 if __name__ == '__main__':
@@ -668,6 +670,7 @@ if __name__ == '__main__':
 
 	logger.info(f'Platform is {platform}')
 	if platform == "win32":
+		debug_mode = True
 		from dotenv import load_dotenv
 		load_dotenv()
 
