@@ -21,13 +21,3 @@ jobs:
         if: ${{ github.ref_name == env.branch_name }}
         run:
           echo "Finally"
-
-  Deploying:
-      runs-on: ubuntu-latest
-      needs: CheckBranch
-    
-      steps:
-        #Connecting to server
-        - name: Connecting to server
-          run: 
-            echo "OK"
