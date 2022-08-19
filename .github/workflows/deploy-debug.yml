@@ -3,12 +3,10 @@
 name: Deploy-Debug
 
 env:
-  branch_name: "add_sql_support"
+  branch_name: "add_sql_support-"
 
 # The workflow will run when debugging is pushed into certain branch
-on:
-  push:
-    branches: [ add_sql_support ]
+on: push
 
 # A workflow
 jobs:
@@ -18,6 +16,7 @@ jobs:
     steps:
       #Connecting to server
       - name: Connecting to server
+        if: github.ref_name == env.branch_name
         uses: appleboy/ssh-action@master
         with:
           host    : ${{ secrets.SSH_HOST }}

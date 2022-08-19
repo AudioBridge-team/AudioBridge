@@ -528,7 +528,7 @@ class VkBotWorker():
 			user_id = msg.get('peer_id')
 			message_id = msg.get('id')
 			if debug_mode:
-				if not user_id in json.loads(os.environ['DEVELOPERS_ID']):
+				if user_id not in json.loads(os.environ['DEVELOPERS_ID']):
 					#vk.messages.send(peer_id = user_id, message = 'Бот обновляется. Повторите свой запрос приблизительно через час.', reply_to = message_id, random_id = get_random_id())
 					#self.sayOrReply(user_id, 'Бот обновляется. Повторите свой запрос приблизительно через час.', message_id)
 					continue
