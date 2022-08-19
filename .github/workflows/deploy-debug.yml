@@ -11,7 +11,7 @@ on: push
 # A workflow
 jobs:
   Deploying:
-      if: github.ref_name == env.branch_name
+      if: github.ref_name == "${{ env.branch_name }}"
       runs-on: ubuntu-latest
 
       steps:
