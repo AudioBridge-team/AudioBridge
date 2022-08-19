@@ -3,12 +3,12 @@
 name: Deploy-Debug
 
 env:
-  branch_name: add_sql_support
+  branch_name: "add_sql_support"
 
 # The workflow will run when debugging is pushed into certain branch
 on:
   push:
-    branches: [ add_sql_support ]
+    branches: [ "${{ env.branch_name }}" ]
 
 # A workflow
 jobs:
@@ -25,9 +25,9 @@ jobs:
           key     : ${{ secrets.SSH_KEY }}
           port    : ${{ secrets.SSH_PORT }}
           script: |
-            cd /root
-            rm -rf AudioBridge-debug
+            cd /root/AudioBridge-debug
+            rm -rf AudioBridge
             git clone -b "${{ env.branch_name }}" --single-branch git@github.com:shonqwezon-team/AudioBridge.git
-            cd AudioBridge-debug
+            cd AudioBridge
             chmod u+x install.zsh
             ./install.zsh -d
