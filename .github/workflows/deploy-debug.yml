@@ -20,7 +20,7 @@ jobs:
 
   Deploying:
       runs-on: ubuntu-latest
-      if: ${{env.bool_test=='true'}}
+      if: ${{env.bool_test}}=='true'
       needs: CheckBranch
     
       steps:
