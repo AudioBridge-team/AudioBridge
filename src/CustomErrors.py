@@ -7,6 +7,6 @@ class CustomError(Exception):
 	def __init__(self, text):
 		self.txt = text
 
-class ArgumentParser(argparse.ArgumentParser):
+class ArgParser(argparse.ArgumentParser):
     def error(self, message):
         raise Exception(message)

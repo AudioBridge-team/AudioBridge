@@ -11,8 +11,7 @@ from vk_api.utils import get_random_id
 
 from config import Cfg
 from commands import Commands
-from customErrors import CustomError
-from customErrors import ArgumentParser
+from customErrors import *
 
 
 class MyVkBotLongPoll(VkBotLongPoll):
@@ -650,7 +649,7 @@ if __name__ == '__main__':
 	)
 	logger.addHandler(handler)
 
-	parser = ArgumentParser()
+	parser = ArgParser()
 	parser.add_argument("-v", "--version", default="v1.0.0", help="Version of the bot")
 	parser.add_argument("-d", "--debug", action='store_true', help="Debug mode")
 
