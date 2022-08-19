@@ -10,8 +10,8 @@ container_name="vkbot_container"
 while getopts v:d flag
 do
 	case "${flag}" in
-		-v | --version) version=${OPTARG};;
-		-d | --debug) debug_mode=true;;
+		v) version=${OPTARG};;
+		d) debug_mode=true;;
 		*) echo "Invalid option: -$flag";;
 	esac
 done
