@@ -531,8 +531,7 @@ class VkBotWorker():
 			message_id = msg.get('id')
 			if _debug_mode:
 				if user_id not in json.loads(os.environ['DEVELOPERS_ID']):
-					logger.debug("_debug_mode = True")
-				continue
+					continue
 			options = list(filter(None, event.obj.message.get('text').split('\n')))
 			logger.debug(f'New message: ({len(options)}) {options}')
 
