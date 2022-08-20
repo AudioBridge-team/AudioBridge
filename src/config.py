@@ -12,9 +12,6 @@ class Settings(IntEnum):
 	TIME_ATTEMPT       = 1                  # интервал между попытками скачивания (сек)
 
 class RequestIndex(Enum):
-	def __str__(self):
-		return str(self.value)
-
 	INDEX_PLAYLIST = "/playlist"            # показатель плейлиста
 
 class PlaylistStates(IntEnum):
