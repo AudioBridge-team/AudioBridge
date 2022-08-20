@@ -4,19 +4,19 @@
 #Объявление переменных
 ARGS=""
 VERSION=""
-DEBUG=""
+DEBUG=false
 CONTAINER_NAME="vkbot_container"
 #Получение значения версии
 while getopts v:d flag
 do
 	case "${flag}" in
 		v) VERSION=${OPTARG};;
-		d) DEBUG="--debug";;
+		d) DEBUG=true;;
 		*) echo "Invalid option: -$flag";;
 	esac
 done
 #Проверка на статус режима отладки
-if [ ! -z "$DEBUG" ]; then
+if [ "$DEBUG" = true ]; then
 	CONTAINER_NAME="vkbot_debug_container"
 	VERSION="vDebug"
 fi
@@ -33,7 +33,14 @@ docker build -t "$CONTAINER_NAME" .
 docker rmi $(docker images --filter "dangling=true" -q --no-trunc)
 #Запуск нового контейнера
 echo "Docker: starting up $CONTAINER_NAME..."
-docker run --env-file /root/AudioBridge-data/.env --volume /root/AudioBridge-data:/var/lib/AudioBridge-sql --name "$CONTAINER_NAME" --detach "$CONTAINER_NAME" --version "$VERSION" "$DEBUG"
+
+if [ "$DEBUG" = true ]; then
+	echo "Mode: debug"
+	docker run --env-file /root/AudioBridge-data/.env --volume /root/AudioBridge-data:/var/lib/AudioBridge-sql --name "$CONTAINER_NAME" --detach "$CONTAINER_NAME" --version "$VERSION" --debug
+else
+	echo "Mode: release"
+	docker run --env-file /root/AudioBridge-data/.env --volume /root/AudioBridge-data:/var/lib/AudioBridge-sql --name "$CONTAINER_NAME" --detach "$CONTAINER_NAME" --version "$VERSION"
+fi
 
 echo "Docker status:"
 echo "$(docker ps)"

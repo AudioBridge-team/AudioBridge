@@ -9,7 +9,7 @@ on:
 
 # A workflow
 jobs:
-  AutoDeploy:
+  ReleaseDeploy:
     runs-on: ubuntu-latest
 
     steps:
