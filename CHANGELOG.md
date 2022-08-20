@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning].
 
 ## [Unreleased]
 
+## [1.2.5] - 20-08-2022
+### Added
+- Обработка аргументов
+- Начальная версия системы переключения между версиями (`prod.` и `dev.`) для разработчиков
+- Обработка последнего неотвеченного сообщения в случае обновления или краша бота
+- Скрипт авто-деплоя для debug версии
+
+### Changed
+- Оптимизация кода файла audioBridge.py
+- Распределение `enum` объектов из файла `config.py`
+
+### Fixed
+- мелкие недочёты предыдущих версий
+
 ## [1.2.4] - 17-08-2022
 ### Added
 - Авто-деплой релиза через tag
@@ -59,6 +73,7 @@ and this project adheres to [Semantic Versioning].
 
 <!-- Versions -->
 [unreleased]: https://github.com/shonqwezon-team/AudioBridge/compare/main...develop
+[1.2.5]: https://github.com/shonqwezon-team/AudioBridge/compare/v1.2.4...v1.2.5
 [1.2.4]: https://github.com/shonqwezon-team/AudioBridge/compare/v1.2.3...v1.2.4
 [1.2.3]: https://github.com/shonqwezon-team/AudioBridge/compare/v1.1.7...v1.2.3
 [1.1.7]: https://github.com/shonqwezon-team/AudioBridge/compare/v1.1.2...v1.1.7
