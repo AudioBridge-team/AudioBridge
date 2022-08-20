@@ -10,7 +10,8 @@ import vk_api
 from vk_api.bot_longpoll import VkBotLongPoll, VkBotEventType
 from vk_api.utils import get_random_id
 
-from config import Cfg
+import dataBase
+from config import *
 from commands import Commands
 from customErrors import *
 
@@ -23,6 +24,12 @@ class MyVkBotLongPoll(VkBotLongPoll):
 					yield event
 			except Exception as e:
 				logger.error(e)
+
+
+def sayOrReply(user_id: int, _message: str, _reply_to: int = None) -> int:
+	if _reply_to:
+		return vk.messages.send(peer_id = user_id, message = _message, reply_to = _reply_to, random_id = get_random_id())
+	return vk.messages.send(peer_id = user_id, message = _message, random_id = get_random_id())
 
 
 class AudioTools():
@@ -79,13 +86,13 @@ class AudioTools():
 			attempts = 0
 
 			# получение urls и проверка общей продолжительности запроса
-			while attempts != Cfg.MAX_ATTEMPTS.value:
+			while attempts != Settings.MAX_ATTEMPTS:
 				proc = subprocess.Popen(informationString, stdout = subprocess.PIPE, stderr = subprocess.PIPE, text = True, shell = True)
 				line = str(proc.stdout.readline())
 				while line:
 					obj = json.loads(line.strip())
 					totalTime += int(float(obj['duration']))
-					if (totalTime > Cfg.MAX_VIDEO_DURATION.value):
+					if (totalTime > Settings.MAX_VIDEO_DURATION):
 						raise CustomError('Ошибка: Суммарная продолжительность будущих аудиозаписей не может превышать 3 часа!')
 					urls.append([obj['webpage_url'], obj['title'].strip()])
 					line = str(proc.stdout.readline())
@@ -98,7 +105,7 @@ class AudioTools():
 				logger.error(f'Getting playlist information ({attempts}): {stderr.strip()}')
 				if ('HTTP Error 403' in stderr):
 					attempts += 1
-					time.sleep(Cfg.TIME_ATTEMPT.value)
+					time.sleep(Settings.TIME_ATTEMPT)
 					continue
 				elif ('Sign in to confirm your age' in stderr):
 					raise CustomError('Ошибка: Невозможно скачать плейлист из-за возрастных ограничений.')
@@ -113,7 +120,7 @@ class AudioTools():
 			vk.messages.edit(peer_id = user_id, message = f'Запрос добавлен в очередь (плейлист: {len(urls)})', message_id = msg_start_id)
 
 		except CustomError as er:
-			vk.messages.send(peer_id = user_id, message = f'Произошла ошибка: {er}', reply_to = msg_id, random_id = get_random_id())
+			sayOrReply(user_id, f'Произошла ошибка: {er}', msg_id)
 
 			# удаление сообщения с порядком очереди
 			vk.messages.delete(delete_for_all = 1, message_ids = msg_start_id)
@@ -122,7 +129,7 @@ class AudioTools():
 
 		except Exception as er:
 			error_string = 'Ошибка: Невозможно обработать плейлист. Убедитесь, что запрос корректный и отправьте его повторно.'
-			vk.messages.send(peer_id = user_id, message = error_string, reply_to = msg_id, random_id = get_random_id())
+			sayOrReply(user_id, error_string, msg_id)
 
 			# удаление сообщения с порядком очереди
 			vk.messages.delete(delete_for_all = 1, message_ids = msg_start_id)
@@ -132,7 +139,7 @@ class AudioTools():
 		else:
 			self.playlist_result[user_id] = {'msg_id' : msg_id}  # отчёт скачивания плейлиста
 			for i, url in enumerate(urls):
-				self.playlist_result[user_id][url[1]] = Cfg.PLAYLIST_UNSTATED.value
+				self.playlist_result[user_id][url[1]] = PlaylistStates.PLAYLIST_UNSTATED
 				userRequests[user_id] -= 1
 				queueHandler.add_new_request([param, [url[0]], [i+1, len(urls)]])
 
@@ -152,21 +159,21 @@ class AudioTools():
 						summary[status].append(title)
 				logger.debug(f'Сводка по плейлисту: {summary}')
 
-				if summary.get(Cfg.PLAYLIST_SUCCESSFUL.value):
+				if summary.get(PlaylistStates.PLAYLIST_SUCCESSFUL):
 					msg_summary += 'Успешно:\n'
-					for title in summary[Cfg.PLAYLIST_SUCCESSFUL.value]: msg_summary += ('• ' + title + '\n')
-				if summary.get(Cfg.PLAYLIST_COPYRIGHT.value):
+					for title in summary[PlaylistStates.PLAYLIST_SUCCESSFUL]: msg_summary += ('• ' + title + '\n')
+				if summary.get(PlaylistStates.PLAYLIST_COPYRIGHT):
 					msg_summary += '\nЗаблокировано из-за авторских прав:\n'
-					for title in summary[Cfg.PLAYLIST_COPYRIGHT.value]: msg_summary += ('• ' + title + '\n')
-				if summary.get(Cfg.PLAYLIST_UNSTATED.value):
+					for title in summary[PlaylistStates.PLAYLIST_COPYRIGHT]: msg_summary += ('• ' + title + '\n')
+				if summary.get(PlaylistStates.PLAYLIST_UNSTATED):
 					msg_summary += '\nНе загружено:\n'
-					for title in summary[Cfg.PLAYLIST_UNSTATED.value]: msg_summary += ('• ' + title + '\n')
+					for title in summary[PlaylistStates.PLAYLIST_UNSTATED]: msg_summary += ('• ' + title + '\n')
 				del self.playlist_result[user_id]
-				vk.messages.send(peer_id = user_id, message = msg_summary, reply_to = msg_id, random_id = get_random_id())
+				sayOrReply(user_id, msg_summary, msg_id)
 
 		except Exception as er:
 			logger.error(er)
-			vk.messages.send(peer_id = user_id, message = 'Ошибка: Не удалось загрузить отчёт.', random_id = get_random_id())
+			sayOrReply(user_id, 'Ошибка: Не удалось загрузить отчёт.')
 
 
 class AudioWorker(threading.Thread):
@@ -206,7 +213,7 @@ class AudioWorker(threading.Thread):
 
 			attempts = 0
 			video_duration = -1
-			while attempts != Cfg.MAX_ATTEMPTS.value:
+			while attempts != Settings.MAX_ATTEMPTS:
 				# проверка на соблюдение ограничения длительности видео (MAX_VIDEO_DURATION)
 				proc = subprocess.Popen(audioTools.getVideoInfo('duration', options[0]), stdout = subprocess.PIPE, stderr = subprocess.PIPE, text = True, shell = True)
 				stdout, stderr = proc.communicate()
@@ -214,7 +221,7 @@ class AudioWorker(threading.Thread):
 					logger.error(f'Получение длительности видео ({attempts}): {stderr.strip()}')
 					if ('HTTP Error 403' in stderr):
 						attempts += 1
-						time.sleep(Cfg.TIME_ATTEMPT.value)
+						time.sleep(Settings.TIME_ATTEMPT)
 						continue
 					elif ('Sign in to confirm your age' in stderr):
 						raise CustomError('Ошибка: Невозможно скачать видео из-за возрастных ограничений.')
@@ -229,7 +236,7 @@ class AudioWorker(threading.Thread):
 
 			if video_duration == -1:
 				raise CustomError('Ошибка: Возникла неизвестная ошибка, обратитесь к разработчику...')
-			elif video_duration > Cfg.MAX_VIDEO_DURATION.value:
+			elif video_duration > Settings.MAX_VIDEO_DURATION:
 				raise CustomError('Ошибка: Длительность будущей аудиозаписи превышает 3 часа.')
 
 			# обработка запроса с таймингами среза
@@ -246,7 +253,7 @@ class AudioWorker(threading.Thread):
 
 			# загрузка файла
 			attempts = 0
-			while attempts != Cfg.MAX_ATTEMPTS.value:
+			while attempts != Settings.MAX_ATTEMPTS:
 				proc = subprocess.Popen(downloadString, stdout = subprocess.PIPE, stderr = subprocess.PIPE, text = True, shell = True)
 				line = str(proc.stdout.readline())
 				while line:
@@ -261,10 +268,10 @@ class AudioWorker(threading.Thread):
 					if ' of ' in line:
 						if cUpdateProcess == -1:
 							if self._playlist:
-								self.progress_msg_id = vk.messages.send(peer_id = self.user_id, message = f'Загрузка началась [{self.task_id}/{self.task_size}]', random_id = get_random_id())
+								self.progress_msg_id = sayOrReply(self.user_id, f'Загрузка началась [{self.task_id}/{self.task_size}]')
 							else:
-								self.progress_msg_id = vk.messages.send(peer_id = self.user_id, message = 'Загрузка началась', reply_to = self.msg_id, random_id = get_random_id())
-						if cUpdateProcess == Cfg.MSG_PERIOD.value:
+								self.progress_msg_id = sayOrReply(self.user_id, 'Загрузка началась', self.msg_id)
+						if cUpdateProcess == Settings.MSG_PERIOD:
 							progress = line[line.find(' '):line.find('КиБ/сек.') + 5].strip()
 							if progress:
 								vk.messages.edit(peer_id = self.user_id, message = progress, message_id = self.progress_msg_id)
@@ -283,7 +290,7 @@ class AudioWorker(threading.Thread):
 					if ('HTTP Error 403' in stderr): #ERROR: unable to download video data: HTTP Error 403: Forbidden
 						logger.warning(f'Поймал ошибку 403.')
 						attempts += 1
-						time.sleep(Cfg.TIME_ATTEMPT.value)
+						time.sleep(Settings.TIME_ATTEMPT)
 						continue
 					else:
 						logger.error(f'Скачивание видео ({attempts}): {stderr.strip()}')
@@ -298,7 +305,7 @@ class AudioWorker(threading.Thread):
 				raise CustomError('Ошибка: Некорректный адрес Youtube-видео.')
 
 			# проверка размера фалйа (необходимо из-за внутренних ограничений VK)
-			if os.path.getsize(self.path) > Cfg.MAX_FILESIZE.value:
+			if os.path.getsize(self.path) > Settings.MAX_FILESIZE:
 				raise CustomError('Размер аудиозаписи превышает 200 Мб!')
 			else:
 				os.rename(self.path, 'B' + self.path)
@@ -358,30 +365,30 @@ class AudioWorker(threading.Thread):
 
 				if self._playlist:
 					vk.messages.send(peer_id = self.user_id, attachment = attachment, random_id = get_random_id())
-					audioTools.playlist_result[self.user_id][self.title] = Cfg.PLAYLIST_SUCCESSFUL.value
+					audioTools.playlist_result[self.user_id][self.title] = PlaylistStates.PLAYLIST_SUCCESSFUL
 				else:
 					vk.messages.send(peer_id = self.user_id, attachment = attachment, reply_to = self.msg_id, random_id = get_random_id())
 
 		except CustomError as er:
 			if not self._playlist:
-				vk.messages.send(peer_id = self.user_id, message = er, reply_to = self.msg_id, random_id = get_random_id())
+				sayOrReply(self.user_id, er, self.msg_id)
 			logger.error(f'Custom: {er}')
 
 		except vk_api.exceptions.ApiError as er:
 			if self._playlist:
 				if er.code == 270 and self.title:
-					audioTools.playlist_result[self.user_id][self.title] = Cfg.PLAYLIST_COPYRIGHT.value
+					audioTools.playlist_result[self.user_id][self.title] = PlaylistStates.PLAYLIST_COPYRIGHT
 			else:
 				error_string = 'Ошибка: Невозможно обработать плейлист. Убедитесь, что запрос корректный и отправьте его повторно.'
 				if er.code == 270:
 					error_string = 'Правообладатель ограничил доступ к данной аудиозаписи. Загрузка прервана'
-				vk.messages.send(peer_id = self.user_id, message = f'Ошибка: {error_string}', reply_to = self.msg_id, random_id = get_random_id())
+				sayOrReply(self.user_id, f'Ошибка: {error_string}', self.msg_id)
 			logger.error(f'Vk Api: {er}')
 
 		except Exception as er:
 			if not self._playlist:
 				error_string = 'Ошибка: Невозможно обработать плейлист. Убедитесь, что запрос корректный и отправьте его повторно.'
-				vk.messages.send(peer_id = self.user_id, message = error_string, reply_to = self.msg_id, random_id = get_random_id())
+				sayOrReply(self.user_id, error_string, self.msg_id)
 			logger.error(f'Exception: {er}')
 
 		finally:
@@ -450,7 +457,7 @@ class QueueHandler():
 	def clear_pool(self, user_id):
 		try:
 			if not userRequests.get(user_id):
-				vk.messages.send(peer_id = user_id, message = 'Очередь запросов уже пуста!', random_id = get_random_id())
+				sayOrReply(user_id, 'Очередь запросов уже пуста!')
 			else:
 				for i in range(len(self._pool_req), 0, -1):
 					if (self._pool_req[i-1][0][1] == user_id):
@@ -462,16 +469,16 @@ class QueueHandler():
 					audioTools.playlist_summarize(user_id)
 					del self._workers[user_id]
 					del userRequests[user_id]
-				vk.messages.send(peer_id = user_id, message = 'Очередь запросов очищена!', random_id = get_random_id())
+				sayOrReply(user_id, 'Очередь запросов очищена!')
 		except Exception as er:
 			logger.error(er)
-			vk.messages.send(peer_id = user_id, message = 'Не удалось почистить очередь!', random_id = get_random_id())
+			sayOrReply(user_id, 'Не удалось почистить очередь!')
 
 	# добавление нового запроса в общую очередь
 	def add_new_request(self, task):
 		self._pool_req.append(task)
 		# проверка на превышение кол-ва максимально возможных воркеров
-		if (self.size_workers < Cfg.MAX_WORKERS.value): self._run_worker()
+		if (self.size_workers < Settings.MAX_WORKERS): self._run_worker()
 
 	# подтверждение выполнения запроса
 	def ack_request(self, user_id, worker):
@@ -503,7 +510,7 @@ class QueueHandler():
 				del self._pool_req[i]
 				return
 
-			elif (len(self._workers.get(user_id)) < Cfg.MAX_UNITS.value):
+			elif (len(self._workers.get(user_id)) < Settings.MAX_UNITS):
 				worker = AudioWorker(task)
 				worker.name = f'{user_id}-worker <{len(self._workers.get(user_id, []))}>'
 				worker.start()
@@ -513,8 +520,11 @@ class QueueHandler():
 
 
 class VkBotWorker():
-	def __init__(self):
+	def __init__(self, _debug_mode, _program_version):
+		self.debug_mode = _debug_mode
+		self.program_version = _program_version
 		self.longpoll = MyVkBotLongPoll(vk_session, str(os.environ['BOT_ID']))
+		#обработка невыполненных запросов после обновления, краша бота
 		unanswered_messages = vk.messages.getDialogs(unanswered=1)
 
 		for user_message in unanswered_messages.get('items'):
@@ -523,11 +533,7 @@ class VkBotWorker():
 			msg['text'] = msg.pop('body')
 			self.messageHandler(msg)
 
-	def sayOrReply(self, user_id, _message, _reply_to = None):
-		if _reply_to:
-			return vk.messages.send(peer_id = user_id, message = _message, reply_to = _reply_to, random_id = get_random_id())
-		return vk.messages.send(peer_id = user_id, message = _message, random_id = get_random_id())
-
+	#обработка объекта сообщения
 	def messageHandler(self, msg):
 		user_id = msg.get('peer_id')
 		message_id = msg.get('id')
@@ -536,24 +542,37 @@ class VkBotWorker():
 		logger.debug(f'New message: ({len(options)}) {options}')
 
 		if (options):
-			command = options[0]
-			if (command.strip().lower() == Commands.CLEAR.value):
+			command = options[0].strip().lower()
+			if (command == Commands.CLEAR.value):
 				queueHandler.clear_pool(user_id)
+				return
+			if(command == Commands.VERSION.value):
+				msg_version = ""
+				if self.debug_mode: msg_version = "Экспериментальная версия — {}"
+				else: msg_version = "Официальная версия — {}"
+				sayOrReply(user_id, msg_version.format(self.program_version))
+				return
+			if(command == Commands.SWITCH_DEBUG.value):
+				user_debug_mode = dataBase.switchUserDebugState(user_id)
+				msg_version = ""
+				if self.debug_mode: msg_version = "Включена экспериментальная версия — {}" if user_debug_mode else "Отключена экспериментальная версия — {}"
+				else: msg_version = "Отключена официальная версия — {}" if user_debug_mode else "Включена официальная версия — {}"
+				sayOrReply(user_id, msg_version.format(self.program_version))
 				return
 
 		if not userRequests.get(user_id):
 			userRequests[user_id] = 0
 
 		if userRequests.get(user_id) < 0:
-			self.sayOrReply(user_id, 'Ошибка: Пожалуйста, дождитесь окончания загрузки плейлиста.')
+			sayOrReply(user_id, 'Ошибка: Пожалуйста, дождитесь окончания загрузки плейлиста.')
 			return
 
-		if userRequests.get(user_id) == Cfg.MAX_REQUESTS_QUEUE.value:
-			self.sayOrReply(user_id, 'Ошибка: Кол-во ваших запросов в общей очереди не может превышать {0}.'.format(Cfg.MAX_REQUESTS_QUEUE.value))
+		if userRequests.get(user_id) == Settings.MAX_REQUESTS_QUEUE:
+			sayOrReply(user_id, 'Ошибка: Кол-во ваших запросов в общей очереди не может превышать {0}.'.format(Settings.MAX_REQUESTS_QUEUE))
 			return
 
 		if len(options) > 5:
-			self.sayOrReply(user_id, 'Ошибка: Слишком много аргументов.', message_id)
+			sayOrReply(user_id, 'Ошибка: Слишком много аргументов.', message_id)
 			return
 
 		attachment_info = msg.get('attachments')
@@ -590,50 +609,53 @@ class VkBotWorker():
 
 				else:
 					if not options:
-						self.sayOrReply(user_id, 'Ошибка обработки запроса.', message_id)
+						sayOrReply(user_id, 'Ошибка обработки запроса.', message_id)
 						return
 
 			except Exception as er:
 				logger.warning(f'Attachment: {er}')
 				if not options:
-					self.sayOrReply(user_id, 'Ошибка: Невозможно обработать запрос. Возможно, вы прикрепили видео вместо ссылки на видео.', message_id)
+					sayOrReply(user_id, 'Ошибка: Невозможно обработать запрос. Возможно, вы прикрепили видео вместо ссылки на видео.', message_id)
 					return
 
 		if not options:
-			self.sayOrReply(user_id, 'Ошибка: Некорректный запрос.', message_id)
+			sayOrReply(user_id, 'Ошибка: Некорректный запрос.', message_id)
 			return
 
-		if (Cfg.INDEX_PLAYLIST.value in options[0]):
+		if (RequestIndex.INDEX_PLAYLIST.value in options[0]):
 			if (userRequests.get(user_id)):
-				self.sayOrReply(user_id, 'Ошибка: Для загрузки плейлиста очередь запросов должна быть пуста.')
+				sayOrReply(user_id, 'Ошибка: Для загрузки плейлиста очередь запросов должна быть пуста.')
 				return
 
 			if len(options) < 2:
-				self.sayOrReply(user_id, 'Ошибка: Отсутствуют необходимые параметры для загрузки плейлиста.', message_id)
+				sayOrReply(user_id, 'Ошибка: Отсутствуют необходимые параметры для загрузки плейлиста.', message_id)
 			elif len(options) > 2:
-				self.sayOrReply(user_id, 'Ошибка: Неверные параметры для загрузки плейлиста.', message_id)
+				sayOrReply(user_id, 'Ошибка: Неверные параметры для загрузки плейлиста.', message_id)
 			else:
 				userRequests[user_id] = -1
-				msg_start_id = self.sayOrReply(user_id, 'Запрос добавлен в очередь (плейлист)')
+				msg_start_id = sayOrReply(user_id, 'Запрос добавлен в очередь (плейлист)')
 				task = [[msg_start_id, user_id, message_id], options]
 				threading.Thread(target = audioTools.playlist_processing(task)).start()
 		else:
 			userRequests[user_id] += 1
-			msg_start_id = self.sayOrReply(user_id, 'Запрос добавлен в очередь ({0}/{1})'.format(userRequests.get(user_id), Cfg.MAX_REQUESTS_QUEUE.value))
+			msg_start_id = sayOrReply(user_id, 'Запрос добавлен в очередь ({0}/{1})'.format(userRequests.get(user_id), Settings.MAX_REQUESTS_QUEUE.value))
 			task = [[msg_start_id, user_id, message_id], options]
 			queueHandler.add_new_request(task)
-
-	def listen_longpoll(self, _debug_mode = False):
+	#прослушивание новый сообщений
+	def listen_longpoll(self):
 		for event in self.longpoll.listen():
 			if event.type != VkBotEventType.MESSAGE_NEW:
 				continue
 
 			msg = event.obj.message
 			user_id = msg.get('peer_id')
-			if _debug_mode:
-				if user_id not in json.loads(os.environ['DEVELOPERS_ID']):
-					continue
 
+			#поддержка режима разработки
+			if self.debug_mode and  user_id not in dataBase.getDevelopersId(): continue #temporally
+			if self.debug_mode and not dataBase.getUserDebugState(user_id):					#дебаг версия и разработчик её выключил или не имеет права
+				if msg.get('text').strip()[0] != '/': continue #temporally, after without second if
+			if not self.debug_mode and dataBase.getUserDebugState(user_id):					#релиз версия и разработчик включил дебаг
+				if msg.get('text').strip()[0] != '/': continue #temporally, after without second if
 			self.messageHandler(msg)
 
 
@@ -649,11 +671,11 @@ if __name__ == '__main__':
 		)
 	)
 	logger.addHandler(handler)
-
+	#обработка аргументов запуска
 	parser = ArgParser()
 	parser.add_argument("-v", "--version", default="v1.0.0", help="Version of the bot")
 	parser.add_argument("-d", "--debug", action='store_true', help="Debug mode")
-
+	#значение аргументов запуска по умолчанию
 	debug_mode      = False
 	program_version = "v1.0.0"
 
@@ -667,16 +689,18 @@ if __name__ == '__main__':
 		debug_mode = args.debug
 		program_version = args.version
 		logger.info('Program started.')
-
+	#автоматическое включение дебаг режима в случае запуска бота на Windows
 	logger.info(f'Platform is {platform}')
 	if platform == "win32":
 		debug_mode = True
 		from dotenv import load_dotenv
 		load_dotenv()
 
+	dataBase = dataBase.DataBase()
+
 	logger.info(f'Debug mode is {debug_mode}')
 	logger.info(f'Filesystem encoding: {sys.getfilesystemencoding()}, Preferred encoding: {locale.getpreferredencoding()}')
-	logger.info(f'Current version {program_version}, Bot Group ID: {os.environ["BOT_ID"]}, Developers ID: {os.environ["DEVELOPERS_ID"]}')
+	logger.info(f'Current version {program_version}, Bot Group ID: {os.environ["BOT_ID"]}, Developers ID: {dataBase.getDevelopersId()}')
 	logger.info('Logging into VKontakte...')
 
 	vk_session_music = vk_api.VkApi(token = os.environ["AGENT_TOKEN"])
@@ -687,16 +711,15 @@ if __name__ == '__main__':
 	vk         = vk_session.get_api()
 
 	userRequests = {}  #для отслеживания кол-ва запросов от одного пользователя MAX_REQUESTS_QUEUE
-	queueHandler, audioTools = None, None
 
 	queueHandler = QueueHandler()
 	audioTools   = AudioTools()
-	vkBotWorker  = VkBotWorker()
+	vkBotWorker  = VkBotWorker(debug_mode, program_version)
 
 	logger.info('Begin listening.')
 	while True:
 		try:
-			vkBotWorker.listen_longpoll(_debug_mode=debug_mode)
+			vkBotWorker.listen_longpoll()
 		except vk_api.exceptions.ApiError as er:
 			logger.error(f'VK API: {er}')
 	logger.info('You will never see this.')
