@@ -651,13 +651,12 @@ class VkBotWorker():
 			user_id = msg.get('peer_id')
 
 			#поддержка режима разработки
-			if self.debug_mode and  user_id not in dataBase.getDevelopersId(): continue #temporally
-			if self.debug_mode and not dataBase.getUserDebugState(user_id):					#дебаг версия и разработчик её выключил или не имеет права
-				if msg.get('text').strip()[0] != '/': continue #temporally, after without second if
-			if not self.debug_mode and dataBase.getUserDebugState(user_id):					#релиз версия и разработчик включил дебаг
-				if msg.get('text').strip()[0] != '/': continue #temporally, after without second if
-			self.messageHandler(msg)
+			if user_id not in dataBase.getDevelopersId(): 			#temporally
+				if not self.debug_mode: self.messageHandler(msg)
+				else: continue
 
+			if self.debug_mode == dataBase.getUserDebugState(user_id) or msg.get('text').strip() == '/switch_debug':
+				self.messageHandler(msg)
 
 if __name__ == '__main__':
 	logger = logging.getLogger('logger')
