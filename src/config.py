@@ -1,6 +1,6 @@
-from enum import Enum
+from enum import Enum, IntEnum, auto
 
-class Cfg(Enum):
+class Settings(IntEnum):
 	MAX_WORKERS        = 6                  # максимальное число потоков для всех обработки запросов
 	MAX_UNITS          = 1                  # число потоков для обработки запросов от одного пользователя
 	MAX_REQUESTS_QUEUE = 5                  # максимальное кол-во запросов в общую очередь от одного пользователя
@@ -11,8 +11,13 @@ class Cfg(Enum):
 	MAX_ATTEMPTS       = 3                  # количество попыток при ошибке скачивания
 	TIME_ATTEMPT       = 1                  # интервал между попытками скачивания (сек)
 
+class RequestIndex(Enum):
+	def __str__(self):
+		return str(self.value)
+
 	INDEX_PLAYLIST = "/playlist"            # показатель плейлиста
 
-	PLAYLIST_SUCCESSFUL = 1
-	PLAYLIST_COPYRIGHT  = 2
-	PLAYLIST_UNSTATED   = 3
+class PlaylistStates(IntEnum):
+	PLAYLIST_SUCCESSFUL = auto()
+	PLAYLIST_COPYRIGHT  = auto()
+	PLAYLIST_UNSTATED   = auto()
