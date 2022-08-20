@@ -3,16 +3,16 @@
 
 import os, sys, time, locale, json, logging, threading, subprocess
 from sys import platform
-from logging import StreamHandler, Formatter
 from datetime import datetime
 
 import vk_api
 from vk_api.bot_longpoll import VkBotLongPoll, VkBotEventType
 from vk_api.utils import get_random_id
 
-import dataBase
+import database
+import loggerSetup
+import commands.user as userCommands, commands.dev as devCommands
 from config import *
-from commands import Commands
 from customErrors import *
 
 
@@ -534,31 +534,12 @@ class VkBotWorker():
 			self.messageHandler(msg)
 
 	#обработка объекта сообщения
-	def messageHandler(self, msg):
-		user_id = msg.get('peer_id')
-		message_id = msg.get('id')
+	def messageHandler(self, msg_obj):
+		user_id = msg_obj.get('peer_id')
+		message_id = msg_obj.get('id')
 
-		options = list(filter(None, msg.get('text').split('\n')))
+		options = list(filter(None, msg_obj.get('text').split('\n')))
 		logger.debug(f'New message: ({len(options)}) {options}')
-
-		if (options):
-			command = options[0].strip().lower()
-			if (command == Commands.CLEAR.value):
-				queueHandler.clear_pool(user_id)
-				return
-			if(command == Commands.VERSION.value):
-				msg_version = ""
-				if self.debug_mode: msg_version = "Экспериментальная версия — {}"
-				else: msg_version = "Официальная версия — {}"
-				sayOrReply(user_id, msg_version.format(self.program_version))
-				return
-			if(command == Commands.SWITCH_DEBUG.value):
-				user_debug_mode = dataBase.switchUserDebugState(user_id)
-				msg_version = ""
-				if self.debug_mode: msg_version = "Включена экспериментальная версия — {}" if user_debug_mode else "Отключена экспериментальная версия — {}"
-				else: msg_version = "Отключена официальная версия — {}" if user_debug_mode else "Включена официальная версия — {}"
-				sayOrReply(user_id, msg_version.format(self.program_version))
-				return
 
 		if not userRequests.get(user_id):
 			userRequests[user_id] = 0
@@ -575,7 +556,7 @@ class VkBotWorker():
 			sayOrReply(user_id, 'Ошибка: Слишком много аргументов.', message_id)
 			return
 
-		attachment_info = msg.get('attachments')
+		attachment_info = msg_obj.get('attachments')
 		#logger.debug(attachment_info)
 
 		if attachment_info:
@@ -647,31 +628,47 @@ class VkBotWorker():
 			if event.type != VkBotEventType.MESSAGE_NEW:
 				continue
 
-			msg = event.obj.message
-			user_id = msg.get('peer_id')
+			msg_obj = event.obj.message
+			user_id = msg_obj.get('peer_id')
+			command = msg_obj.get('text').strip().lower()
+
+			if (command):
+				if (command == userCommands.HELP.value):
+					sayOrReply(user_id, "Скоро сделаем.")
+					return
+				if (command == userCommands.CLEAR.value):
+					queueHandler.clear_pool(user_id)
+					return
+				if(command == userCommands.VERSION.value):
+					msg_version = ""
+					if self.debug_mode: msg_version = "Экспериментальная версия — {}"
+					else: msg_version = "Стабильная версия — {}"
+					sayOrReply(user_id, msg_version.format(self.program_version))
+					return
+				if(user_id in db.getDevelopersId()):
+					if(command == devCommands.TOGGLE_DEBUG.value):
+						user_debug_mode = db.switchUserDebugState(user_id)
+						msg_version = ""
+						if self.debug_mode: msg_version = "Включена экспериментальная версия — {}" if user_debug_mode else "Отключена экспериментальная версия — {}"
+						else: msg_version = "Отключена стабильная версия — {}" if user_debug_mode else "Включена стабильная версия — {}"
+						sayOrReply(user_id, msg_version.format(self.program_version))
+						return
 
 			#поддержка режима разработки
-			if user_id not in dataBase.getDevelopersId(): 			#temporally
+			if user_id not in db.getDevelopersId(): 			#temporally
 				if not self.debug_mode:
-					self.messageHandler(msg)
+					self.messageHandler(msg_obj)
 					continue
 				else: continue
 
-			if self.debug_mode == dataBase.getUserDebugState(user_id) or msg.get('text').strip() == '/switch_debug':
-				self.messageHandler(msg)
+			if self.debug_mode == db.getUserDebugState(user_id) or msg_obj.get('text').strip() == '/switch_debug':
+				self.messageHandler(msg_obj)
+
 
 if __name__ == '__main__':
+	loggerSetup.setup('logger')
 	logger = logging.getLogger('logger')
-	logger.setLevel(logging.DEBUG)
-	handler = StreamHandler(stream = sys.stdout)
-	handler.setFormatter(
-		Formatter(
-			#fmt = '[%(asctime)s, %(levelname)s] ~ %(threadName)s (%(funcName)s)\t~: %(message)s',
-			fmt = '[%(asctime)s, %(levelname)s] ~ (%(funcName)s)\t~: %(message)s',
-			datefmt = time.strftime('%d-%m-%y %H:%M:%S')
-		)
-	)
-	logger.addHandler(handler)
+
 	#обработка аргументов запуска
 	parser = ArgParser()
 	parser.add_argument("-v", "--version", default="v1.0.0", help="Version of the bot")
@@ -697,11 +694,11 @@ if __name__ == '__main__':
 		from dotenv import load_dotenv
 		load_dotenv()
 
-	dataBase = dataBase.DataBase()
+	db = database.DataBase()
 
 	logger.info(f'Debug mode is {debug_mode}')
 	logger.info(f'Filesystem encoding: {sys.getfilesystemencoding()}, Preferred encoding: {locale.getpreferredencoding()}')
-	logger.info(f'Current version {program_version}, Bot Group ID: {os.environ["BOT_ID"]}, Developers ID: {dataBase.getDevelopersId()}')
+	logger.info(f'Current version {program_version}, Bot Group ID: {os.environ["BOT_ID"]}, Developers ID: {db.getDevelopersId()}')
 	logger.info('Logging into VKontakte...')
 
 	vk_session_music = vk_api.VkApi(token = os.environ["AGENT_TOKEN"])
