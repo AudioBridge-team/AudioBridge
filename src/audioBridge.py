@@ -652,7 +652,9 @@ class VkBotWorker():
 
 			#поддержка режима разработки
 			if user_id not in dataBase.getDevelopersId(): 			#temporally
-				if not self.debug_mode: self.messageHandler(msg)
+				if not self.debug_mode:
+					self.messageHandler(msg)
+					continue
 				else: continue
 
 			if self.debug_mode == dataBase.getUserDebugState(user_id) or msg.get('text').strip() == '/switch_debug':
