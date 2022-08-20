@@ -5,7 +5,7 @@ class DataBase():
 	def getUserDebugState(self, user_id: int) -> bool:
 		return self.sql_emulate.get(user_id, False)
 
-	def setUserDebugState(self, user_id: int) -> bool:
+	def switchUserDebugState(self, user_id: int) -> bool:
 		self.sql_emulate[user_id] = not self.sql_emulate[user_id]
 		return self.sql_emulate.get(user_id)
 
