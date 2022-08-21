@@ -11,7 +11,8 @@ from vk_api.utils import get_random_id
 
 import database
 import loggerSetup
-import commands.user as userCommands, commands.dev as devCommands
+from commands.user import *
+from commands.dev import *
 from config import *
 from customErrors import *
 
@@ -633,20 +634,20 @@ class VkBotWorker():
 			command = msg_obj.get('text').strip().lower()
 
 			if (command):
-				if (command == userCommands.HELP.value):
+				if(command == UserCommands.HELP.value):
 					sayOrReply(user_id, "Скоро сделаем.")
 					return
-				if (command == userCommands.CLEAR.value):
+				if(command == UserCommands.CLEAR.value):
 					queueHandler.clear_pool(user_id)
 					return
-				if(command == userCommands.VERSION.value):
+				if(command == UserCommands.VERSION.value):
 					msg_version = ""
 					if self.debug_mode: msg_version = "Экспериментальная версия — {}"
 					else: msg_version = "Стабильная версия — {}"
 					sayOrReply(user_id, msg_version.format(self.program_version))
 					return
 				if(user_id in db.getDevelopersId()):
-					if(command == devCommands.TOGGLE_DEBUG.value):
+					if(command == DevCommands.TOGGLE_DEBUG.value):
 						user_debug_mode = db.switchUserDebugState(user_id)
 						msg_version = ""
 						if self.debug_mode: msg_version = "Включена экспериментальная версия — {}" if user_debug_mode else "Отключена экспериментальная версия — {}"
