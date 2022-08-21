@@ -9,7 +9,7 @@ import vk_api
 from vk_api.bot_longpoll import VkBotLongPoll, VkBotEventType
 from vk_api.utils import get_random_id
 
-import database
+import db.database as database
 import loggerSetup
 from commands.user import *
 from commands.dev import *
@@ -532,10 +532,10 @@ class VkBotWorker():
 			msg = user_message.get('message')
 			msg['peer_id'] = msg.pop('user_id')
 			msg['text'] = msg.pop('body')
-			self.messageHandler(msg)
+			self.message_handler(msg)
 
 	#обработка объекта сообщения
-	def messageHandler(self, msg_obj):
+	def message_handler(self, msg_obj):
 		user_id = msg_obj.get('peer_id')
 		message_id = msg_obj.get('id')
 
@@ -646,9 +646,9 @@ class VkBotWorker():
 					else: msg_version = "Стабильная версия — {}"
 					sayOrReply(user_id, msg_version.format(self.program_version))
 					return
-				if(user_id in db.getDevelopersId()):
+				if(user_id in db.getDev_Id()):
 					if(command == DevCommands.TOGGLE_DEBUG.value):
-						user_debug_mode = db.switchUserDebugState(user_id)
+						user_debug_mode = db.toggle_debug(user_id)
 						msg_version = ""
 						if self.debug_mode: msg_version = "Включена экспериментальная версия — {}" if user_debug_mode else "Отключена экспериментальная версия — {}"
 						else: msg_version = "Отключена стабильная версия — {}" if user_debug_mode else "Включена стабильная версия — {}"
@@ -656,14 +656,14 @@ class VkBotWorker():
 						return
 
 			#поддержка режима разработки
-			if user_id not in db.getDevelopersId(): 			#temporally
+			if user_id not in db.getDev_Id(): 			#temporally
 				if not self.debug_mode:
-					self.messageHandler(msg_obj)
+					self.message_handler(msg_obj)
 					continue
 				else: continue
 
 			if self.debug_mode == db.getUserDebugState(user_id) or msg_obj.get('text').strip() == '/switch_debug':
-				self.messageHandler(msg_obj)
+				self.message_handler(msg_obj)
 
 
 if __name__ == '__main__':
@@ -699,7 +699,7 @@ if __name__ == '__main__':
 
 	logger.info(f'Debug mode is {debug_mode}')
 	logger.info(f'Filesystem encoding: {sys.getfilesystemencoding()}, Preferred encoding: {locale.getpreferredencoding()}')
-	logger.info(f'Current version {program_version}, Bot Group ID: {os.environ["BOT_ID"]}, Developers ID: {db.getDevelopersId()}')
+	logger.info(f'Current version {program_version}, Bot Group ID: {os.environ["BOT_ID"]}, Developers ID: {db.getDev_Id()}')
 	logger.info('Logging into VKontakte...')
 
 	vk_session_music = vk_api.VkApi(token = os.environ["AGENT_TOKEN"])
