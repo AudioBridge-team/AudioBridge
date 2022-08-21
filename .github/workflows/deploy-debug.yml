@@ -3,10 +3,13 @@
 name: Deploy-Debug
 
 # The workflow will run when debugging is pushed into certain branch
-on: [ push ]
+on:
+  push:
+    branches-ignore:
+      - main
 
 env:
-  branch_name: "add_sql_support"
+  branch_name: ""
 
 # A workflow
 jobs:
