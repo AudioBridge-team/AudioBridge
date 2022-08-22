@@ -31,7 +31,7 @@ jobs:
           key     : ${{ secrets.SSH_KEY }}
           port    : ${{ secrets.SSH_PORT }}
           script: |
-            cd /root
+            cd /root/AudioBridge-debug
             rm -rf "${{ env.branch_name }}"
             git clone -b "${{ env.branch_name }}" --single-branch git@github.com:shonqwezon-team/AudioBridge.git "${{ env.branch_name }}"
             cd "${{ env.branch_name }}"
