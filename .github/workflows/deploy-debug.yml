@@ -10,12 +10,14 @@ on:
 
 env:
   branch_name: "add_sql_support"
-  dir: "AudioBridge-${{ env.branch_name }}"
 
 # A workflow
 jobs:
   DebugDeploy:
     runs-on: ubuntu-latest
+
+    env:
+      dir: "AudioBridge-${{ env.branch_name }}"
 
     steps:
       #Branch verification
@@ -37,4 +39,4 @@ jobs:
             git clone -b ${{ env.branch_name }} --single-branch git@github.com:shonqwezon-team/AudioBridge.git ${{ env.dir }}
             cd ${{ env.dir }}
             chmod u+x install.zsh
-            ./install.zsh -v ${{ env.branch_name }} -d
+            ./install.zsh -v "${{ env.branch_name }}" -d
