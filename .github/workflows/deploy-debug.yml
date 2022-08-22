@@ -9,7 +9,7 @@ on:
       - main
 
 env:
-  branch_name: ""
+  branch_name: "add_sql_support"
 
 # A workflow
 jobs:
