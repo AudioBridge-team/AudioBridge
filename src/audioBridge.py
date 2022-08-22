@@ -521,7 +521,8 @@ class QueueHandler():
 
 
 class VkBotWorker():
-	def __init__(self, debug_mode, program_version):
+
+	def __init__(self, debug_mode: bool, program_version: str):
 		self.debug_mode = debug_mode
 		self.program_version = program_version
 		self.longpoll = MyVkBotLongPoll(vk_session, str(os.environ['BOT_ID']))
@@ -631,6 +632,8 @@ class VkBotWorker():
 			queueHandler.add_new_request(task)
 	#прослушивание новый сообщений
 	def listen_longpoll(self):
+		"""_summary_
+		"""
 		for event in self.longpoll.listen():
 			if event.type != VkBotEventType.MESSAGE_NEW:
 				continue
@@ -657,7 +660,7 @@ class VkBotWorker():
 				if(command == DevCommands.VERSIONS.value):
 					msg_version = "[{}] {}"
 					current_version = db.getCurrentVersion(user_id)
-					status = ' '
+					status = '–'
 					if current_version == self.program_version:
 						status = 'X'
 					sayOrReply(user_id, msg_version.format(status, self.program_version))
