@@ -1,4 +1,4 @@
 vk_api
 pydub
 youtube-dl
-psycopg2
+psycopg2-binary
