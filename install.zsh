@@ -5,7 +5,7 @@
 ARGS=""
 VERSION=""
 DEBUG=false
-CONTAINER_NAME="vkbot_container"
+CONTAINER_NAME="vkbot_container-"
 #Получение значения версии
 while getopts v:d flag
 do
@@ -15,16 +15,14 @@ do
 		*) echo "Invalid option: -$flag";;
 	esac
 done
-#Проверка на статус режима отладки
-if [ "$DEBUG" = true ]; then
-	CONTAINER_NAME="vkbot_debug_container"
-	VERSION="vDebug"
-fi
+
 #Проверка на наличие версии, в случае отсутсвия — заверешение
 if [ -z "$VERSION" ]; then
 	echo 'ERROR: version is empty! Set it with argument "-v, --version"'
 	exit 1
 fi
+
+CONTAINER_NAME+="$VERSION"
 
 #Удаление старого контейнера
 echo "Update in progress."
