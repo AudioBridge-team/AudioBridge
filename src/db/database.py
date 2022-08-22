@@ -68,7 +68,7 @@ class DataBase():
 	def create_tables(self):
 		try:
 			with self.conn.cursor() as curs:
-				curs.execute(open("src\db\scripts\init_tables.sql", "r").read())
+				curs.execute(open("src/db/scripts/init_tables.sql", "r").read())
 				curs.execute('SELECT * FROM roles')
 				if not curs.fetchall():
 					for user_id in json.loads(os.environ['OWNERS_ID']):
