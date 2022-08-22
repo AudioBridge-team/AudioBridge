@@ -16,9 +16,6 @@ jobs:
   DebugDeploy:
     runs-on: ubuntu-latest
 
-    env:
-      dir: "AudioBridge-${{ env.branch_name }}"
-
     steps:
       #Branch verification
       - name: Branch verification
@@ -35,8 +32,8 @@ jobs:
           port    : ${{ secrets.SSH_PORT }}
           script: |
             cd /root
-            rm -rf ${{ env.dir }}
-            git clone -b ${{ env.branch_name }} --single-branch git@github.com:shonqwezon-team/AudioBridge.git ${{ env.dir }}
-            cd ${{ env.dir }}
+            rm -rf "${{ env.branch_name }}"
+            git clone -b "${{ env.branch_name }}" --single-branch git@github.com:shonqwezon-team/AudioBridge.git "${{ env.branch_name }}"
+            cd "${{ env.branch_name }}"
             chmod u+x install.zsh
             ./install.zsh -v "${{ env.branch_name }}" -d
