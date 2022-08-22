@@ -1,3 +1,6 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
 from asyncio.log import logger
 import os, psycopg2, logging, sys, json
 from psycopg2 import Error
@@ -5,7 +8,8 @@ from psycopg2 import Error
 from config import PermissionsType
 
 class DataBase():
-	def __init__(self):
+	def __init__(self, program_version):
+		self.program_version = program_version
 		self.logger = logging.getLogger('logger')
 
 		# Инициализация объекта подключения
@@ -101,17 +105,22 @@ class DataBase():
 	def getDev_Id(self) -> list:
 		return list(self.dev_id.keys())
 
-	#Переключить debug режим
-	def toggle_debug(self, user_id: int):
-		self.dev_id[user_id] = not self.dev_id[user_id]
+	def updateCachedVersion(self, user_id: int, version_name: str):
+		self.dev_id[user_id] = version_name
+		self.logger.debug(f'{user_id} updated cached version to {version_name}')
+
+	#Получить текущую версию
+	def getCurrentVersion(self, user_id: int) -> str:
+		return self.dev_id.get(user_id)
+
+	#Переключить версию
+	def toggle_version(self, user_id: int, version_name: str):
+		self.updateCachedVersion(user_id, version_name)
 		try:
-			sql_toggle_debug = f'UPDATE roles SET debug = %s WHERE user_id = %s'
+			sql_toggle_debug = f'UPDATE roles SET version_name = %s WHERE user_id = %s'
 			with self.conn.cursor() as curs:
-				curs.execute(sql_toggle_debug, (self.dev_id[user_id], user_id))
+				curs.execute(sql_toggle_debug, (version_name, user_id))
 		except (Exception, Error) as er:
 			self.logger.error(f'Error toggle debug: {er}')
 		else:
-			self.logger.debug(f'{user_id} toggled debug to {self.dev_id[user_id]} successfully')
-
-	def getUserDebugState(self, user_id: int) -> bool:
-		return self.dev_id.get(user_id, False)
+			self.logger.debug(f'{user_id} toggled version to {version_name} successfully')

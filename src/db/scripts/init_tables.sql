@@ -1,7 +1,7 @@
 CREATE TABLE if not exists roles (
 	user_id INTEGER PRIMARY KEY,
 	permissions INTEGER[] NOT NULL,
-	debug BOOLEAN DEFAULT true NOT NULL
+	version_name TEXT DEFAULT 'v1.0.0' NOT NULL
 );
 
 CREATE TABLE if not exists audio_requests (

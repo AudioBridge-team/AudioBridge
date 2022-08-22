@@ -1,8 +1,12 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
 #Команды для разработчиков
 from enum import Enum
 
 class DevCommands(Enum):
-	TOGGLE_DEBUG = "/toggle_debug", "Переключатель режима разработки"  #переключить версию бота
+	TOGGLE   = "/toggle",   "Переключатель режима разработки"  		#переключить версию бота
+	VERSIONS = "/versions", "Узнать доступные версии ботов"		#получить все доступные версии ботов
 
 	def __new__(cls, *args, **kwds):
 		obj = object.__new__(cls)

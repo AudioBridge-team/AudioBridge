@@ -521,9 +521,9 @@ class QueueHandler():
 
 
 class VkBotWorker():
-	def __init__(self, _debug_mode, _program_version):
-		self.debug_mode = _debug_mode
-		self.program_version = _program_version
+	def __init__(self, debug_mode, program_version):
+		self.debug_mode = debug_mode
+		self.program_version = program_version
 		self.longpoll = MyVkBotLongPoll(vk_session, str(os.environ['BOT_ID']))
 		#обработка невыполненных запросов после обновления, краша бота
 		unanswered_messages = vk.messages.getDialogs(unanswered=1)
@@ -541,6 +541,12 @@ class VkBotWorker():
 
 		options = list(filter(None, msg_obj.get('text').split('\n')))
 		logger.debug(f'New message: ({len(options)}) {options}')
+
+		#Специфичные команды
+		command = options[0].strip().lower()
+		if(command == UserCommands.CLEAR.value):
+			queueHandler.clear_pool(user_id)
+			return
 
 		if not userRequests.get(user_id):
 			userRequests[user_id] = 0
@@ -633,37 +639,45 @@ class VkBotWorker():
 			user_id = msg_obj.get('peer_id')
 			command = msg_obj.get('text').strip().lower()
 
-			if (command):
+			#Обработка общих команд
+			if not self.debug_mode:
 				if(command == UserCommands.HELP.value):
-					sayOrReply(user_id, "Скоро сделаем.")
-					return
-				if(command == UserCommands.CLEAR.value):
-					queueHandler.clear_pool(user_id)
+					sayOrReply(user_id, "Скоро сделаем...")
 					return
 				if(command == UserCommands.VERSION.value):
-					msg_version = ""
-					if self.debug_mode: msg_version = "Экспериментальная версия — {}"
-					else: msg_version = "Стабильная версия — {}"
-					sayOrReply(user_id, msg_version.format(self.program_version))
+					sayOrReply(user_id, f"Официальная версия — {self.program_version}")
 					return
-				if(user_id in db.getDev_Id()):
-					if(command == DevCommands.TOGGLE_DEBUG.value):
-						user_debug_mode = db.toggle_debug(user_id)
-						msg_version = ""
-						if self.debug_mode: msg_version = "Включена экспериментальная версия — {}" if user_debug_mode else "Отключена экспериментальная версия — {}"
-						else: msg_version = "Отключена стабильная версия — {}" if user_debug_mode else "Включена стабильная версия — {}"
-						sayOrReply(user_id, msg_version.format(self.program_version))
-						return
 
-			#поддержка режима разработки
-			if user_id not in db.getDev_Id(): 			#temporally
-				if not self.debug_mode:
+				if user_id not in db.getDev_Id():
 					self.message_handler(msg_obj)
-					continue
-				else: continue
+					return
 
-			if self.debug_mode == db.getUserDebugState(user_id) or msg_obj.get('text').strip() == '/switch_debug':
-				self.message_handler(msg_obj)
+			#Обработка команд от разработчиков
+			if user_id in db.getDev_Id():
+				if(command == DevCommands.VERSIONS.value):
+					msg_version = "[{}] {}"
+					current_version = db.getCurrentVersion(user_id)
+					status = ' '
+					if current_version == self.program_version:
+						status = 'X'
+					sayOrReply(user_id, msg_version.format(status, self.program_version))
+					return
+				if(command.startswith(DevCommands.TOGGLE.value)):
+					if not self.debug_mode:
+						version_obj = command.split(' ')
+						if(len(version_obj) != 2):
+							sayOrReply(user_id, "Неверно указаны параметры. Обратитесь к /help")
+							return
+						version_name = version_obj[1]
+						db.toggle_version(user_id, version_name)
+						sayOrReply(user_id, f"Включена версия: {version_name}")
+					else:
+						version_obj = command.split(' ')
+						if(len(version_obj) == 2): db.updateCachedVersion(user_id, version_obj[1])
+					return
+
+				if(self.program_version == db.getCurrentVersion(user_id)):
+					self.message_handler(msg_obj)
 
 
 if __name__ == '__main__':
@@ -686,16 +700,16 @@ if __name__ == '__main__':
 		logger.info(f'Started program in default mode.')
 	else:
 		debug_mode = args.debug
-		program_version = args.version
+		program_version = args.version.strip().lower()
 		logger.info('Program started.')
 	#автоматическое включение дебаг режима в случае запуска бота на Windows
 	logger.info(f'Platform is {platform}')
 	if platform == "win32":
-		debug_mode = True
+		debug_mode = False
 		from dotenv import load_dotenv
 		load_dotenv()
 
-	db = database.DataBase()
+	db = database.DataBase(program_version)
 
 	logger.info(f'Debug mode is {debug_mode}')
 	logger.info(f'Filesystem encoding: {sys.getfilesystemencoding()}, Preferred encoding: {locale.getpreferredencoding()}')
