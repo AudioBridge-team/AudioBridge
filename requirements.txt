@@ -1,3 +1,4 @@
 vk_api
 pydub
 youtube-dl
+psycopg2
