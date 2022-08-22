@@ -23,6 +23,8 @@ jobs:
           echo "(${{ github.ref_name }} is ${{ env.branch_name }}) = ${{ github.ref_name == env.branch_name }}"
       #Connecting to server
       - name: Connecting to server
+        env:
+          dir: "AudioBridge-${{ env.branch_name }}"
         if: ${{ github.ref_name == env.branch_name }}
         uses: appleboy/ssh-action@master
         with:
@@ -32,8 +34,8 @@ jobs:
           port    : ${{ secrets.SSH_PORT }}
           script: |
             cd /root
-            rm -rf AudioBridge-debug
-            git clone -b "${{ env.branch_name }}" --single-branch git@github.com:shonqwezon-team/AudioBridge.git AudioBridge-debug
-            cd AudioBridge-debug
+            rm -rf $dir
+            git clone -b "${{ env.branch_name }}" --single-branch git@github.com:shonqwezon-team/AudioBridge.git $dir
+            cd $dir
             chmod u+x install.zsh
-            ./install.zsh -d
+            ./install.zsh -v "${{ env.branch_name }}" -d
