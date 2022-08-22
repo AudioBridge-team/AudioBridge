@@ -34,8 +34,8 @@ jobs:
           port    : ${{ secrets.SSH_PORT }}
           script: |
             cd /root
-            rm -rf $dir
-            git clone -b "${{ env.branch_name }}" --single-branch git@github.com:shonqwezon-team/AudioBridge.git $dir
-            cd $dir
+            rm -rf "$dir"
+            git clone -b "${{ env.branch_name }}" --single-branch git@github.com:shonqwezon-team/AudioBridge.git "$dir"
+            cd "$dir"
             chmod u+x install.zsh
             ./install.zsh -v "${{ env.branch_name }}" -d
