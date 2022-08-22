@@ -535,8 +535,8 @@ class VkBotWorker():
 			msg['text'] = msg.pop('body')
 			self.message_handler(msg)
 
-	#обработка объекта сообщения
 	def message_handler(self, msg_obj):
+		"""Обработка объекта сообщения."""
 		user_id = msg_obj.get('peer_id')
 		message_id = msg_obj.get('id')
 
@@ -630,10 +630,9 @@ class VkBotWorker():
 			msg_start_id = sayOrReply(user_id, 'Запрос добавлен в очередь ({0}/{1})'.format(userRequests.get(user_id), Settings.MAX_REQUESTS_QUEUE.value))
 			task = [[msg_start_id, user_id, message_id], options]
 			queueHandler.add_new_request(task)
-	#прослушивание новый сообщений
+
 	def listen_longpoll(self):
-		"""_summary_
-		"""
+		"""Прослушивание новый сообщений."""
 		for event in self.longpoll.listen():
 			if event.type != VkBotEventType.MESSAGE_NEW:
 				continue
@@ -666,6 +665,7 @@ class VkBotWorker():
 					sayOrReply(user_id, msg_version.format(status, self.program_version))
 					return
 				if(command.startswith(DevCommands.TOGGLE.value)):
+					#Обновление кеша и sql с релиз версии
 					if not self.debug_mode:
 						version_obj = command.split(' ')
 						if(len(version_obj) != 2):
@@ -674,27 +674,29 @@ class VkBotWorker():
 						version_name = version_obj[1]
 						db.toggle_version(user_id, version_name)
 						sayOrReply(user_id, f"Включена версия: {version_name}")
+					#Обновление кеша с дебаг версии
 					else:
 						version_obj = command.split(' ')
 						if(len(version_obj) == 2): db.updateCachedVersion(user_id, version_obj[1])
 					return
-
+				#Проверка соответствия текущей версии бота выбранной
 				if(self.program_version == db.getCurrentVersion(user_id)):
 					self.message_handler(msg_obj)
 
 
 if __name__ == '__main__':
+	"""Точка входа в программу."""
 	loggerSetup.setup('logger')
 	logger = logging.getLogger('logger')
 
-	#обработка аргументов запуска
+	#Доступные параметры запуска
 	parser = ArgParser()
 	parser.add_argument("-v", "--version", default="v1.0.0", help="Version of the bot")
 	parser.add_argument("-d", "--debug", action='store_true', help="Debug mode")
-	#значение аргументов запуска по умолчанию
+	#Значение аргументов запуска по умолчанию
 	debug_mode      = False
 	program_version = "v1.0.0"
-
+	#Обработка параметров запуска
 	try:
 		args = parser.parse_args()
 	except Exception as er:
@@ -705,24 +707,24 @@ if __name__ == '__main__':
 		debug_mode = args.debug
 		program_version = args.version.strip().lower()
 		logger.info('Program started.')
-	#автоматическое включение дебаг режима в случае запуска бота на Windows
+	#Автоматическое включение дебаг режима в случае запуска бота на Windows
 	logger.info(f'Platform is {platform}')
 	if platform == "win32":
 		debug_mode = False
 		from dotenv import load_dotenv
 		load_dotenv()
-
+	#Инициализация класса для подключение к базе данных
 	db = database.DataBase(program_version)
 
 	logger.info(f'Debug mode is {debug_mode}')
 	logger.info(f'Filesystem encoding: {sys.getfilesystemencoding()}, Preferred encoding: {locale.getpreferredencoding()}')
 	logger.info(f'Current version {program_version}, Bot Group ID: {os.environ["BOT_ID"]}, Developers ID: {db.getDev_Id()}')
 	logger.info('Logging into VKontakte...')
-
+	#Интерфейс для работы с аккаунтом агента (который необходим для загрузки аудио)
 	vk_session_music = vk_api.VkApi(token = os.environ["AGENT_TOKEN"])
 	upload           = vk_api.VkUpload(vk_session_music)
 	vk_user          = vk_session_music.get_api()
-
+	#Интерфейс для работы с ботом
 	vk_session = vk_api.VkApi(token = os.environ["BOT_TOKEN"])
 	vk         = vk_session.get_api()
 
@@ -731,7 +733,7 @@ if __name__ == '__main__':
 	queueHandler = QueueHandler()
 	audioTools   = AudioTools()
 	vkBotWorker  = VkBotWorker(debug_mode, program_version)
-
+	#Запуск listener
 	logger.info('Begin listening.')
 	while True:
 		try:
