@@ -8,4 +8,6 @@ COPY . .
 #
 RUN pip install -r requirements.txt
 #
+EXPOSE 5432
+#
 ENTRYPOINT ["python3", "src/audioBridge.py"]
