@@ -1,6 +1,7 @@
 ﻿#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+
 import os, sys, time, locale, json, logging, threading, subprocess
 from sys import platform
 from logging import StreamHandler, Formatter
@@ -17,7 +18,10 @@ from customErrors import *
 
 
 class MyVkBotLongPoll(VkBotLongPoll):
+	"""Class docstrings go here."""
+
 	def listen(self):
+		"""Class method docstrings go here."""
 		while True:
 			try:
 				for event in self.check():
@@ -27,18 +31,22 @@ class MyVkBotLongPoll(VkBotLongPoll):
 
 
 def sayOrReply(user_id: int, _message: str, _reply_to: int = None) -> int:
+	"""Class method docstrings go here."""
 	if _reply_to:
 		return vk.messages.send(peer_id = user_id, message = _message, reply_to = _reply_to, random_id = get_random_id())
 	return vk.messages.send(peer_id = user_id, message = _message, random_id = get_random_id())
 
 
 class AudioTools():
+	"""Class docstrings go here."""
 
 	def __init__(self):
+		"""Class method docstrings go here."""
 		self.playlist_result = {}
 
 	# работа со строкой времени
 	def getSeconds(self, strTime):
+		"""Class method docstrings go here."""
 		strTime = strTime.strip()
 		try:
 			pattern = ''
@@ -57,6 +65,7 @@ class AudioTools():
 
 	# получить информацию о видео по ключу
 	def getVideoInfo(self, key, url):
+		"""Class method docstrings go here."""
 		return 'youtube-dl --max-downloads 1 --no-warnings --get-filename -o "%({0})s" {1}'.format(key, url)
 
 	# получить информацию о плейлисте
@@ -65,6 +74,7 @@ class AudioTools():
 
 	# обработка плейлиста
 	def playlist_processing(self, task):
+		"""Class method docstrings go here."""
 		logger.debug(f'Получил плейлист: {task}')
 		param        = task[0]
 		options      = task[1]
@@ -145,6 +155,7 @@ class AudioTools():
 
 	# подвести итог
 	def playlist_summarize(self, user_id):
+		"""Class method docstrings go here."""
 		try:
 			if self.playlist_result.get(user_id):
 				msg_summary = ''
@@ -177,14 +188,17 @@ class AudioTools():
 
 
 class AudioWorker(threading.Thread):
+	"""Class docstrings go here."""
 
 	def __init__(self, task: list):
+		"""Class method docstrings go here."""
 		super(AudioWorker, self).__init__()
 		self._stop = False
 		self._task = task
 		self._playlist = False
 
 	def run(self):
+		"""Class method docstrings go here."""
 		logger.info('AudioWorker: Запуск.')
 		try:
 			task = self._task
@@ -435,26 +449,33 @@ class AudioWorker(threading.Thread):
 					'\tОчередь текущего worker\'а: null').format(self._task, self.path, self.user_id))
 
 	def stop(self):
+		"""Class method docstrings go here."""
 		self._stop = True
 
 
 class QueueHandler():
+	"""Class docstrings go here."""
+
 	def __init__(self):
+		"""Class method docstrings go here."""
 		self._pool_req = []
 		self._workers = {}
 
 	@property
 	def size_queue(self):
+		"""Class method docstrings go here."""
 		return len(self._pool_req)
 
 	@property
 	def size_workers(self):
+		"""Class method docstrings go here."""
 		size = 0
 		for i in self._workers.values(): size += len(i)
 		return size
 
 	# очистка очереди запросов пользователя
 	def clear_pool(self, user_id):
+		"""Class method docstrings go here."""
 		try:
 			if not userRequests.get(user_id):
 				sayOrReply(user_id, 'Очередь запросов уже пуста!')
@@ -476,12 +497,14 @@ class QueueHandler():
 
 	# добавление нового запроса в общую очередь
 	def add_new_request(self, task):
+		"""Class method docstrings go here."""
 		self._pool_req.append(task)
 		# проверка на превышение кол-ва максимально возможных воркеров
 		if (self.size_workers < Settings.MAX_WORKERS): self._run_worker()
 
 	# подтверждение выполнения запроса
 	def ack_request(self, user_id, worker):
+		"""Class method docstrings go here."""
 		try:
 			self._workers.get(user_id).remove(worker)
 			if not len(self._workers.get(user_id)): del self._workers[user_id]
@@ -498,6 +521,7 @@ class QueueHandler():
 
 	# запуск воркера
 	def _run_worker(self):
+		"""Class method docstrings go here."""
 		for i, task in enumerate(self._pool_req):
 			user_id = task[0][1]
 
@@ -520,7 +544,10 @@ class QueueHandler():
 
 
 class VkBotWorker():
+	"""Class docstrings go here."""
+
 	def __init__(self, _debug_mode, _program_version):
+		"""Class method docstrings go here."""
 		self.debug_mode = _debug_mode
 		self.program_version = _program_version
 		self.longpoll = MyVkBotLongPoll(vk_session, str(os.environ['BOT_ID']))
@@ -535,6 +562,7 @@ class VkBotWorker():
 
 	#обработка объекта сообщения
 	def messageHandler(self, msg):
+		"""Class method docstrings go here."""
 		user_id = msg.get('peer_id')
 		message_id = msg.get('id')
 
@@ -643,6 +671,7 @@ class VkBotWorker():
 			queueHandler.add_new_request(task)
 	#прослушивание новый сообщений
 	def listen_longpoll(self):
+		"""Class method docstrings go here."""
 		for event in self.longpoll.listen():
 			if event.type != VkBotEventType.MESSAGE_NEW:
 				continue

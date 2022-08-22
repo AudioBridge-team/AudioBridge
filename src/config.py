@@ -1,6 +1,12 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
 from enum import Enum, IntEnum, auto
 
+
 class Settings(IntEnum):
+	"""Class docstrings go here."""
+
 	MAX_WORKERS        = 6                  # максимальное число потоков для всех обработки запросов
 	MAX_UNITS          = 1                  # число потоков для обработки запросов от одного пользователя
 	MAX_REQUESTS_QUEUE = 5                  # максимальное кол-во запросов в общую очередь от одного пользователя
@@ -11,10 +17,17 @@ class Settings(IntEnum):
 	MAX_ATTEMPTS       = 3                  # количество попыток при ошибке скачивания
 	TIME_ATTEMPT       = 1                  # интервал между попытками скачивания (сек)
 
+
 class RequestIndex(Enum):
+	"""Class docstrings go here."""
+
 	INDEX_PLAYLIST = "/playlist"            # показатель плейлиста
 
+
 class PlaylistStates(IntEnum):
+	"""Class docstrings go here."""
+
 	PLAYLIST_SUCCESSFUL = auto()
 	PLAYLIST_COPYRIGHT  = auto()
 	PLAYLIST_UNSTATED   = auto()
+
