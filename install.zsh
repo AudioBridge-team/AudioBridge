@@ -34,10 +34,10 @@ echo "Docker: starting up $CONTAINER_NAME..."
 
 if [ "$DEBUG" = true ]; then
 	echo "Mode: debug"
-	docker run --env-file /root/AudioBridge-data/.env --volume /root/AudioBridge-data:/var/lib/AudioBridge-sql --add-host=database:172.17.0.1 --name "$CONTAINER_NAME" --detach "$CONTAINER_NAME" --version "$VERSION" --debug
+	docker run --env-file /root/AB-data/.env --add-host=database:172.17.0.1 --name "$CONTAINER_NAME" --detach "$CONTAINER_NAME" --version "$VERSION" --debug
 else
 	echo "Mode: release"
-	docker run --env-file /root/AudioBridge-data/.env --volume /root/AudioBridge-data:/var/lib/AudioBridge-sql --add-host=database:172.17.0.1 --name "$CONTAINER_NAME" --detach "$CONTAINER_NAME" --version "$VERSION"
+	docker run --env-file /root/AB-data/.env --add-host=database:172.17.0.1 --name "$CONTAINER_NAME" --detach "$CONTAINER_NAME" --version "$VERSION"
 fi
 
 echo "Docker status:"
