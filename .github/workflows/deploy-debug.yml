@@ -10,7 +10,7 @@ on:
 
 env:
   branch_name: "add_sql_support"
-  dir: "AudioBridge-${{ env.branch_name }}"
+  dir: "AudioBridge-$env.branch_name"
 
 # A workflow
 jobs:
