@@ -105,6 +105,7 @@ class DataBase():
 	def getDev_Id(self) -> list:
 		return list(self.dev_id.keys())
 
+	#Обновление кешированных ролей
 	def updateCachedVersion(self, user_id: int, version_name: str):
 		self.dev_id[user_id] = version_name
 		self.logger.debug(f'{user_id} updated cached version to {version_name}')

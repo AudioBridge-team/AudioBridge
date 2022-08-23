@@ -5,6 +5,12 @@ import logging, sys, time
 from logging import StreamHandler, Formatter
 
 def setup(logger_name: str, level=logging.DEBUG):
+	"""Инициализация логгера
+
+	Args:
+		logger_name (str): Имя логгера
+		level (_type_, optional): logger level. Defaults to logging.DEBUG.
+	"""
 	logger = logging.getLogger(logger_name)
 	logger.setLevel(level)
 	handler = StreamHandler(stream = sys.stdout)

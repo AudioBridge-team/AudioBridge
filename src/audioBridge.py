@@ -18,6 +18,11 @@ from customErrors import *
 
 
 class MyVkBotLongPoll(VkBotLongPoll):
+	"""Класс обработки событий от VkLongPoll.
+
+	Args:
+		VkBotLongPoll (VkLongPoll): интерфейс управления VK
+	"""
 	def listen(self):
 		while True:
 			try:
@@ -26,7 +31,7 @@ class MyVkBotLongPoll(VkBotLongPoll):
 			except Exception as e:
 				logger.error(e)
 
-
+#Функция отправки сообщения
 def sayOrReply(user_id: int, _message: str, _reply_to: int = None) -> int:
 	if _reply_to:
 		return vk.messages.send(peer_id = user_id, message = _message, reply_to = _reply_to, random_id = get_random_id())
@@ -34,11 +39,12 @@ def sayOrReply(user_id: int, _message: str, _reply_to: int = None) -> int:
 
 
 class AudioTools():
+	"""Класс вспомогательных функций для выполнения запроса."""
 
 	def __init__(self):
 		self.playlist_result = {}
 
-	# работа со строкой времени
+	#Работа со строкой времени; в скором времени избавимся от этой функции
 	def getSeconds(self, strTime):
 		strTime = strTime.strip()
 		try:
@@ -56,19 +62,19 @@ class AudioTools():
 			logger.error(er)
 			return -1
 
-	# получить информацию о видео по ключу
+	#Получить информацию о видео по ключу
 	def getVideoInfo(self, key, url):
 		return 'youtube-dl --max-downloads 1 --no-warnings --get-filename -o "%({0})s" {1}'.format(key, url)
 
-	# получить информацию о плейлисте
+	#Получить информацию о плейлисте
 	def getPlaylistInfo(self, filter, url):
 		return 'youtube-dl --no-warnings --dump-json --newline {0} {1}'.format(filter, url)
 
-	# обработка плейлиста
+	#Обработка плейлиста
 	def playlist_processing(self, task):
 		logger.debug(f'Получил плейлист: {task}')
 		param        = task[0]
-		options      = task[1]
+		options      = task[1]	 #Параметры запроса
 		msg_start_id = param[0]  #id сообщения с размером очереди (необходимо для удаления в конце обработки запроса)
 		user_id      = param[1]  #id пользователя
 		msg_id       = param[2]  #id сообщения пользователя (необходимо для ответа на него)
@@ -86,7 +92,7 @@ class AudioTools():
 			totalTime = 0
 			attempts = 0
 
-			# получение urls и проверка общей продолжительности запроса
+			#Получение urls и проверка общей продолжительности запроса
 			while attempts != Settings.MAX_ATTEMPTS:
 				proc = subprocess.Popen(informationString, stdout = subprocess.PIPE, stderr = subprocess.PIPE, text = True, shell = True)
 				line = str(proc.stdout.readline())
@@ -99,7 +105,7 @@ class AudioTools():
 					line = str(proc.stdout.readline())
 				stdout, stderr = proc.communicate()
 
-				#if (stderr and not urls):
+				#Выход из цикла, если информация была успешно получена
 				if (not stderr and urls):
 					break
 
@@ -123,7 +129,7 @@ class AudioTools():
 		except CustomError as er:
 			sayOrReply(user_id, f'Произошла ошибка: {er}', msg_id)
 
-			# удаление сообщения с порядком очереди
+			#Удаление сообщения с порядком очереди
 			vk.messages.delete(delete_for_all = 1, message_ids = msg_start_id)
 			del userRequests[user_id]
 			logger.error(f'Произошла ошибка: {er}')
@@ -132,19 +138,19 @@ class AudioTools():
 			error_string = 'Ошибка: Невозможно обработать плейлист. Убедитесь, что запрос корректный и отправьте его повторно.'
 			sayOrReply(user_id, error_string, msg_id)
 
-			# удаление сообщения с порядком очереди
+			#Удаление сообщения с порядком очереди
 			vk.messages.delete(delete_for_all = 1, message_ids = msg_start_id)
 			del userRequests[user_id]
 			logger.error(f'Поймал исключение: {er}')
 
 		else:
-			self.playlist_result[user_id] = {'msg_id' : msg_id}  # отчёт скачивания плейлиста
+			self.playlist_result[user_id] = {'msg_id' : msg_id}  #Отчёт скачивания плейлиста
 			for i, url in enumerate(urls):
 				self.playlist_result[user_id][url[1]] = PlaylistStates.PLAYLIST_UNSTATED
 				userRequests[user_id] -= 1
 				queueHandler.add_new_request([param, [url[0]], [i+1, len(urls)]])
 
-	# подвести итог
+	#Подвести итог
 	def playlist_summarize(self, user_id):
 		try:
 			if self.playlist_result.get(user_id):
@@ -200,7 +206,7 @@ class AudioWorker(threading.Thread):
 			self.msg_start_id = param[0]    #id сообщения с размером очереди (необходимо для удаления в конце обработки запроса)
 			self.user_id = param[1]         #id пользователя
 			self.msg_id = param[2]          #id сообщения пользователя (необходимо для ответа на него)
-			self.path = ''                  #путь сохранения файла
+			self.path = ''                  #Путь сохранения файла
 			self.progress_msg_id = 0        #id сообщения с прогрессом загрузки
 
 			if options[0][0] == '-':
@@ -215,7 +221,7 @@ class AudioWorker(threading.Thread):
 			attempts = 0
 			video_duration = -1
 			while attempts != Settings.MAX_ATTEMPTS:
-				# проверка на соблюдение ограничения длительности видео (MAX_VIDEO_DURATION)
+				#Проверка на соблюдение ограничения длительности видео (MAX_VIDEO_DURATION)
 				proc = subprocess.Popen(audioTools.getVideoInfo('duration', options[0]), stdout = subprocess.PIPE, stderr = subprocess.PIPE, text = True, shell = True)
 				stdout, stderr = proc.communicate()
 				if (stderr):
@@ -240,7 +246,7 @@ class AudioWorker(threading.Thread):
 			elif video_duration > Settings.MAX_VIDEO_DURATION:
 				raise CustomError('Ошибка: Длительность будущей аудиозаписи превышает 3 часа.')
 
-			# обработка запроса с таймингами среза
+			#Обработка запроса с таймингами среза
 			if len(options) > 3:
 				startTime = audioTools.getSeconds(options[3])
 				if startTime == -1:
@@ -252,7 +258,7 @@ class AudioWorker(threading.Thread):
 			proc = subprocess.Popen(audioTools.getVideoInfo('id', options[0]), stdout = subprocess.PIPE, text = True, shell = True)
 			self.path = proc.communicate()[0].strip()
 
-			# загрузка файла
+			#Загрузка файла
 			attempts = 0
 			while attempts != Settings.MAX_ATTEMPTS:
 				proc = subprocess.Popen(downloadString, stdout = subprocess.PIPE, stderr = subprocess.PIPE, text = True, shell = True)
@@ -260,12 +266,12 @@ class AudioWorker(threading.Thread):
 				while line:
 					if self._stop: return
 
-					# поиск пути сохранения файла
+					#Поиск пути сохранения файла
 					if 'Destination' in line and '.mp3' in line:
 						self.path = line[line.find(':')+2:len(line)].strip()
 						logger.debug(f'Путь: {self.path}')
 
-					# обновление сообщения с процессом загрузки файла
+					#Обновление сообщения с процессом загрузки файла
 					if ' of ' in line:
 						if cUpdateProcess == -1:
 							if self._playlist:
@@ -300,12 +306,12 @@ class AudioWorker(threading.Thread):
 					break
 			logger.debug(f'Скачивание видео, попытки: {attempts}')
 
-			# проверка валидности пути сохранения файла
+			#Проверка валидности пути сохранения файла
 			if not self.path:
 				logger.error(f'Путь: попытки: {attempts}')
 				raise CustomError('Ошибка: Некорректный адрес Youtube-видео.')
 
-			# проверка размера фалйа (необходимо из-за внутренних ограничений VK)
+			#Проверка размера файла (необходимо из-за внутренних ограничений VK)
 			if os.path.getsize(self.path) > Settings.MAX_FILESIZE:
 				raise CustomError('Размер аудиозаписи превышает 200 Мб!')
 			else:
@@ -314,7 +320,7 @@ class AudioWorker(threading.Thread):
 
 				if self._stop: return
 
-				# создание аудиосегмента
+				#Создание аудиосегмента
 				if len(options) > 3 and audioDuration < video_duration:
 					baseAudio = self.path
 					self.path = 'A' + self.path
@@ -327,11 +333,11 @@ class AudioWorker(threading.Thread):
 					else:
 						logger.error(f'Ошибка: Файл видео не существует.')
 
-				# поиск и коррекция данных аудиозаписи
+				#Поиск и коррекция данных аудиозаписи
 				artist = 'unknown'
 				self.title = 'unknown'
 
-				# URL
+				#URL
 				if len(options) == 1:
 					proc = subprocess.Popen(audioTools.getVideoInfo('title', options[0]), stdout = subprocess.PIPE, text = True, shell = True)
 					file_name = proc.communicate()[0].strip()
@@ -342,7 +348,7 @@ class AudioWorker(threading.Thread):
 					if file_author:
 						artist = file_author
 
-				# URL + song_name
+				#URL + song_name
 				elif len(options) == 2:
 					self.title = options[1]
 					proc = subprocess.Popen(audioTools.getVideoInfo('channel', options[0]), stdout = subprocess.PIPE, text = True, shell = True)
@@ -350,7 +356,7 @@ class AudioWorker(threading.Thread):
 					if file_author:
 						artist = file_author
 
-				# URL + song_name + song_autor
+				#URL + song_name + song_autor
 				else:
 					artist = options[2]
 					self.title = options[1]
@@ -358,7 +364,7 @@ class AudioWorker(threading.Thread):
 					self.title[0:51]
 
 				if self._stop: return
-				# загрузка аудиозаписи на сервера VK + её отправка получателю
+				#Загрузка аудиозаписи на сервера VK + её отправка получателю
 				audio_obj = upload.audio(self.path, artist, self.title)
 				audio_id = audio_obj.get('id')
 				audio_owner_id = audio_obj.get('owner_id')
@@ -393,11 +399,11 @@ class AudioWorker(threading.Thread):
 			logger.error(f'Exception: {er}')
 
 		finally:
-			# удаление сообщения с прогрессом
+			#Удаление сообщения с прогрессом
 			if self.progress_msg_id:
 				vk.messages.delete(delete_for_all = 1, message_ids = self.progress_msg_id)
 
-			# удаление загруженного файла
+			#Удаление загруженного файла
 			if self.path:
 				if not '.mp3' in self.path:
 					for f_name in os.listdir():
@@ -410,7 +416,7 @@ class AudioWorker(threading.Thread):
 					logger.error('Ошибка: Аудио-файл не существует.')
 
 			if not self._stop:
-				# удаление сообщения с порядком очереди
+				#Удаление сообщения с порядком очереди
 				if(userRequests[self.user_id] < 0):
 					userRequests[self.user_id] += 1
 					if (userRequests[self.user_id] == -1):
@@ -440,6 +446,7 @@ class AudioWorker(threading.Thread):
 
 
 class QueueHandler():
+	"""Класс управления очередью запросов."""
 	def __init__(self):
 		self._pool_req = []
 		self._workers = {}
@@ -454,7 +461,7 @@ class QueueHandler():
 		for i in self._workers.values(): size += len(i)
 		return size
 
-	# очистка очереди запросов пользователя
+	#Очистка очереди запросов пользователя
 	def clear_pool(self, user_id):
 		try:
 			if not userRequests.get(user_id):
@@ -466,7 +473,7 @@ class QueueHandler():
 				if self._workers.get(user_id):
 					for worker in self._workers.get(user_id):
 						worker.stop()
-
+					#Подведение отчёта о загрузке плейлиста (если он загружался)
 					audioTools.playlist_summarize(user_id)
 					del self._workers[user_id]
 					del userRequests[user_id]
@@ -475,21 +482,19 @@ class QueueHandler():
 			logger.error(er)
 			sayOrReply(user_id, 'Не удалось почистить очередь!')
 
-	# добавление нового запроса в общую очередь
+	#Добавление нового запроса в общую очередь
 	def add_new_request(self, task):
 		self._pool_req.append(task)
-		# проверка на превышение кол-ва максимально возможных воркеров
+		#Проверка на превышение кол-ва максимально возможных воркеров
 		if (self.size_workers < Settings.MAX_WORKERS): self._run_worker()
 
-	# подтверждение выполнения запроса
+	#Подтверждение выполнения запроса
 	def ack_request(self, user_id, worker):
 		try:
 			self._workers.get(user_id).remove(worker)
 			if not len(self._workers.get(user_id)): del self._workers[user_id]
-			#try:
 			self._run_worker()
-			#except Exception as er:
-			#	logger.error(er)
+
 		except Exception as er:
 			logger.error(er)
 			if user_id in self._workers: del self._workers[user_id]
@@ -497,12 +502,12 @@ class QueueHandler():
 				if (self._pool_req[i-1][0][1] == user_id):
 					del self._pool_req[i-1]
 
-	# запуск воркера
+	#Запуск аудио воркера
 	def _run_worker(self):
 		for i, task in enumerate(self._pool_req):
 			user_id = task[0][1]
 
-			# проверка на наличие и кол-во активных запросов пользователя
+			#Если пользователь не имеет активных запросов
 			if not self._workers.get(user_id):
 				worker = AudioWorker(task)
 				worker.name = f'{user_id}-worker <{len(self._workers.get(user_id, []))}>'
@@ -510,7 +515,7 @@ class QueueHandler():
 				self._workers[user_id] = [worker]
 				del self._pool_req[i]
 				return
-
+			#Если пользователь имеет активные запросы
 			elif (len(self._workers.get(user_id)) < Settings.MAX_UNITS):
 				worker = AudioWorker(task)
 				worker.name = f'{user_id}-worker <{len(self._workers.get(user_id, []))}>'
@@ -548,25 +553,25 @@ class VkBotWorker():
 		if(command == UserCommands.CLEAR.value):
 			queueHandler.clear_pool(user_id)
 			return
-
+		#Инициализация ячейки конкретного пользователя
 		if not userRequests.get(user_id):
 			userRequests[user_id] = 0
-
+		#Проверка на текущую загрузку плейлиста
 		if userRequests.get(user_id) < 0:
 			sayOrReply(user_id, 'Ошибка: Пожалуйста, дождитесь окончания загрузки плейлиста.')
 			return
-
+		#Проверка на максимальное число запросов за раз
 		if userRequests.get(user_id) == Settings.MAX_REQUESTS_QUEUE:
 			sayOrReply(user_id, 'Ошибка: Кол-во ваших запросов в общей очереди не может превышать {0}.'.format(Settings.MAX_REQUESTS_QUEUE))
 			return
-
+		#Проверка на превышения числа возможных аргументов запроса
 		if len(options) > 5:
 			sayOrReply(user_id, 'Ошибка: Слишком много аргументов.', message_id)
 			return
 
 		attachment_info = msg_obj.get('attachments')
 		#logger.debug(attachment_info)
-
+		#Обработка приложений к сообщению
 		if attachment_info:
 			try:
 				logger.debug(f'Attachments info: ({len(attachment_info)}) {attachment_info[0].get("type")}')
@@ -597,6 +602,7 @@ class VkBotWorker():
 						options.insert(0, link_url)
 
 				else:
+					#Вызов ошибки, если в сообщении нет текста и прикреплённые приложения не являются видео или ссылкой
 					if not options:
 						sayOrReply(user_id, 'Ошибка обработки запроса.', message_id)
 						return
@@ -606,11 +612,11 @@ class VkBotWorker():
 				if not options:
 					sayOrReply(user_id, 'Ошибка: Невозможно обработать запрос. Возможно, вы прикрепили видео вместо ссылки на видео.', message_id)
 					return
-
+		#Вызов ошибки, если отсутствуют приложения и нет текста
 		if not options:
 			sayOrReply(user_id, 'Ошибка: Некорректный запрос.', message_id)
 			return
-
+		#Обработка запроса с плейлистом
 		if (RequestIndex.INDEX_PLAYLIST.value in options[0]):
 			if (userRequests.get(user_id)):
 				sayOrReply(user_id, 'Ошибка: Для загрузки плейлиста очередь запросов должна быть пуста.')
@@ -621,11 +627,13 @@ class VkBotWorker():
 			elif len(options) > 2:
 				sayOrReply(user_id, 'Ошибка: Неверные параметры для загрузки плейлиста.', message_id)
 			else:
+				#Создание задачи + вызов функции фрагментации плейлиста, чтобы свести запрос к обычной единице (одной ссылке)
 				userRequests[user_id] = -1
 				msg_start_id = sayOrReply(user_id, 'Запрос добавлен в очередь (плейлист)')
 				task = [[msg_start_id, user_id, message_id], options]
 				threading.Thread(target = audioTools.playlist_processing(task)).start()
 		else:
+			#Создание задачи и её добавление в обработчик очереди
 			userRequests[user_id] += 1
 			msg_start_id = sayOrReply(user_id, 'Запрос добавлен в очередь ({0}/{1})'.format(userRequests.get(user_id), Settings.MAX_REQUESTS_QUEUE.value))
 			task = [[msg_start_id, user_id, message_id], options]
@@ -728,7 +736,7 @@ if __name__ == '__main__':
 	vk_session = vk_api.VkApi(token = os.environ["BOT_TOKEN"])
 	vk         = vk_session.get_api()
 
-	userRequests = {}  #для отслеживания кол-ва запросов от одного пользователя MAX_REQUESTS_QUEUE
+	userRequests = {}  #Для отслеживания кол-ва запросов от одного пользователя MAX_REQUESTS_QUEUE (отрицательные значения — загрузка плейлиста, положительные — загрузка единичных песен)
 
 	queueHandler = QueueHandler()
 	audioTools   = AudioTools()
