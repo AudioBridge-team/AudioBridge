@@ -555,13 +555,14 @@ class VkBotWorker():
 		self.program_version = program_version
 		self.longpoll        = MyVkBotLongPoll(vk_bot_auth, str(os.environ['BOT_ID']))
 		# Обработка невыполненных запросов после обновления, краша бота
-		unanswered_messages  = vk_bot.messages.getDialogs(unanswered=1)
+		if not self.debug_mode:
+			unanswered_messages  = vk_bot.messages.getDialogs(unanswered=1)
 
-		for user_message in unanswered_messages.get('items'):
-			msg            = user_message.get('message')
-			msg['peer_id'] = msg.pop('user_id')
-			msg['text']    = msg.pop('body')
-			self.message_handler(msg)
+			for user_message in unanswered_messages.get('items'):
+				msg            = user_message.get('message')
+				msg['peer_id'] = msg.pop('user_id')
+				msg['text']    = msg.pop('body')
+				self.message_handler(msg)
 
 	def message_handler(self, msg_obj):
 		"""Обработка объекта сообщения."""
@@ -572,10 +573,11 @@ class VkBotWorker():
 		logger.debug(f'New message: ({len(options)}) {options}')
 
 		# Специфичные команды
-		command = options[0].strip().lower()
-		if(command == UserCommands.CLEAR.value):
-			queueHandler.clear_pool(user_id)
-			return
+		if options:
+			command = options[0].strip().lower()
+			if(command == UserCommands.CLEAR.value):
+				queueHandler.clear_pool(user_id)
+				return
 		# Инициализация ячейки конкретного пользователя
 		if not userRequests.get(user_id):
 			userRequests[user_id] = 0
@@ -786,12 +788,12 @@ if __name__ == '__main__':
 	# Запуск listener
 	logger.info('Begin listening.')
 	# http://vk.com/@kmit1-izmenenie-statusa-pri-pomoschi-python-i-api-vkontakte, https://qna.habr.com/q/912951
-	rnd = str(randrange(10))
-	print(rnd)
+	#rnd = str(randrange(10))
+	#print(rnd)
 	#vk_bot.method("status.set", {"text": nowtime + " ● " + nowdate + " ● " + "Друзей онлайн: " + str(counted)})
 	#vk_bot.status.set("status.set", {'Пришли мне ссылку, и я выдам тебе её аудиозапись (' + rnd + ').'})
-	statusOut = vk_bot.status.set(text = 'Пришли мне ссылку, и я выдам тебе её аудиозапись (' + rnd + ').')
-	print('statusOut: ' + statusOut)
+	#statusOut = vk_bot.status.set(text = 'Пришли мне ссылку, и я выдам тебе её аудиозапись (' + rnd + ').')
+	#print('statusOut: ' + statusOut)
 	while True:
 		try:
 			vkBotWorker.listen_longpoll()
