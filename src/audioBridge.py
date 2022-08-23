@@ -184,7 +184,7 @@ class AudioTools():
 
 
 class AudioWorker(threading.Thread):
-
+	"""Класс скачивания песен и загрузки в вк"""
 	def __init__(self, task: list):
 		super(AudioWorker, self).__init__()
 		self._stop = False
@@ -446,6 +446,7 @@ class AudioWorker(threading.Thread):
 
 
 class QueueHandler():
+	"""Класс управления очередью запросов."""
 	def __init__(self):
 		self._pool_req = []
 		self._workers = {}
@@ -525,9 +526,10 @@ class QueueHandler():
 
 
 class VkBotWorker():
-	def __init__(self, _debug_mode, _program_version):
-		self.debug_mode = _debug_mode
-		self.program_version = _program_version
+	"""Класс прослушивания новых сообщений."""
+	def __init__(self, debug_mode: bool, program_version: str):
+		self.debug_mode = debug_mode
+		self.program_version = program_version
 		self.longpoll = MyVkBotLongPoll(vk_session, str(os.environ['BOT_ID']))
 		#обработка невыполненных запросов после обновления, краша бота
 		unanswered_messages = vk.messages.getDialogs(unanswered=1)
@@ -538,10 +540,10 @@ class VkBotWorker():
 			msg['text'] = msg.pop('body')
 			self.message_handler(msg)
 
-	#обработка объекта сообщения
-	def messageHandler(self, msg):
-		user_id = msg.get('peer_id')
-		message_id = msg.get('id')
+	def message_handler(self, msg_obj):
+		"""Обработка объекта сообщения."""
+		user_id = msg_obj.get('peer_id')
+		message_id = msg_obj.get('id')
 
 		options = list(filter(None, msg_obj.get('text').split('\n')))
 		logger.debug(f'New message: ({len(options)}) {options}')
@@ -638,6 +640,7 @@ class VkBotWorker():
 			queueHandler.add_new_request(task)
 
 	def listen_longpoll(self):
+		"""Прослушивание новый сообщений."""
 		for event in self.longpoll.listen():
 			if event.type != VkBotEventType.MESSAGE_NEW:
 				continue
