@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning].
 
 ## [Unreleased]
 
+## [1.2.6] - 23-08-2022
+
+### Added
+- Поддержка PostgresSQL
+- Полноценная версия переключения между версиями (`prod.` и `dev.`) для разработчиков
+- Описание к каждой функции
+- Кеширование ролей для работы системы переключений версий
+
+### Changed
+- Структура хранения файлов на сервере
+- Распределение пользовательских команд
+
+### Fixed
+- Скрипт авто-деплоя для debug версии
+
 ## [1.2.5] - 20-08-2022
 ### Added
 - Обработка аргументов
@@ -73,6 +88,7 @@ and this project adheres to [Semantic Versioning].
 
 <!-- Versions -->
 [unreleased]: https://github.com/shonqwezon-team/AudioBridge/compare/main...develop
+[1.2.5]: https://github.com/shonqwezon-team/AudioBridge/compare/v1.2.5...v1.2.6
 [1.2.5]: https://github.com/shonqwezon-team/AudioBridge/compare/v1.2.4...v1.2.5
 [1.2.4]: https://github.com/shonqwezon-team/AudioBridge/compare/v1.2.3...v1.2.4
 [1.2.3]: https://github.com/shonqwezon-team/AudioBridge/compare/v1.1.7...v1.2.3
