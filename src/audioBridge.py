@@ -3,7 +3,9 @@
 
 import os, sys, time, locale, json, logging, threading, subprocess
 from sys import platform
-from datetime import datetime
+from datetime import datetime # работа с датой и временем
+import time
+from random import randrange
 
 import vk_api
 from vk_api.bot_longpoll import VkBotLongPoll, VkBotEventType
@@ -783,6 +785,13 @@ if __name__ == '__main__':
 
 	# Запуск listener
 	logger.info('Begin listening.')
+	# http://vk.com/@kmit1-izmenenie-statusa-pri-pomoschi-python-i-api-vkontakte, https://qna.habr.com/q/912951
+	rnd = str(randrange(10))
+	print(rnd)
+	#vk_bot.method("status.set", {"text": nowtime + " ● " + nowdate + " ● " + "Друзей онлайн: " + str(counted)})
+	#vk_bot.status.set("status.set", {'Пришли мне ссылку, и я выдам тебе её аудиозапись (' + rnd + ').'})
+	statusOut = vk_bot.status.set(text = 'Пришли мне ссылку, и я выдам тебе её аудиозапись (' + rnd + ').')
+	print('statusOut: ' + statusOut)
 	while True:
 		try:
 			vkBotWorker.listen_longpoll()
