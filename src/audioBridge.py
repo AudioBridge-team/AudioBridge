@@ -661,6 +661,8 @@ class VkBotWorker():
 				if user_id not in db.getDev_Id():
 					self.message_handler(msg_obj)
 					return
+			else:
+				if(command == UserCommands.HELP.value or command == UserCommands.VERSION.value): return
 
 			#Обработка команд от разработчиков
 			if user_id in db.getDev_Id():
@@ -718,7 +720,7 @@ if __name__ == '__main__':
 	#Автоматическое включение дебаг режима в случае запуска бота на Windows
 	logger.info(f'Platform is {platform}')
 	if platform == "win32":
-		debug_mode = False
+		debug_mode = True
 		from dotenv import load_dotenv
 		load_dotenv()
 	#Инициализация класса для подключение к базе данных
