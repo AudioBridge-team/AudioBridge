@@ -184,7 +184,7 @@ class AudioTools():
 
 
 class AudioWorker(threading.Thread):
-
+	"""Класс скачивания песен и загрузки в вк"""
 	def __init__(self, task: list):
 		super(AudioWorker, self).__init__()
 		self._stop = False
@@ -526,7 +526,7 @@ class QueueHandler():
 
 
 class VkBotWorker():
-
+	"""Класс прослушивания новых сообщений."""
 	def __init__(self, debug_mode: bool, program_version: str):
 		self.debug_mode = debug_mode
 		self.program_version = program_version
