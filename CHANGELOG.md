@@ -89,7 +89,7 @@ and this project adheres to [Semantic Versioning].
 
 <!-- Versions -->
 [unreleased]: https://github.com/shonqwezon-team/AudioBridge/compare/main...develop
-[1.2.5]: https://github.com/shonqwezon-team/AudioBridge/compare/v1.2.5...v1.2.6
+[1.2.6]: https://github.com/shonqwezon-team/AudioBridge/compare/v1.2.5...v1.2.6
 [1.2.5]: https://github.com/shonqwezon-team/AudioBridge/compare/v1.2.4...v1.2.5
 [1.2.4]: https://github.com/shonqwezon-team/AudioBridge/compare/v1.2.3...v1.2.4
 [1.2.3]: https://github.com/shonqwezon-team/AudioBridge/compare/v1.1.7...v1.2.3
