@@ -5,7 +5,7 @@
 ARGS=""
 VERSION=""
 DEBUG=false
-CONTAINER_NAME="vkbot_container-"
+CONTAINER_NAME="vkbot_container"
 #Получение значения версии
 while getopts v:d flag
 do
@@ -22,7 +22,9 @@ if [ -z "$VERSION" ]; then
 	exit 1
 fi
 
-CONTAINER_NAME+="$VERSION"
+if [ "$DEBUG" = true ]; then
+	CONTAINER_NAME+="-$VERSION"
+fi
 
 #Удаление старого контейнера
 echo "Update in progress."
