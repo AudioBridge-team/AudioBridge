@@ -3,6 +3,7 @@
 
 from enum import Enum, IntEnum, auto
 
+
 class Settings(IntEnum):
 	MAX_WORKERS        = 6                  # максимальное число потоков для всех обработки запросов
 	MAX_UNITS          = 1                  # число потоков для обработки запросов от одного пользователя
@@ -14,8 +15,10 @@ class Settings(IntEnum):
 	MAX_ATTEMPTS       = 3                  # количество попыток при ошибке скачивания
 	TIME_ATTEMPT       = 1                  # интервал между попытками скачивания (сек)
 
+
 class RequestIndex(Enum):
 	INDEX_PLAYLIST = "/playlist"            # показатель плейлиста
+
 
 class PlaylistStates(IntEnum):
 	PLAYLIST_SUCCESSFUL = auto()

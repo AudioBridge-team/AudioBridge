@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+
 import argparse
+from lib2to3.pgen2.pgen import DFAState
+
 
 class CustomError(Exception):
 	"""Класс вызова пользовательской ошибки.
@@ -10,6 +13,7 @@ class CustomError(Exception):
 		Exception (Exception): Exception
 	"""
 	def __init__(self, text):
+		"""Class method docstrings go here."""
 		self.txt = text
 
 class ArgParser(argparse.ArgumentParser):
