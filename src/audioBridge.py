@@ -668,7 +668,6 @@ class VkBotWorker():
 			if event.type != VkBotEventType.MESSAGE_NEW:
 				continue
 			msg_obj = event.obj.message
-			logger.debug(msg_obj)
 			# Проверка на сообщение от пользователя, а не беседы
 			if msg_obj.get('from_id') == msg_obj.get('peer_id'):
 				self.message_handler(msg_obj)
