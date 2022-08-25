@@ -555,10 +555,12 @@ class VkBotWorker():
 		# Обработка невыполненных запросов после обновления, краша бота
 		unanswered_messages  = vk_bot.messages.getDialogs(unanswered=1)
 		for user_message in unanswered_messages.get('items'):
-				msg            = user_message.get('message')
-				msg['peer_id'] = msg.pop('user_id')
-				msg['text']    = msg.pop('body')
-				self.message_handler(msg)
+			# Проверка на сообщение от пользователя, а не беседы
+			msg_obj = user_message.get('message')
+			if 'users_count' not in msg_obj:
+				msg_obj['peer_id'] = msg_obj.pop('user_id')
+				msg_obj['text']    = msg_obj.pop('body')
+				self.message_handler(msg_obj)
 
 	def message_handler(self, msg_obj):
 		"""Обработка объекта сообщения."""
@@ -666,7 +668,10 @@ class VkBotWorker():
 			if event.type != VkBotEventType.MESSAGE_NEW:
 				continue
 			msg_obj = event.obj.message
-			self.message_handler(msg_obj)
+			logger.debug(msg_obj)
+			# Проверка на сообщение от пользователя, а не беседы
+			if msg_obj.get('from_id') == msg_obj.get('peer_id'):
+				self.message_handler(msg_obj)
 
 
 if __name__ == '__main__':
@@ -739,5 +744,4 @@ if __name__ == '__main__':
 			logger.error(f'VK API: {er}')
 
 	logger.info('You will never see this.')
-
 
