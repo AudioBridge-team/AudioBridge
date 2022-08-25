@@ -22,9 +22,9 @@ jobs:
           key     : ${{ secrets.SSH_KEY }}
           port    : ${{ secrets.SSH_PORT }}
           script: |
-            cd /root
-            rm -rf AudioBridge
-            git clone -b "${{ github.event.release.tag_name }}" --single-branch git@github.com:shonqwezon-team/AudioBridge.git
-            cd AudioBridge
+            cd /root/AudioBridge
+            rm -rf prod
+            git clone -b "${{ github.event.release.tag_name }}" --single-branch git@github.com:shonqwezon-team/AudioBridge.git prod
+            cd prod
             chmod u+x install.zsh
             ./install.zsh -v "${{ github.event.release.tag_name }}"

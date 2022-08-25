@@ -1,0 +1,30 @@
+# The script for auto-deploy dev version in from dev branch
+
+name: Deploy-Dev
+
+# The workflow will run when debugging is pushed into certain branch
+on:
+  push:
+    branches: [ dev ]
+
+# A workflow
+jobs:
+  DevDeploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      #Connecting to server
+      - name: Connecting to server
+        uses: appleboy/ssh-action@master
+        with:
+          host    : ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key     : ${{ secrets.SSH_KEY }}
+          port    : ${{ secrets.SSH_PORT }}
+          script: |
+            cd /root/AudioBridge
+            rm -rf dev
+            git clone -b dev --single-branch git@github.com:shonqwezon-team/AudioBridge.git dev
+            cd dev
+            chmod u+x install.zsh
+            ./install.zsh -v "dev" -d
