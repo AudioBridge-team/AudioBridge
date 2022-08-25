@@ -6,6 +6,7 @@ VERSION=""
 DEV=false
 CONTAINER_NAME="vkbot_container_"
 ENV_PATH="/root/AudioBridge/data/.env."
+LOGS_PATH="/root/AudioBridge/data/logs"
 #Получение значения версии
 while getopts v:d flag
 do
@@ -39,10 +40,10 @@ echo "Docker: starting up $CONTAINER_NAME..."
 
 if [ "$DEV" = true ]; then
 	echo "Mode: dev"
-	docker run --env-file "$ENV_PATH" --add-host=database:172.17.0.1 --name "$CONTAINER_NAME" --detach "$CONTAINER_NAME" --version "$VERSION"
+	docker run --env-file "$ENV_PATH" -v "$LOGS_PATH":/AudioBridge/data/logs --add-host=database:172.17.0.1 --name "$CONTAINER_NAME" --detach "$CONTAINER_NAME" --version "$VERSION"
 else
 	echo "Mode: prod"
-	docker run --env-file "$ENV_PATH" --add-host=database:172.17.0.1 --name "$CONTAINER_NAME" --detach "$CONTAINER_NAME" --version "$VERSION"
+	docker run --env-file "$ENV_PATH" -v "$LOGS_PATH":/AudioBridge/data/logs --add-host=database:172.17.0.1 --name "$CONTAINER_NAME" --detach "$CONTAINER_NAME" --version "$VERSION"
 fi
 
 echo "Docker status:"
