@@ -27,8 +27,8 @@ MODE="prod"
 if [ "$DEV" = true ]; then
 	MODE="dev"
 fi
-CONTAINER_NAME+=MODE
-ENV_PATH+=MODE
+CONTAINER_NAME+="$MODE"
+ENV_PATH+="$MODE"
 
 #Удаление старого контейнера
 echo "Update in progress."
