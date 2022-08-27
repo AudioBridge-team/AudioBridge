@@ -24,6 +24,3 @@ class PlaylistStates(IntEnum):
 	PLAYLIST_SUCCESSFUL = auto()
 	PLAYLIST_COPYRIGHT  = auto()
 	PLAYLIST_UNSTATED   = auto()
-
-class PermissionsType(IntEnum):
-	DEV = auto()

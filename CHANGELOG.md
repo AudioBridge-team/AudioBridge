@@ -8,6 +8,24 @@ and this project adheres to [Semantic Versioning].
 
 ## [Unreleased]
 
+## [1.2.7] - 25-08-2022
+
+### Added
+- Сохранение логов в файл
+
+### Changed
+- Модель ведения проекта на *github*
+- Структура файлов и папок на сервере
+- Скрипты авто-деплоя и установки бота на стороне сервера
+
+### Removed
+- Возможность запуска в *debug* режиме
+- Переключение между версиями
+- Таблица в базе данных для ролей
+- В `.env` удалено хранение id разработчиков
+- Команды для разработчиков (`commands/dev.py`)
+- Класс `PermissionsType`
+
 ## [1.2.6] - 23-08-2022
 
 ### Added
@@ -88,7 +106,8 @@ and this project adheres to [Semantic Versioning].
 [semantic versioning]: https://semver.org/spec/v2.0.0.html
 
 <!-- Versions -->
-[unreleased]: https://github.com/shonqwezon-team/AudioBridge/compare/main...develop
+[unreleased]: https://github.com/shonqwezon-team/AudioBridge/compare/prod...dev
+[1.2.7]: https://github.com/shonqwezon-team/AudioBridge/compare/v1.2.6...v1.2.7
 [1.2.6]: https://github.com/shonqwezon-team/AudioBridge/compare/v1.2.5...v1.2.6
 [1.2.5]: https://github.com/shonqwezon-team/AudioBridge/compare/v1.2.4...v1.2.5
 [1.2.4]: https://github.com/shonqwezon-team/AudioBridge/compare/v1.2.3...v1.2.4

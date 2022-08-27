@@ -14,7 +14,6 @@ from vk_api.utils import get_random_id
 import db.database as database
 import loggerSetup
 from commands.user import *
-from commands.dev import *
 from config import *
 from customErrors import *
 
@@ -152,8 +151,8 @@ class AudioTools():
 				userRequests[user_id] -= 1
 				queueHandler.add_new_request([param, [url[0]], [i+1, len(urls)]])
 
+	# Подвести итог
 	def playlist_summarize(self, user_id):
-		"""Подвести итог."""
 		try:
 			if self.playlist_result.get(user_id):
 				msg_summary = ''
@@ -550,19 +549,18 @@ class QueueHandler():
 class VkBotWorker():
 	"""Класс прослушивания новых сообщений."""
 
-	def __init__(self, debug_mode: bool, program_version: str):
-		self.debug_mode      = debug_mode
+	def __init__(self, program_version: str):
 		self.program_version = program_version
 		self.longpoll        = MyVkBotLongPoll(vk_bot_auth, str(os.environ['BOT_ID']))
 		# Обработка невыполненных запросов после обновления, краша бота
-		if not self.debug_mode:
-			unanswered_messages  = vk_bot.messages.getDialogs(unanswered=1)
-
-			for user_message in unanswered_messages.get('items'):
-				msg            = user_message.get('message')
-				msg['peer_id'] = msg.pop('user_id')
-				msg['text']    = msg.pop('body')
-				self.message_handler(msg)
+		unanswered_messages  = vk_bot.messages.getDialogs(unanswered=1)
+		for user_message in unanswered_messages.get('items'):
+			# Проверка на сообщение от пользователя, а не беседы
+			msg_obj = user_message.get('message')
+			if 'users_count' not in msg_obj:
+				msg_obj['peer_id'] = msg_obj.pop('user_id')
+				msg_obj['text']    = msg_obj.pop('body')
+				self.message_handler(msg_obj)
 
 	def message_handler(self, msg_obj):
 		"""Обработка объекта сообщения."""
@@ -669,61 +667,14 @@ class VkBotWorker():
 		for event in self.longpoll.listen():
 			if event.type != VkBotEventType.MESSAGE_NEW:
 				continue
-
 			msg_obj = event.obj.message
-			user_id = msg_obj.get('peer_id')
-			command = msg_obj.get('text').strip().lower()
-
-			# Обработка общих команд
-			if not self.debug_mode:
-				if(command == UserCommands.HELP.value):
-					sayOrReply(user_id, "Скоро сделаем...")
-					return
-				if(command == UserCommands.VERSION.value):
-					sayOrReply(user_id, f"Официальная версия — {self.program_version}")
-					return
-
-				if user_id not in db.getDev_Id():
-					self.message_handler(msg_obj)
-					return
-			else:
-				if(command == UserCommands.HELP.value or command == UserCommands.VERSION.value): return
-
-			# Обработка команд от разработчиков
-			if user_id in db.getDev_Id():
-				if(command == DevCommands.VERSIONS.value):
-					msg_version     = "[{}] {}"
-					current_version = db.getCurrentVersion(user_id)
-					status          = '–'
-					if current_version == self.program_version:
-						status = 'X'
-					sayOrReply(user_id, msg_version.format(status, self.program_version))
-					return
-				if(command.startswith(DevCommands.TOGGLE.value)):
-					# Обновление кеша и sql с релиз версии
-					if not self.debug_mode:
-						version_obj = command.split(' ')
-						if(len(version_obj) != 2):
-							sayOrReply(user_id, "Неверно указаны параметры. Обратитесь к /help")
-							return
-						version_name = version_obj[1]
-						db.toggle_version(user_id, version_name)
-						sayOrReply(user_id, f"Включена версия: {version_name}")
-					# Обновление кеша с дебаг версии
-					else:
-						version_obj = command.split(' ')
-						if(len(version_obj) == 2): db.updateCachedVersion(user_id, version_obj[1])
-					return
-				# Проверка соответствия текущей версии бота выбранной
-				if(self.program_version == db.getCurrentVersion(user_id)):
-					self.message_handler(msg_obj)
+			# Проверка на сообщение от пользователя, а не беседы
+			if msg_obj.get('from_id') == msg_obj.get('peer_id'):
+				self.message_handler(msg_obj)
 
 
 if __name__ == '__main__':
 	"""Точка входа в программу."""
-	loggerSetup.setup('logger')
-	logger = logging.getLogger('logger')
-
 	# Доступные параметры запуска
 	parser = ArgParser()
 	parser.add_argument(
@@ -731,41 +682,38 @@ if __name__ == '__main__':
 		"--version",
 		default = "v1.0.0",
 		help    = "Version of the bot")
-	parser.add_argument(
-		"-d",
-		"--debug",
-		action = 'store_true',
-		help   = "Debug mode")
 
 	# Значение аргументов запуска по умолчанию
-	debug_mode      = False
 	program_version = "v1.0.0"
 
 	# Обработка параметров запуска
 	try:
 		args = parser.parse_args()
 	except Exception as er:
-		logger.info(f'Invalid arguments: {er}')
 		parser.print_help()
-		logger.info(f'Started program in default mode.')
 	else:
-		debug_mode = args.debug
 		program_version = args.version.strip().lower()
-		logger.info('Program started.')
 
-	# Автоматическое включение дебаг режима в случае запуска бота на Windows
+	# Путь сохранения логов на удалённом сервере
+	logger_path = "../data/logs/" + program_version + ".log"
+	# Инициализация глобального logger
+	loggerSetup.setup('logger', logger_path)
+	# Подключение logger
+	logger = logging.getLogger('logger')
+
+	logger.info('Program started.')
+
+	# Подгрузка .env файла на windows
 	logger.info(f'Platform is {platform}')
 	if platform == "win32":
-		debug_mode = True
 		from dotenv import load_dotenv
 		load_dotenv()
 
 	# Инициализация класса для подключение к базе данных
-	db = database.DataBase(program_version)
+	db = database.DataBase()
 
-	logger.info(f'Debug mode is {debug_mode}')
 	logger.info(f'Filesystem encoding: {sys.getfilesystemencoding()}, Preferred encoding: {locale.getpreferredencoding()}')
-	logger.info(f'Current version {program_version}, Bot Group ID: {os.environ["BOT_ID"]}, Developers ID: {db.getDev_Id()}')
+	logger.info(f'Current version {program_version}, Bot Group ID: {os.environ["BOT_ID"]}')
 	logger.info('Logging into VKontakte...')
 
 	# Интерфейс для работы с аккаунтом агента (который необходим для загрузки аудио)
@@ -783,17 +731,11 @@ if __name__ == '__main__':
 
 	queueHandler = QueueHandler()
 	audioTools   = AudioTools()
-	vkBotWorker  = VkBotWorker(debug_mode, program_version)
+	vkBotWorker  = VkBotWorker(program_version)
 
 	# Запуск listener
 	logger.info('Begin listening.')
-	# http://vk.com/@kmit1-izmenenie-statusa-pri-pomoschi-python-i-api-vkontakte, https://qna.habr.com/q/912951
-	#rnd = str(randrange(10))
-	#print(rnd)
-	#vk_bot.method("status.set", {"text": nowtime + " ● " + nowdate + " ● " + "Друзей онлайн: " + str(counted)})
-	#vk_bot.status.set("status.set", {'Пришли мне ссылку, и я выдам тебе её аудиозапись (' + rnd + ').'})
-	#statusOut = vk_bot.status.set(text = 'Пришли мне ссылку, и я выдам тебе её аудиозапись (' + rnd + ').')
-	#print('statusOut: ' + statusOut)
+
 	while True:
 		try:
 			vkBotWorker.listen_longpoll()
@@ -801,5 +743,4 @@ if __name__ == '__main__':
 			logger.error(f'VK API: {er}')
 
 	logger.info('You will never see this.')
-
 

@@ -1,22 +1,16 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-from asyncio.log import logger
-import os, psycopg2, logging, sys, json
+import os, psycopg2, logging, sys
 from psycopg2 import Error
 
-from config import PermissionsType
-
 class DataBase():
-	def __init__(self, program_version):
-		self.program_version = program_version
+	def __init__(self):
 		self.logger = logging.getLogger('logger')
 
 		# Инициализация объекта подключения
 		self.conn = None
 		self.connect_db()
-
-		self.cache_roles()
 
 	#Подключение к базе данных
 	def connect_db(self):
@@ -69,10 +63,6 @@ class DataBase():
 		try:
 			with self.conn.cursor() as curs:
 				curs.execute(open("src/db/scripts/init_tables.sql", "r").read())
-				curs.execute('SELECT * FROM roles')
-				if not curs.fetchall():
-					for user_id in json.loads(os.environ['OWNERS_ID']):
-						curs.execute('INSERT INTO roles VALUES(%s, %s)', (user_id, [ PermissionsType.DEV ]))
 
 		except (Exception, Error) as er:
 			#Закрытие освобождение памяти + выход из программы для предотвращения рекурсии и настройки PostgreSQL на хосте
@@ -84,44 +74,3 @@ class DataBase():
 			sys.exit()
 		else:
 			self.logger.debug(f'Tables are ready to use')
-
-	#Кеширование ролей
-	def cache_roles(self):
-		#Переменная для пользователей с привилегией
-		self.dev_id = { }
-		try:
-			sql_get_id_dev = 'SELECT * FROM roles'
-			with self.conn.cursor() as curs:
-				curs.execute(sql_get_id_dev)
-				for entry in curs.fetchall():
-					if PermissionsType.DEV in entry[1]:
-						self.dev_id[entry[0]] = entry[2]
-		except (Exception, Error) as er:
-			self.logger.error(f'Error getting dev_id: {er}')
-		else:
-			self.logger.debug(f'Roles were cached successfully: {self.dev_id}')
-
-	#Получить id разработчиков
-	def getDev_Id(self) -> list:
-		return list(self.dev_id.keys())
-
-	#Обновление кешированных ролей
-	def updateCachedVersion(self, user_id: int, version_name: str):
-		self.dev_id[user_id] = version_name
-		self.logger.debug(f'{user_id} updated cached version to {version_name}')
-
-	#Получить текущую версию
-	def getCurrentVersion(self, user_id: int) -> str:
-		return self.dev_id.get(user_id)
-
-	#Переключить версию
-	def toggle_version(self, user_id: int, version_name: str):
-		self.updateCachedVersion(user_id, version_name)
-		try:
-			sql_toggle_debug = f'UPDATE roles SET version_name = %s WHERE user_id = %s'
-			with self.conn.cursor() as curs:
-				curs.execute(sql_toggle_debug, (version_name, user_id))
-		except (Exception, Error) as er:
-			self.logger.error(f'Error toggle debug: {er}')
-		else:
-			self.logger.debug(f'{user_id} toggled version to {version_name} successfully')
