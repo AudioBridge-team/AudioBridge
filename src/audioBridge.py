@@ -693,7 +693,7 @@ if __name__ == '__main__':
 		program_version = args.version.strip().lower()
 
 	# Путь сохранения логов на удалённом сервере
-	logger_path = f"../data/logs/{program_version}-{date.today()}.log"
+	logger_path = f'../data/logs/{program_version}-{date.today()}.log'
 	# Инициализация глобального logger
 	loggerSetup.setup('logger', logger_path)
 	# Подключение logger
