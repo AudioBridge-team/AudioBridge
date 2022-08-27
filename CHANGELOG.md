@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning].
 
 ## [Unreleased]
 
+## [1.2.8] - 27-08-2022
+
+### Added
+-
+
+### Changed
+- Имя файла логов
+
+### Deprecated
+
+### Removed
+- `create_db` в `db/database.py`, т.к. теперь база данных создается **вручную** вместе с новой ролью для конкретной версии бота (*prod*/*dev*)
+
+### Fixed
+
+### Security
+
+
 ## [1.2.7] - 25-08-2022
 
 ### Added
@@ -106,6 +124,7 @@ and this project adheres to [Semantic Versioning].
 
 <!-- Versions -->
 [unreleased]: https://github.com/shonqwezon-team/AudioBridge/compare/prod...dev
+[1.2.7]: https://github.com/shonqwezon-team/AudioBridge/compare/v1.2.7...v1.2.8
 [1.2.7]: https://github.com/shonqwezon-team/AudioBridge/compare/v1.2.6...v1.2.7
 [1.2.6]: https://github.com/shonqwezon-team/AudioBridge/compare/v1.2.5...v1.2.6
 [1.2.5]: https://github.com/shonqwezon-team/AudioBridge/compare/v1.2.4...v1.2.5
