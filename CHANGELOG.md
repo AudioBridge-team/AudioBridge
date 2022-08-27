@@ -8,25 +8,13 @@ and this project adheres to [Semantic Versioning].
 ## [Unreleased]
 
 ## [1.2.8] - 27-08-2022
-
-### Added
--
-
 ### Changed
 - Имя файла логов
-
-### Deprecated
 
 ### Removed
 - `create_db` в `db/database.py`, т.к. теперь база данных создается **вручную** вместе с новой ролью для конкретной версии бота (*prod*/*dev*)
 
-### Fixed
-
-### Security
-
-
 ## [1.2.7] - 25-08-2022
-
 ### Added
 - Сохранение логов в файл
 
@@ -44,7 +32,6 @@ and this project adheres to [Semantic Versioning].
 - Класс `PermissionsType`
 
 ## [1.2.6] - 23-08-2022
-
 ### Added
 - Поддержка PostgresSQL
 - Полноценная версия переключения между версиями (`prod.` и `dev.`) для разработчиков
