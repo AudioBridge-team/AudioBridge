@@ -17,46 +17,19 @@ class DataBase():
 		try:
 			self.logger.debug(f'Connecting to {str(os.environ["DB_NAME"])}')
 			self.conn = psycopg2.connect(
-				user     = str(os.environ["PG_USER"]),
-				password = str(os.environ["PG_PASSWORD"]),
-				host     = str(os.environ["PG_HOST"]),
-				port     = str(os.environ["PG_PORT"]),
-				database = str(os.environ["DB_NAME"]))
+				user     = str(os.environ["PG_USER"]).strip(),
+				password = str(os.environ["PG_PASSWORD"]).strip(),
+				host     = str(os.environ["PG_HOST"]).strip(),
+				port     = str(os.environ["PG_PORT"]).strip(),
+				database = str(os.environ["DB_NAME"]).strip())
 			self.conn.autocommit=True
 		except (Exception, Error) as er:
-			self.logger.error(f'Connection failed {er}')
-			#Создание базы данных в случае её отсутствия
-			self.create_db()
-		else:
-			self.logger.debug('Database was connected successfully')
-			self.create_tables()
-
-	#Создание базы данных
-	def create_db(self):
-		try:
-			self.logger.debug(f'Creating {str(os.environ["DB_NAME"])}')
-			self.conn = psycopg2.connect(
-				user     = str(os.environ["PG_USER"]),
-				password = str(os.environ["PG_PASSWORD"]),
-				host     = str(os.environ["PG_HOST"]),
-				port     = str(os.environ["PG_PORT"]))
-			self.conn.set_isolation_level(psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
-
-			sql_create_db = f'CREATE DATABASE {str(os.environ["DB_NAME"])}'
-			with self.conn.cursor() as curs:
-				curs.execute(sql_create_db)
-		except (Exception, Error) as er:
-			#Закрытие освобождение памяти + выход из программы для предотвращения рекурсии и настройки PostgreSQL на хосте
-			self.logger.error(f'Db creation failed: {er}')
-			if self.conn:
-				self.conn.close()
-				self.logger.debug('Connection was closed')
+			self.logger.error(f'Connection to database failed: {er}')
 			self.logger.debug('Closing the program...')
 			sys.exit()
 		else:
-			self.logger.debug(f'Database was created successfully')
-			#Повторное подключение к базе данных
-			self.connect_db()
+			self.logger.debug('Database was connected successfully')
+			self.create_tables()
 
 	#Создание таблиц, если они отсутствуют
 	def create_tables(self):
