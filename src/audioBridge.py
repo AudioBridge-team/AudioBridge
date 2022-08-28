@@ -449,7 +449,7 @@ class AudioWorker(threading.Thread):
 					(
 						'Завершено:\n'+
 						'\tЗадача: {0}\n' +
-						'\tПусть: {1}\n' +
+						'\tПуть: {1}\n' +
 						'\tОчередь текущего пользователя ({2}): null\n' +
 						'\tОчередь текущего worker\'а: null'
 					).format(
@@ -667,6 +667,7 @@ class VkBotWorker():
 				continue
 			msg_obj = event.obj.message
 			# Проверка на сообщение от пользователя, а не беседы
+			logger.debug(f'Получено новое сообщение: {msg_obj}')
 			if msg_obj.get('from_id') == msg_obj.get('peer_id'):
 				self.message_handler(msg_obj)
 
