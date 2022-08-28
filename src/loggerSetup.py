@@ -15,8 +15,8 @@ def setup(logger_name: str, path: str, level=logging.DEBUG):
 	logger.setLevel(level)
 
 	formatter = Formatter(
-			#fmt = '[%(asctime)s, %(levelname)s] ~ %(threadName)s (%(funcName)s)\t~: %(message)s',
-			fmt = '[%(asctime)s, %(levelname)s] ~ (%(funcName)s)\t~: %(message)s',
+			fmt = '[%(asctime)s, %(levelname)s] ~ %(threadName)s (%(funcName)s)\t~: %(message)s',
+			#fmt = '[%(asctime)s, %(levelname)s] ~ (%(funcName)s)\t~: %(message)s',
 			datefmt = time.strftime('%d-%m-%y %H:%M:%S')
 		)
 	# Обработчик для выведения логов в консоль
