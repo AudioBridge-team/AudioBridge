@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning].
 ## [Unreleased]
 
 ## [1.2.8] - 27-08-2022
+### Added
+- `ENV PYTHONDONTWRITEBYTECODE=1`
+- `ENV PYTHONUNBUFFERED=1`
+
 ### Changed
 - Имя файла логов
 
