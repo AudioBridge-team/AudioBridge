@@ -11,9 +11,11 @@ and this project adheres to [Semantic Versioning].
 ### Added
 - `ENV PYTHONDONTWRITEBYTECODE=1`
 - `ENV PYTHONUNBUFFERED=1`
+- `docker-compose.yml` для запуска *docker compose*
 
 ### Changed
 - Имя файла логов
+- `install.zsh` из-за перехода на *docker compose*
 
 ### Removed
 - `create_db` в `db/database.py`, т.к. теперь база данных создается **вручную** вместе с новой ролью для конкретной версии бота (*prod*/*dev*)
