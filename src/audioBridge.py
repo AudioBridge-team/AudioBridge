@@ -3,9 +3,7 @@
 
 import os, sys, time, locale, json, logging, threading, subprocess
 from sys import platform
-from datetime import datetime # работа с датой и временем
-import time
-from random import randrange
+from datetime import datetime, date # работа с датой и временем
 
 import vk_api
 from vk_api.bot_longpoll import VkBotLongPoll, VkBotEventType
@@ -433,7 +431,7 @@ class AudioWorker(threading.Thread):
 					(
 						'Завершено:\n'+
 						'\tЗадача: {0}\n' +
-						'\tПусть: {1}\n' +
+						'\tПуть: {1}\n' +
 						'\tОчередь текущего пользователя ({2}): {3}\n' +
 						'\tОчередь текущего worker\'а: {4}'
 					).format(
@@ -451,7 +449,7 @@ class AudioWorker(threading.Thread):
 					(
 						'Завершено:\n'+
 						'\tЗадача: {0}\n' +
-						'\tПусть: {1}\n' +
+						'\tПуть: {1}\n' +
 						'\tОчередь текущего пользователя ({2}): null\n' +
 						'\tОчередь текущего worker\'а: null'
 					).format(
@@ -551,7 +549,7 @@ class VkBotWorker():
 
 	def __init__(self, program_version: str):
 		self.program_version = program_version
-		self.longpoll        = MyVkBotLongPoll(vk_bot_auth, str(os.environ['BOT_ID']))
+		self.longpoll        = MyVkBotLongPoll(vk_bot_auth, str(os.environ['BOT_ID']).strip())
 		# Обработка невыполненных запросов после обновления, краша бота
 		unanswered_messages  = vk_bot.messages.getDialogs(unanswered=1)
 		for user_message in unanswered_messages.get('items'):
@@ -669,6 +667,7 @@ class VkBotWorker():
 				continue
 			msg_obj = event.obj.message
 			# Проверка на сообщение от пользователя, а не беседы
+			logger.debug(f'Получено новое сообщение: {msg_obj}')
 			if msg_obj.get('from_id') == msg_obj.get('peer_id'):
 				self.message_handler(msg_obj)
 
@@ -695,7 +694,7 @@ if __name__ == '__main__':
 		program_version = args.version.strip().lower()
 
 	# Путь сохранения логов на удалённом сервере
-	logger_path = "../data/logs/" + program_version + ".log"
+	logger_path = f'../data/logs/{program_version}-{date.today()}.log'
 	# Инициализация глобального logger
 	loggerSetup.setup('logger', logger_path)
 	# Подключение logger
@@ -713,16 +712,16 @@ if __name__ == '__main__':
 	db = database.DataBase()
 
 	logger.info(f'Filesystem encoding: {sys.getfilesystemencoding()}, Preferred encoding: {locale.getpreferredencoding()}')
-	logger.info(f'Current version {program_version}, Bot Group ID: {os.environ["BOT_ID"]}')
+	logger.info(f'Current version {program_version}, Bot Group ID: {str(os.environ["BOT_ID"]).strip()}')
 	logger.info('Logging into VKontakte...')
 
 	# Интерфейс для работы с аккаунтом агента (который необходим для загрузки аудио)
-	vk_agent_auth   = vk_api.VkApi(token = os.environ["AGENT_TOKEN"])
+	vk_agent_auth   = vk_api.VkApi(token = str(os.environ["AGENT_TOKEN"]).strip())
 	vk_agent_upload = vk_api.VkUpload(vk_agent_auth)
 	vk_agent        = vk_agent_auth.get_api()
 
 	# Интерфейс для работы с ботом
-	vk_bot_auth = vk_api.VkApi(token = os.environ["BOT_TOKEN"])
+	vk_bot_auth = vk_api.VkApi(token = str(os.environ["BOT_TOKEN"]).strip())
 	vk_bot      = vk_bot_auth.get_api()
 
 	# Для отслеживания кол-ва запросов от одного пользователя по MAX_REQUESTS_QUEUE
