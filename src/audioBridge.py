@@ -615,11 +615,11 @@ class VkBotWorker():
 
 						video = f'{video_owner_id}_{video_id}'
 						logger.debug(f'Attachment video: {video}')
-						sayOrReply(user_id, 'Соц. сеть «ВКонтакте» изменила политику доступа к своим видео, из-за чего мы не можем сейчас обработать ваш запрос. Мы уже работаем над устранением данной проблемы.', message_id)
+						sayOrReply(user_id, 'Невозможно обработать прикреплённое видео. Пришлите ссылку.', message_id)
 						return
-						response = vk_agent.video.get(videos = video)
-
-						options = [ response.get('items')[0].get('player') ]
+						# response = vk_agent.video.get(videos = video)
+						# logger.debug(response)
+						# options = [ response.get('items')[0].get('player') ]
 
 					elif attachment_type == 'link':
 						options = [ attachment_info[0].get('link').get('url') ]
@@ -630,7 +630,7 @@ class VkBotWorker():
 					return
 		# Безопасный метод проверки, как list.get()
 		if not next(iter(options), '').startswith(RequestIndex.INDEX_URL.value):
-			sayOrReply(user_id, 'Не обнаружил ссылки для скачивания.', message_id)
+			sayOrReply(user_id, 'Не обнаружена ссылка для скачивания.', message_id)
 			return
 		# Обработка запроса с плейлистом
 		if RequestIndex.INDEX_PLAYLIST.value in options[0]:
