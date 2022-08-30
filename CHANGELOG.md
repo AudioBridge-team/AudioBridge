@@ -10,6 +10,8 @@ and this project adheres to [Semantic Versioning].
 ## [1.2.9] - 30-08-2022
 ### Added
 - Отсеивание запросов без ссылки
+- Обработка YouTube Shorts
+
 ### Changed
 - Обработка сообщений от пользователя
 
