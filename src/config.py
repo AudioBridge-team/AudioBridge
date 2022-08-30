@@ -9,7 +9,7 @@ class Settings(IntEnum):
 	MAX_UNITS          = 1                  # число потоков для обработки запросов от одного пользователя
 	MAX_REQUESTS_QUEUE = 5                  # максимальное кол-во запросов в общую очередь от одного пользователя
 
-	MAX_FILESIZE       = 200 * 1024 * 1024  # максимальный размер аудиофайла
+	MAX_FILESIZE       = 200 * 1024 * 1024  # максимальный размер аудио файла
 	MSG_PERIOD         = 50                 # период обновления процесса загрузки файла на сервер
 	MAX_VIDEO_DURATION = 3 * 60 * 60        # максимальная длительность видео в секундах
 	MAX_ATTEMPTS       = 3                  # количество попыток при ошибке скачивания
@@ -18,6 +18,7 @@ class Settings(IntEnum):
 
 class RequestIndex(Enum):
 	INDEX_PLAYLIST = "/playlist"            # показатель плейлиста
+	INDEX_URL      = "http" 				# показатель ссылки
 
 
 class PlaylistStates(IntEnum):

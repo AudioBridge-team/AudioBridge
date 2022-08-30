@@ -1,4 +1,3 @@
-
 # Changelog
 
 All notable changes to this project will be documented in this file.
@@ -7,6 +6,12 @@ The format is based on [Keep a Changelog],
 and this project adheres to [Semantic Versioning].
 
 ## [Unreleased]
+
+## [1.2.9] - 30-08-2022
+### Added
+- Отсеивание запросов без ссылки
+### Changed
+- Обработка сообщений от пользователя
 
 ## [1.2.8] - 27-08-2022
 ### Added
@@ -118,7 +123,8 @@ and this project adheres to [Semantic Versioning].
 
 <!-- Versions -->
 [unreleased]: https://github.com/shonqwezon-team/AudioBridge/compare/prod...dev
-[1.2.7]: https://github.com/shonqwezon-team/AudioBridge/compare/v1.2.7...v1.2.8
+[1.2.9]: https://github.com/shonqwezon-team/AudioBridge/compare/v1.2.8...v1.2.9
+[1.2.8]: https://github.com/shonqwezon-team/AudioBridge/compare/v1.2.7...v1.2.8
 [1.2.7]: https://github.com/shonqwezon-team/AudioBridge/compare/v1.2.6...v1.2.7
 [1.2.6]: https://github.com/shonqwezon-team/AudioBridge/compare/v1.2.5...v1.2.6
 [1.2.5]: https://github.com/shonqwezon-team/AudioBridge/compare/v1.2.4...v1.2.5

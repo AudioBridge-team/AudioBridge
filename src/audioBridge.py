@@ -560,6 +560,15 @@ class VkBotWorker():
 				msg_obj['text']    = msg_obj.pop('body')
 				self.message_handler(msg_obj)
 
+	def command_handler(self, msg_options, user_id: int) -> bool:
+		if not msg_options:
+			return False
+		command = msg_options[0].strip().lower()
+		if(command == UserCommands.CLEAR.value):
+			queueHandler.clear_pool(user_id)
+			return True
+		return False
+
 	def message_handler(self, msg_obj):
 		"""Обработка объекта сообщения."""
 		user_id    = msg_obj.get('peer_id')
@@ -568,12 +577,11 @@ class VkBotWorker():
 		options = list(filter(None, msg_obj.get('text').split('\n')))
 		logger.debug(f'New message: ({len(options)}) {options}')
 
-		# Специфичные команды
-		if options:
-			command = options[0].strip().lower()
-			if(command == UserCommands.CLEAR.value):
-				queueHandler.clear_pool(user_id)
-				return
+		# Обработка команд
+		if self.command_handler(options, user_id):
+			logger.debug("Command was processed")
+			return
+
 		# Инициализация ячейки конкретного пользователя
 		if not userRequests.get(user_id):
 			userRequests[user_id] = 0
@@ -585,80 +593,68 @@ class VkBotWorker():
 		if userRequests.get(user_id) == Settings.MAX_REQUESTS_QUEUE:
 			sayOrReply(user_id, 'Ошибка: Кол-во ваших запросов в общей очереди не может превышать {0}.'.format(Settings.MAX_REQUESTS_QUEUE))
 			return
+
 		# Проверка на превышения числа возможных аргументов запроса
 		if len(options) > 5:
 			sayOrReply(user_id, 'Ошибка: Слишком много аргументов.', message_id)
 			return
+		# Проверка возможных приложений, если отсутствует какой-либо текст в сообщении
+		if not options:
+			attachment_info = msg_obj.get('attachments')
+			# logger.debug(attachment_info)
+			# Обработка приложений к сообщению
+			if attachment_info:
+				try:
+					logger.debug(f'Attachments info: ({len(attachment_info)}) {attachment_info[0].get("type")}')
+					attachment_type = attachment_info[0].get("type")
 
-		attachment_info = msg_obj.get('attachments')
-		# logger.debug(attachment_info)
-		# Обработка приложений к сообщению
-		if attachment_info:
-			try:
-				logger.debug(f'Attachments info: ({len(attachment_info)}) {attachment_info[0].get("type")}')
-				attachment_type = attachment_info[0].get('type')
+					if attachment_type == 'video':
+						video_info     = attachment_info[0].get('video')
+						video_owner_id = video_info.get('owner_id')
+						video_id       = video_info.get('id')
 
-				if attachment_type == 'video':
-					video_info     = attachment_info[0].get('video')
-					video_owner_id = video_info.get('owner_id')
-					video_id       = video_info.get('id')
-
-					video = f'{video_owner_id}_{video_id}'
-					logger.debug(f'Attachment video: {video}')
-					response = vk_agent.video.get(videos = video)
-
-					video_url = response.get('items')[0].get('player')
-					if len(options) > 4:
-						options[0] = video_url
-					else:
-						options.insert(0, video_url)
-
-				elif attachment_type == 'link':
-					link_url = attachment_info[0].get('link').get('url')
-					if options:
-						if link_url != options[0]:
-							logger.debug(f'Options[0] ({options[0]}) != attachment ({link_url})')
-							options.insert(0, link_url)
-					else:
-						options.insert(0, link_url)
-
-				else:
-					# Вызов ошибки, если в сообщении нет текста и прикреплённые приложения не являются видео или ссылкой
-					if not options:
-						sayOrReply(user_id, 'Ошибка обработки запроса.', message_id)
+						video = f'{video_owner_id}_{video_id}'
+						logger.debug(f'Attachment video: {video}')
+						sayOrReply(user_id, 'Невозможно обработать прикреплённое видео. Пришлите ссылку.', message_id)
 						return
+						# response = vk_agent.video.get(videos = video)
+						# logger.debug(response)
+						# options = [ response.get('items')[0].get('player') ]
 
-			except Exception as er:
-				logger.warning(f'Attachment: {er}')
-				if not options:
+					elif attachment_type == 'link':
+						options = [ attachment_info[0].get('link').get('url') ]
+
+				except Exception as er:
+					logger.warning(f'Attachment: {er}')
 					sayOrReply(user_id, 'Ошибка: Невозможно обработать запрос. Возможно, вы прикрепили видео вместо ссылки на видео.', message_id)
 					return
-		# Вызов ошибки, если отсутствуют приложения и нет текста
-		if not options:
-			sayOrReply(user_id, 'Ошибка: Некорректный запрос.', message_id)
+		# Безопасный метод проверки, как list.get()
+		if not next(iter(options), '').startswith(RequestIndex.INDEX_URL.value):
+			sayOrReply(user_id, 'Не обнаружена ссылка для скачивания.', message_id)
 			return
 		# Обработка запроса с плейлистом
-		if (RequestIndex.INDEX_PLAYLIST.value in options[0]):
+		if RequestIndex.INDEX_PLAYLIST.value in options[0]:
+			# Проверка на отсутствие других задач от данного пользователя
 			if (userRequests.get(user_id)):
 				sayOrReply(user_id, 'Ошибка: Для загрузки плейлиста очередь запросов должна быть пуста.')
 				return
-
-			if len(options) < 2:
-				sayOrReply(user_id, 'Ошибка: Отсутствуют необходимые параметры для загрузки плейлиста.', message_id)
-			elif len(options) > 2:
-				sayOrReply(user_id, 'Ошибка: Неверные параметры для загрузки плейлиста.', message_id)
-			else:
-				# Создание задачи + вызов функции фрагментации плейлиста, чтобы свести запрос к обычной единице (одной ссылке)
-				userRequests[user_id] = -1
-				msg_start_id = sayOrReply(user_id, 'Запрос добавлен в очередь (плейлист)')
-				task         = [[msg_start_id, user_id, message_id], options]
-				threading.Thread(target = audioTools.playlist_processing(task)).start()
-		else:
-			# Создание задачи и её добавление в обработчик очереди
-			userRequests[user_id] += 1
-			msg_start_id = sayOrReply(user_id, 'Запрос добавлен в очередь ({0}/{1})'.format(userRequests.get(user_id), Settings.MAX_REQUESTS_QUEUE.value))
+			# Проверка на корректность запроса
+			if len(options) != 2:
+				msg_error = 'Ошибка: Неверные параметры для загрузки плейлиста.' if len(options) < 2 else 'Ошибка: Неверные параметры для загрузки плейлиста.'
+				sayOrReply(user_id, msg_error, message_id)
+				return
+			# Создание задачи + вызов функции фрагментации плейлиста, чтобы свести запрос к обычной единице (одной ссылке)
+			userRequests[user_id] = -1
+			msg_start_id = sayOrReply(user_id, 'Запрос добавлен в очередь (плейлист)')
 			task         = [[msg_start_id, user_id, message_id], options]
-			queueHandler.add_new_request(task)
+			threading.Thread(target = audioTools.playlist_processing(task)).start()
+			return
+		# Обработка обычного запроса
+		# Создание задачи и её добавление в обработчик очереди
+		userRequests[user_id] += 1
+		msg_start_id = sayOrReply(user_id, 'Запрос добавлен в очередь ({0}/{1})'.format(userRequests.get(user_id), Settings.MAX_REQUESTS_QUEUE.value))
+		task         = [[msg_start_id, user_id, message_id], options]
+		queueHandler.add_new_request(task)
 
 	def listen_longpoll(self):
 		"""Прослушивание новый сообщений."""
