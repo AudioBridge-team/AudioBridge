@@ -209,10 +209,6 @@ class AudioWorker(threading.Thread):
 			self.path            = ''       # Путь сохранения файла
 			self.progress_msg_id = 0        # id сообщения с прогрессом загрузки
 
-			if options[0][0] == '-':
-				logger.warning('Меня попытались крашнуть!')
-				raise CustomError('Ошибка: Некорректный адрес Youtube-видео.')
-
 			downloadString = 'youtube-dl --no-warnings --no-part --newline --id --extract-audio --audio-format mp3 --max-downloads 1 "{0}"'.format(options[0])
 			cUpdateProcess = -1
 
@@ -650,6 +646,9 @@ class VkBotWorker():
 			threading.Thread(target = audioTools.playlist_processing(task)).start()
 			return
 		# Обработка обычного запроса
+		if RequestIndex.INDEX_YOUTUBE_SHORTS.value in options[0]:
+			logger.debug("Обнаружен YouTube Shorts. Замена ссылки...")
+			options[0] = options[0].replace(RequestIndex.INDEX_YOUTUBE_SHORTS.value, "/watch?v=")
 		# Создание задачи и её добавление в обработчик очереди
 		userRequests[user_id] += 1
 		msg_start_id = sayOrReply(user_id, 'Запрос добавлен в очередь ({0}/{1})'.format(userRequests.get(user_id), Settings.MAX_REQUESTS_QUEUE.value))
