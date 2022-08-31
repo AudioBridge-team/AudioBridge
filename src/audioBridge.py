@@ -386,6 +386,7 @@ class AudioWorker(threading.Thread):
 				if er.code == 270:
 					error_string = 'Правообладатель ограничил доступ к данной аудиозаписи. Загрузка прервана'
 				sayOrReply(self.user_id, f'Ошибка: {error_string}', self.msg_id)
+			# Добавить проверку через sql на успешность загрузки видео
 			logger.error(f'VK API: {er}')
 
 		except Exception as er:
@@ -657,7 +658,7 @@ class VkBotWorker():
 			options[0] = options[0].replace(RequestIndex.INDEX_YOUTUBE_SHORTS.value, "/watch?v=")
 		# Обработка Vk Video
 		elif RequestIndex.INDEX_VK_VIDEO.value in options[0]:
-			logger.debug("Обнаружен Vk video. Получение прямой ссылки...")
+			logger.debug("Обнаружено Vk video. Получение прямой ссылки...")
 			video_url = self.vk_video_handler(options[0].strip())
 			if not video_url:
 				sayOrReply(user_id, 'Ошибка: Невозможно обработать прикреплённое видео, т.к. оно скрыто настройками приватности автора', message_id)
