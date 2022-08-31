@@ -18,6 +18,7 @@ class RequestIndex(Enum):
 	INDEX_PLAYLIST       = "/playlist"      # показатель плейлиста
 	INDEX_URL            = "http" 			# показатель ссылки
 	INDEX_YOUTUBE_SHORTS = "/shorts/"		# показатель YouTube Shorts
+	INDEX_VK_VIDEO       = "vk.com/video"	# показатель Вк видео
 
 class PlaylistStates(IntEnum):
 	PLAYLIST_SUCCESSFUL = auto()
