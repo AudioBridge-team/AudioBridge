@@ -63,7 +63,7 @@ class AudioTools():
 
 	# Получить информацию о видео по ключу
 	def getVideoInfo(self, key, url):
-		return 'youtube-dl --max-downloads 1 --no-warnings --get-filename -o "%({0})s" {1}'.format(key, url)
+		return 'youtube-dl --max-downloads 1 --no-warnings --get-filename -o "%({0})s" "{1}"'.format(key, url)
 
 	# Получить информацию о плейлисте
 	def getPlaylistInfo(self, filter, url):
@@ -386,6 +386,7 @@ class AudioWorker(threading.Thread):
 				if er.code == 270:
 					error_string = 'Правообладатель ограничил доступ к данной аудиозаписи. Загрузка прервана'
 				sayOrReply(self.user_id, f'Ошибка: {error_string}', self.msg_id)
+			# Добавить проверку через sql на успешность загрузки видео
 			logger.error(f'VK API: {er}')
 
 		except Exception as er:
@@ -565,6 +566,15 @@ class VkBotWorker():
 			return True
 		return False
 
+	def vk_video_handler(self, video_url: str) -> str:
+		video_url = video_url[video_url.find(RequestIndex.INDEX_VK_VIDEO.value) + len(RequestIndex.INDEX_VK_VIDEO.value):]
+		logger.debug(f'Vk video info: {video_url}')
+		response = vk_agent.video.get(videos = video_url)
+		items = response.get('items')
+		if not items:
+			return ''
+		return items[0].get('player')
+
 	def message_handler(self, msg_obj):
 		"""Обработка объекта сообщения."""
 		user_id    = msg_obj.get('peer_id')
@@ -602,8 +612,8 @@ class VkBotWorker():
 			if attachment_info:
 				try:
 					logger.debug(f'Attachments info: ({len(attachment_info)}) {attachment_info[0].get("type")}')
-					attachment_type = attachment_info[0].get("type")
 
+					attachment_type = attachment_info[0].get("type")
 					if attachment_type == 'video':
 						video_info     = attachment_info[0].get('video')
 						video_owner_id = video_info.get('owner_id')
@@ -611,18 +621,14 @@ class VkBotWorker():
 
 						video = f'{video_owner_id}_{video_id}'
 						logger.debug(f'Attachment video: {video}')
-						sayOrReply(user_id, 'Невозможно обработать прикреплённое видео. Пришлите ссылку.', message_id)
-						return
-						# response = vk_agent.video.get(videos = video)
-						# logger.debug(response)
-						# options = [ response.get('items')[0].get('player') ]
+						options = [ f'https://{RequestIndex.INDEX_VK_VIDEO.value}{video}' ]
 
 					elif attachment_type == 'link':
 						options = [ attachment_info[0].get('link').get('url') ]
 
 				except Exception as er:
 					logger.warning(f'Attachment: {er}')
-					sayOrReply(user_id, 'Ошибка: Невозможно обработать запрос. Возможно, вы прикрепили видео вместо ссылки на видео.', message_id)
+					sayOrReply(user_id, 'Невозможно обработать прикреплённое видео. Пришлите ссылку.', message_id)
 					return
 		# Безопасный метод проверки, как list.get()
 		if not next(iter(options), '').startswith(RequestIndex.INDEX_URL.value):
@@ -636,7 +642,7 @@ class VkBotWorker():
 				return
 			# Проверка на корректность запроса
 			if len(options) != 2:
-				msg_error = 'Ошибка: Неверные параметры для загрузки плейлиста.' if len(options) < 2 else 'Ошибка: Неверные параметры для загрузки плейлиста.'
+				msg_error = 'Ошибка: Не указаны номера загружаемых видео.' if len(options) < 2 else 'Ошибка: Слишком много параметров для загрузки плейлиста.'
 				sayOrReply(user_id, msg_error, message_id)
 				return
 			# Создание задачи + вызов функции фрагментации плейлиста, чтобы свести запрос к обычной единице (одной ссылке)
@@ -646,9 +652,18 @@ class VkBotWorker():
 			threading.Thread(target = audioTools.playlist_processing(task)).start()
 			return
 		# Обработка обычного запроса
+		# Обработка YouTube Shorts
 		if RequestIndex.INDEX_YOUTUBE_SHORTS.value in options[0]:
 			logger.debug("Обнаружен YouTube Shorts. Замена ссылки...")
 			options[0] = options[0].replace(RequestIndex.INDEX_YOUTUBE_SHORTS.value, "/watch?v=")
+		# Обработка Vk Video
+		elif RequestIndex.INDEX_VK_VIDEO.value in options[0]:
+			logger.debug("Обнаружено Vk video. Получение прямой ссылки...")
+			video_url = self.vk_video_handler(options[0].strip())
+			if not video_url:
+				sayOrReply(user_id, 'Ошибка: Невозможно обработать прикреплённое видео, т.к. оно скрыто настройками приватности автора', message_id)
+				return
+			options[0] = video_url
 		# Создание задачи и её добавление в обработчик очереди
 		userRequests[user_id] += 1
 		msg_start_id = sayOrReply(user_id, 'Запрос добавлен в очередь ({0}/{1})'.format(userRequests.get(user_id), Settings.MAX_REQUESTS_QUEUE.value))
@@ -662,7 +677,7 @@ class VkBotWorker():
 				continue
 			msg_obj = event.obj.message
 			# Проверка на сообщение от пользователя, а не беседы
-			logger.debug(f'Получено новое сообщение: {msg_obj}')
+			# logger.debug(f'Получено новое сообщение: {msg_obj}')
 			if msg_obj.get('from_id') == msg_obj.get('peer_id'):
 				self.message_handler(msg_obj)
 

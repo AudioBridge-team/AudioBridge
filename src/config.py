@@ -15,11 +15,11 @@ class Settings(IntEnum):
 	MAX_ATTEMPTS       = 3                  # количество попыток при ошибке скачивания
 	TIME_ATTEMPT       = 1                  # интервал между попытками скачивания (сек)
 
-
 class RequestIndex(Enum):
 	INDEX_PLAYLIST       = "/playlist"      # показатель плейлиста
 	INDEX_URL            = "http" 			# показатель ссылки
 	INDEX_YOUTUBE_SHORTS = "/shorts/"		# показатель YouTube Shorts
+	INDEX_VK_VIDEO       = "vk.com/video"	# показатель Вк видео
 
 class PlaylistStates(IntEnum):
 	PLAYLIST_SUCCESSFUL = auto()
