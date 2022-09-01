@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog],
 and this project adheres to [Semantic Versioning].
 
 ## [Unreleased]
+## [1.3.0] - 31-08-2022
+### Added
+- Функция в `audioBridge.py` `vk_video_handler` для получения прямой ссылки на прикреплённое видео
+
+### Changed
+- Переменные окружения `PYTHONDONTWRITEBYTECODE=1` и `PYTHONUNBUFFERED=1` заменены аналогичными по функционалу параметрами запуска `-Bu`
+
+### Fixed
+- Обработка Вк видео
 
 ## [1.2.9] - 30-08-2022
 ### Added
@@ -125,6 +134,7 @@ and this project adheres to [Semantic Versioning].
 
 <!-- Versions -->
 [unreleased]: https://github.com/shonqwezon-team/AudioBridge/compare/prod...dev
+[1.3.0]: https://github.com/shonqwezon-team/AudioBridge/compare/v1.2.9...v1.3.0
 [1.2.9]: https://github.com/shonqwezon-team/AudioBridge/compare/v1.2.8...v1.2.9
 [1.2.8]: https://github.com/shonqwezon-team/AudioBridge/compare/v1.2.7...v1.2.8
 [1.2.7]: https://github.com/shonqwezon-team/AudioBridge/compare/v1.2.6...v1.2.7
