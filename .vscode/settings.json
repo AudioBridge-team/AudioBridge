@@ -26,4 +26,5 @@
 
 		"changelog"
 	],
+	"autoDocstring.docstringFormat": "google",
 }
