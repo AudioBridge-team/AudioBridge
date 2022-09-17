@@ -17,10 +17,13 @@ from customErrors import *
 
 
 class MyVkBotLongPoll(VkBotLongPoll):
-	"""Класс обработки событий от VkLongPoll.
+	"""Обработчик событий от VkBotLongPoll.
 
 	Args:
-		VkBotLongPoll (VkLongPoll): интерфейс управления VK
+		VkBotLongPoll (VkBotLongPoll): VkBotLongPoll.
+
+	Yields:
+		VkBotMessageEvent: VkBotMessageEvent
 	"""
 	def listen(self):
 		while True:
@@ -30,21 +33,43 @@ class MyVkBotLongPoll(VkBotLongPoll):
 			except Exception as e:
 				logger.error(e)
 
-# Функция отправки сообщения
+
 def sayOrReply(user_id: int, _message: str, _reply_to: int = None) -> int:
+	"""Функция отправки сообщения пользователя.
+
+	Args:
+		user_id (int): Идентификатор получателя (пользователя).
+		_message (str): Сообщение, которое нужно отправить.
+		_reply_to (int, optional): Идентификатор сообщения, на которое нужно ответить. Defaults to None.
+
+	Returns:
+		int: Идентификатор отправленного сообщения.
+	"""
 	if _reply_to:
 		return vk_bot.messages.send(peer_id = user_id, message = _message, reply_to = _reply_to, random_id = get_random_id())
 	return vk_bot.messages.send(peer_id = user_id, message = _message, random_id = get_random_id())
 
 
 class AudioTools():
-	"""Класс вспомогательных функций для выполнения запроса."""
+	"""Класс вспомогательных инструментов для обработки запроса.
 
+	Raises:
+		CustomError: Вызов ошибки с настраиваемым содержанием.
+	"""
 	def __init__(self):
+		"""Инициализация класса AudioTools.
+		"""
 		self.playlist_result = {}
 
-	# Работа со строкой времени; в скором времени избавимся от этой функции
-	def getSeconds(self, strTime):
+	def getSeconds(self, strTime: str) -> int:
+		"""Обработка строки со временем; в скором времени откажемся от этой функции.
+
+		Args:
+			strTime (str): Строка со временем.
+
+		Returns:
+			int: Время в секундах.
+		"""
 		strTime = strTime.strip()
 		try:
 			pattern = ''
@@ -61,16 +86,39 @@ class AudioTools():
 			logger.error(er)
 			return -1
 
-	# Получить информацию о видео по ключу
-	def getVideoInfo(self, key, url):
+	def getVideoInfo(self, key: str, url: str) -> str:
+		"""Получение строки для извлечения определённой информацию о видео по ключу.
+
+		Args:
+			key (str): Информация, нужно узнать.
+			url (str): Ссылка на видео.
+
+		Returns:
+			str: Строка для извлечения определённой информацию о видео по ключу.
+		"""
 		return 'youtube-dl --max-downloads 1 --no-warnings --get-filename -o "%({0})s" "{1}"'.format(key, url)
 
-	# Получить информацию о плейлисте
-	def getPlaylistInfo(self, filter, url):
+	def getPlaylistInfo(self, filter: str, url: str) -> str:
+		"""Получение строки для извлечения элементов из плейлиста.
+
+		Args:
+			filter (str): Фильтр элементов.
+			url (str): Ссылка на плейлист.
+
+		Returns:
+			str: Строка для извлечения извлечения элементов из плейлиста.
+		"""
 		return 'youtube-dl --no-warnings --dump-json --newline {0} {1}'.format(filter, url)
 
-	# Обработка плейлиста
-	def playlist_processing(self, task):
+	def playlist_processing(self, task: dict):
+		"""Обработка плейлиста: извлечение его составляющих.
+
+		Args:
+			task (dict): Пользовательский запрос.
+
+		Raises:
+			CustomError:  Вызов ошибки с настраиваемым содержанием.
+		"""
 		logger.debug(f'Получил плейлист: {task}')
 		param        = task[0]
 		options      = task[1]   # Параметры запроса
@@ -149,8 +197,12 @@ class AudioTools():
 				userRequests[user_id] -= 1
 				queueHandler.add_new_request([param, [url[0]], [i+1, len(urls)]])
 
-	# Подвести итог
-	def playlist_summarize(self, user_id):
+	def playlist_summarize(self, user_id: int):
+		"""Подведение отчёта об обработки плейлиста.
+
+		Args:
+			user_id (_type_): Идентификатор пользователя.
+		"""
 		try:
 			if self.playlist_result.get(user_id):
 				msg_summary = ''
@@ -183,15 +235,32 @@ class AudioTools():
 
 
 class AudioWorker(threading.Thread):
-	"""Класс скачивания песен и загрузки в ВК."""
+	"""Аудио воркер — класс скачивания песен и загрузки в Вк.
+
+	Args:
+		threading.Thread (threading.Thread): threading.Thread
+
+	Raises:
+		CustomError: Вызов ошибки с настраиваемым содержанием.
+	"""
 
 	def __init__(self, task: list):
+		"""Инициализация класса AudioWorker.
+
+		Args:
+			task (list): Пользовательский запрос.
+		"""
 		super(AudioWorker, self).__init__()
 		self._stop     = False
 		self._task     = task
 		self._playlist = False
 
 	def run(self):
+		"""Запуск воркера в отдельном потоке.
+
+		Raises:
+			CustomError: Вызов ошибки с настраиваемым содержанием.
+		"""
 		logger.info('AudioWorker: Запуск.')
 		try:
 			task = self._task
@@ -457,28 +526,47 @@ class AudioWorker(threading.Thread):
 				)
 
 	def stop(self):
+		"""Вынужденная остановка воркера.
+		"""
 		self._stop = True
 
 
 class QueueHandler():
-	"""Класс управления очередью запросов."""
+	"""Класс управления очередью запросов пользователя.
+	"""
 
 	def __init__(self):
-		self._pool_req = []
-		self._workers = {}
+		"""Инициализация класса QueueHandler.
+		"""
+		self._pool_req = [] # Размер общей очереди запросов
+		self._workers = {} 	# Список действующих воркеров.
 
 	@property
-	def size_queue(self):
+	def size_queue(self) -> int:
+		"""Параметр размера общей очереди запросов.
+
+		Returns:
+			int: Размер общей очереди запросов.
+		"""
 		return len(self._pool_req)
 
 	@property
-	def size_workers(self):
+	def size_workers(self) -> int:
+		"""Параметр размера действующих воркеров.
+
+		Returns:
+			int: Размера действующих воркеров.
+		"""
 		size = 0
 		for i in self._workers.values(): size += len(i)
 		return size
 
-	def clear_pool(self, user_id):
-		"""Очистка очереди запросов пользователя."""
+	def clear_pool(self, user_id: int):
+		"""Очистка очереди запросов пользователя.
+
+		Args:
+			user_id (int): Идентификатор пользователя.
+		"""
 		try:
 			if not userRequests.get(user_id):
 				sayOrReply(user_id, 'Очередь запросов уже пуста!')
@@ -498,14 +586,23 @@ class QueueHandler():
 			logger.error(er)
 			sayOrReply(user_id, 'Не удалось почистить очередь!')
 
-	def add_new_request(self, task):
-		"""Добавление нового запроса в общую очередь."""
+	def add_new_request(self, task: dict):
+		"""Добавление нового пользовательского запроса в общую очередь.
+
+		Args:
+			task (dict): Пользовательского запрос, включающий в себя необходимую информацию для загрузки музыки.
+		"""
 		self._pool_req.append(task)
-		#Проверка на превышение кол-ва максимально возможных воркеров
+		# Проверка на превышение кол-ва максимально возможных воркеров
 		if (self.size_workers < Settings.MAX_WORKERS): self._run_worker()
 
-	def ack_request(self, user_id, worker):
-		"""Подтверждение выполнения запроса."""
+	def ack_request(self, user_id: int, worker: threading.Thread):
+		"""Подтверждение выполнения пользовательского запроса.
+
+		Args:
+			user_id (int): Идентификатор пользователя.
+			worker (threading.Thread): Воркер.
+		"""
 		try:
 			self._workers.get(user_id).remove(worker)
 			if not len(self._workers.get(user_id)): del self._workers[user_id]
@@ -519,7 +616,8 @@ class QueueHandler():
 					del self._pool_req[i-1]
 
 	def _run_worker(self):
-		"""Запуск аудио воркера."""
+		"""Запуск аудио воркера.
+		"""
 		for i, task in enumerate(self._pool_req):
 			user_id = task[0][1]
 
@@ -542,9 +640,15 @@ class QueueHandler():
 
 
 class VkBotWorker():
-	"""Класс прослушивания новых сообщений."""
+	"""Обработка пользовательских запросов.
+	"""
 
 	def __init__(self, program_version: str):
+		"""Инициализация класса VkBotWorker.
+
+		Args:
+			program_version (str): Версия бота.
+		"""
 		self.program_version = program_version
 		self.longpoll        = MyVkBotLongPoll(vk_bot_auth, str(os.environ['BOT_ID']).strip())
 		# Обработка невыполненных запросов после обновления, краша бота
@@ -557,7 +661,16 @@ class VkBotWorker():
 				msg_obj['text']    = msg_obj.pop('body')
 				self.message_handler(msg_obj)
 
-	def command_handler(self, msg_options, user_id: int) -> bool:
+	def command_handler(self, msg_options: list, user_id: int) -> bool:
+		"""Обработка пользовательских команд.
+
+		Args:
+			msg_options (list): Сообщение пользователя в виде списка аргументов.
+			user_id (int): Идентификатор пользователя.
+
+		Returns:
+			bool: Успешность обработки команды.
+		"""
 		if not msg_options:
 			return False
 		command = msg_options[0].strip().lower()
@@ -567,6 +680,14 @@ class VkBotWorker():
 		return False
 
 	def vk_video_handler(self, video_url: str) -> str:
+		"""Получения прямой ссылки на скачивание видео из внутренней ссылки Вк.
+
+		Args:
+			video_url (str): Внутренняя ссылка Вк.
+
+		Returns:
+			str: Прямая ссылка на скачивание видео.
+		"""
 		video_url = video_url[video_url.find(RequestIndex.INDEX_VK_VIDEO.value) + len(RequestIndex.INDEX_VK_VIDEO.value):]
 		logger.debug(f'Vk video info: {video_url}')
 		response = vk_agent.video.get(videos = video_url)
@@ -575,8 +696,12 @@ class VkBotWorker():
 			return ''
 		return items[0].get('player')
 
-	def message_handler(self, msg_obj):
-		"""Обработка объекта сообщения."""
+	def message_handler(self, msg_obj: dict):
+		"""Обработка пользовательских сообщений
+
+		Args:
+			msg_obj (dict): Объект сообщения.
+		"""
 		user_id    = msg_obj.get('peer_id')
 		message_id = msg_obj.get('id')
 
@@ -628,7 +753,7 @@ class VkBotWorker():
 
 				except Exception as er:
 					logger.warning(f'Attachment: {er}')
-					sayOrReply(user_id, 'Невозможно обработать прикреплённое видео. Пришлите ссылку.', message_id)
+					sayOrReply(user_id, 'Ошибка: Невозможно обработать прикреплённое видео. Пришлите ссылку.', message_id)
 					return
 		# Безопасный метод проверки, как list.get()
 		if not next(iter(options), '').startswith(RequestIndex.INDEX_URL.value):
@@ -671,7 +796,8 @@ class VkBotWorker():
 		queueHandler.add_new_request(task)
 
 	def listen_longpoll(self):
-		"""Прослушивание новый сообщений."""
+		"""Прослушивание новых сообщений от пользователей.
+		"""
 		for event in self.longpoll.listen():
 			if event.type != VkBotEventType.MESSAGE_NEW:
 				continue
@@ -683,7 +809,8 @@ class VkBotWorker():
 
 
 if __name__ == '__main__':
-	"""Точка входа в программу."""
+	"""Точка входа в программу.
+	"""
 	# Доступные параметры запуска
 	parser = ArgParser()
 	parser.add_argument(
