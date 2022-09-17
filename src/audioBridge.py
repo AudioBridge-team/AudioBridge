@@ -680,13 +680,13 @@ class VkBotWorker():
 		return False
 
 	def vk_video_handler(self, video_url: str) -> str:
-		"""Получения прямой ссылки на скачивание видео из внутренней ссылки Вк.
+		"""Получения прямой ссылки из внутренней ссылки Вк для скачивания прикреплённого видео.
 
 		Args:
-			video_url (str): Внутренняя ссылка Вк.
+			video_url (str): Внутренняя ссылка прикреплённого Вк видео.
 
 		Returns:
-			str: Прямая ссылка на скачивание видео.
+			str: Прямая ссылка на скачивание прикреплённого видео.
 		"""
 		video_url = video_url[video_url.find(RequestIndex.INDEX_VK_VIDEO.value) + len(RequestIndex.INDEX_VK_VIDEO.value):]
 		logger.debug(f'Vk video info: {video_url}')
