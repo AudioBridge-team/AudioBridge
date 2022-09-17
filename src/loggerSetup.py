@@ -5,11 +5,11 @@ import logging, time, sys, os
 from logging import FileHandler, StreamHandler, Formatter
 
 def setup(logger_name: str, path: str, level=logging.DEBUG):
-	"""Инициализация логгера
+	"""Установка логгера.
 
 	Args:
-		logger_name (str): Имя логгера
-		level (_type_, optional): logger level. Defaults to logging.DEBUG.
+		logger_name (str): Имя логгера.
+		level (logging, optional): Уровень работы логгера.. Defaults to logging.DEBUG.
 	"""
 	logger = logging.getLogger(logger_name)
 	logger.setLevel(level)

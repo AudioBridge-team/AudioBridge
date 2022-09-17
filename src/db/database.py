@@ -5,7 +5,12 @@ import os, psycopg2, logging, sys
 from psycopg2 import Error
 
 class DataBase():
+	"""Интерфейс для работы с базой данных PostgreSql.
+	"""
+
 	def __init__(self):
+		"""Инициализация класса DataBase.
+		"""
 		self.logger = logging.getLogger('logger')
 
 		# Инициализация объекта подключения
@@ -14,6 +19,8 @@ class DataBase():
 
 	#Подключение к базе данных
 	def connect_db(self):
+		"""Подключение к базе данных.
+		"""
 		try:
 			self.logger.debug(f'Connecting to {str(os.environ["DB_NAME"])}')
 			self.conn = psycopg2.connect(
@@ -33,6 +40,8 @@ class DataBase():
 
 	#Создание таблиц, если они отсутствуют
 	def create_tables(self):
+		"""Создание необходимых таблиц в случае их отсутствия.
+		"""
 		try:
 			with self.conn.cursor() as curs:
 				curs.execute(open("src/db/scripts/init_tables.sql", "r").read())
