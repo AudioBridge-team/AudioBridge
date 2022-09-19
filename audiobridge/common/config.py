@@ -3,6 +3,7 @@
 
 from enum import Enum, IntEnum, auto
 
+
 class Settings(IntEnum):
 	"""Настройка работы воркера.
 
