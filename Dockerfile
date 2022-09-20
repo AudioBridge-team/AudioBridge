@@ -8,4 +8,4 @@ COPY . /AudioBridge/bin
 #
 RUN pip install -r requirements.txt
 #
-ENTRYPOINT ["python3", "-Bu", "src/audioBridge.py"]
+ENTRYPOINT ["python3", "-Bu", "-m", "audiobridge"]

@@ -9,12 +9,11 @@ import time
 import vk_api
 from vk_api.utils import get_random_id
 
-from bot.customErrors import CustomError
+from audiobridge.bot.customErrors import CustomError
 
-from common.config import Settings, PlaylistStates
-from common.constants import audioTools, queueHandler
-from common.constants import vk_bot, vk_agent_upload, userRequests
-from common.sayOrReply import sayOrReply
+from audiobridge.common.config import Settings, PlaylistStates
+from audiobridge.common import constants as const
+from audiobridge.common.sayOrReply import sayOrReply
 
 
 logger = logging.getLogger('logger')
@@ -72,7 +71,7 @@ class AudioWorker(threading.Thread):
 			video_duration = -1
 			while attempts != Settings.MAX_ATTEMPTS:
 				# Проверка на соблюдение ограничения длительности видео (MAX_VIDEO_DURATION)
-				proc = subprocess.Popen(audioTools.getVideoInfo('duration', options[0]), stdout = subprocess.PIPE, stderr = subprocess.PIPE, text = True, shell = True)
+				proc = subprocess.Popen(const.audioTools.getVideoInfo('duration', options[0]), stdout = subprocess.PIPE, stderr = subprocess.PIPE, text = True, shell = True)
 				stdout, stderr = proc.communicate()
 				if (stderr):
 					logger.error(f'Получение длительности видео ({attempts}): {stderr.strip()}')
@@ -86,7 +85,7 @@ class AudioWorker(threading.Thread):
 						raise CustomError('Ошибка: Видео недоступно из-за авторских прав или по другим причинам.')
 					else:
 						raise CustomError('Ошибка: Некорректный адрес Youtube-видео.')
-				video_duration = audioTools.getSeconds(stdout)
+				video_duration = const.audioTools.getSeconds(stdout)
 				if video_duration != -1:
 					break
 			logger.debug(f'Получение длительности видео (в сек.), попытки: {attempts}')
@@ -98,14 +97,14 @@ class AudioWorker(threading.Thread):
 
 			# Обработка запроса с таймингами среза
 			if len(options) > 3:
-				startTime = audioTools.getSeconds(options[3])
+				startTime = const.audioTools.getSeconds(options[3])
 				if startTime == -1:
 					raise CustomError('Ошибка: Неверный формат времени среза.')
 				audioDuration = video_duration - startTime
 				if len(options) == 5:
-					audioDuration = audioTools.getSeconds(options[4]) - startTime
+					audioDuration = const.audioTools.getSeconds(options[4]) - startTime
 
-			proc = subprocess.Popen(audioTools.getVideoInfo('id', options[0]), stdout = subprocess.PIPE, text = True, shell = True)
+			proc = subprocess.Popen(const.audioTools.getVideoInfo('id', options[0]), stdout = subprocess.PIPE, text = True, shell = True)
 			self.path = proc.communicate()[0].strip()
 
 			# Загрузка файла
@@ -131,14 +130,14 @@ class AudioWorker(threading.Thread):
 						if cUpdateProcess == Settings.MSG_PERIOD:
 							progress = line[line.find(' '):line.find('КиБ/сек.') + 5].strip()
 							if progress:
-								vk_bot.messages.edit(peer_id = self.user_id, message = progress, message_id = self.progress_msg_id)
+								const.vk_bot.messages.edit(peer_id = self.user_id, message = progress, message_id = self.progress_msg_id)
 							cUpdateProcess = 0
 						if ' in ' in line:
 							progress = line[line.find(' '):len(line)].strip()
 							if progress:
 								msg = progress
 								if self._playlist: msg += f' [{self.task_id}/{self.task_size}]'
-								vk_bot.messages.edit(peer_id = self.user_id, message = msg, message_id = self.progress_msg_id)
+								const.vk_bot.messages.edit(peer_id = self.user_id, message = msg, message_id = self.progress_msg_id)
 						cUpdateProcess += 1
 					line = str(proc.stdout.readline())
 				stdout, stderr = proc.communicate()
@@ -189,11 +188,11 @@ class AudioWorker(threading.Thread):
 
 				# URL
 				if len(options) == 1:
-					proc = subprocess.Popen(audioTools.getVideoInfo('title', options[0]), stdout = subprocess.PIPE, text = True, shell = True)
+					proc = subprocess.Popen(const.audioTools.getVideoInfo('title', options[0]), stdout = subprocess.PIPE, text = True, shell = True)
 					file_name = proc.communicate()[0].strip()
 					if file_name:
 						self.title = file_name
-					proc = subprocess.Popen(audioTools.getVideoInfo('channel', options[0]), stdout = subprocess.PIPE, text = True, shell = True)
+					proc = subprocess.Popen(const.audioTools.getVideoInfo('channel', options[0]), stdout = subprocess.PIPE, text = True, shell = True)
 					file_author = proc.communicate()[0].strip()
 					if file_author:
 						artist = file_author
@@ -201,7 +200,7 @@ class AudioWorker(threading.Thread):
 				# URL + song_name
 				elif len(options) == 2:
 					self.title = options[1]
-					proc = subprocess.Popen(audioTools.getVideoInfo('channel', options[0]), stdout = subprocess.PIPE, text = True, shell = True)
+					proc = subprocess.Popen(const.audioTools.getVideoInfo('channel', options[0]), stdout = subprocess.PIPE, text = True, shell = True)
 					file_author = proc.communicate()[0].strip()
 					if file_author:
 						artist = file_author
@@ -215,16 +214,16 @@ class AudioWorker(threading.Thread):
 
 				if self._stop: return
 				# Загрузка аудиозаписи на сервера VK + её отправка получателю
-				audio_obj = vk_agent_upload.audio(self.path, artist, self.title)
+				audio_obj = const.vk_agent_upload.audio(self.path, artist, self.title)
 				audio_id = audio_obj.get('id')
 				audio_owner_id = audio_obj.get('owner_id')
 				attachment = f'audio{audio_owner_id}_{audio_id}'
 
 				if self._playlist:
-					vk_bot.messages.send(peer_id = self.user_id, attachment = attachment, random_id = get_random_id())
-					audioTools.playlist_result[self.user_id][self.title] = PlaylistStates.PLAYLIST_SUCCESSFUL
+					const.vk_bot.messages.send(peer_id = self.user_id, attachment = attachment, random_id = get_random_id())
+					const.audioTools.playlist_result[self.user_id][self.title] = PlaylistStates.PLAYLIST_SUCCESSFUL
 				else:
-					vk_bot.messages.send(peer_id = self.user_id, attachment = attachment, reply_to = self.msg_id, random_id = get_random_id())
+					const.vk_bot.messages.send(peer_id = self.user_id, attachment = attachment, reply_to = self.msg_id, random_id = get_random_id())
 
 		except CustomError as er:
 			if not self._playlist:
@@ -234,7 +233,7 @@ class AudioWorker(threading.Thread):
 		except vk_api.exceptions.ApiError as er:
 			if self._playlist:
 				if er.code == 270 and self.title:
-					audioTools.playlist_result[self.user_id][self.title] = PlaylistStates.PLAYLIST_COPYRIGHT
+					const.audioTools.playlist_result[self.user_id][self.title] = PlaylistStates.PLAYLIST_COPYRIGHT
 			else:
 				error_string = 'Ошибка: Невозможно обработать плейлист. Убедитесь, что запрос корректный и отправьте его повторно.'
 				if er.code == 270:
@@ -252,7 +251,7 @@ class AudioWorker(threading.Thread):
 		finally:
 			# Удаление сообщения с прогрессом
 			if self.progress_msg_id:
-				vk_bot.messages.delete(delete_for_all = 1, message_ids = self.progress_msg_id)
+				const.vk_bot.messages.delete(delete_for_all = 1, message_ids = self.progress_msg_id)
 
 			# Удаление загруженного файла
 			if self.path:
@@ -268,15 +267,15 @@ class AudioWorker(threading.Thread):
 
 			if not self._stop:
 				# Удаление сообщения с порядком очереди
-				if(userRequests[self.user_id] < 0):
-					userRequests[self.user_id] += 1
-					if (userRequests[self.user_id] == -1):
-						userRequests[self.user_id] = 0
-						vk_bot.messages.delete(delete_for_all = 1, message_ids = self.msg_start_id)
-						audioTools.playlist_summarize(self.user_id)
+				if(const.userRequests[self.user_id] < 0):
+					const.userRequests[self.user_id] += 1
+					if (const.userRequests[self.user_id] == -1):
+						const.userRequests[self.user_id] = 0
+						const.vk_bot.messages.delete(delete_for_all = 1, message_ids = self.msg_start_id)
+						const.audioTools.playlist_summarize(self.user_id)
 				else:
-					userRequests[self.user_id] -= 1
-					vk_bot.messages.delete(delete_for_all = 1, message_ids = self.msg_start_id)
+					const.userRequests[self.user_id] -= 1
+					const.vk_bot.messages.delete(delete_for_all = 1, message_ids = self.msg_start_id)
 
 				logger.debug(
 					(
@@ -289,12 +288,12 @@ class AudioWorker(threading.Thread):
 						self._task,
 						self.path,
 						self.user_id,
-						userRequests[self.user_id],
-						queueHandler.size_queue
+						const.userRequests[self.user_id],
+						const.queueHandler.size_queue
 					)
 				)
-				if not userRequests[self.user_id]: del userRequests[self.user_id]
-				queueHandler.ack_request(self.user_id, threading.current_thread())
+				if not const.userRequests[self.user_id]: del const.userRequests[self.user_id]
+				const.queueHandler.ack_request(self.user_id, threading.current_thread())
 			else:
 				logger.debug(
 					(

@@ -8,16 +8,18 @@ from datetime import date
 
 import vk_api
 
-from db.database import DataBase
-from bot.customErrors import ArgParser
-from bot.queueHandler import QueueHandler
-from bot.audioTools import AudioTools
-from bot.vkBotWorker import VkBotWorker
-from bot import loggerSetup
-from common import constants
+from audiobridge.db.database import DataBase
+from audiobridge.bot.customErrors import ArgParser
+from audiobridge.bot.queueHandler import QueueHandler
+from audiobridge.bot.audioTools import AudioTools
+from audiobridge.bot.vkBotWorker import VkBotWorker
+from audiobridge.bot import loggerSetup
+from audiobridge.common import constants as const
 
 
 def main():
+	"""Подготовка бота к работе.
+	"""
 	# Доступные параметры запуска
 	parser = ArgParser()
 	parser.add_argument(
@@ -51,7 +53,7 @@ def main():
 		load_dotenv()
 
 	# Инициализация класса для подключение к базе данных
-	db1 = DataBase()
+	db = DataBase()
 
 	logger.info(f'Filesystem encoding: {sys.getfilesystemencoding()}, Preferred encoding: {locale.getpreferredencoding()}')
 	logger.info(f'Current version {program_version}, Bot Group ID: {str(os.environ["BOT_ID"]).strip()}')
@@ -59,23 +61,23 @@ def main():
 
 	# Интерфейс для работы с аккаунтом агента (который необходим для загрузки аудио)
 	vk_agent_auth   = vk_api.VkApi(token = str(os.environ["AGENT_TOKEN"]).strip())
-	constants.vk_agent_upload = vk_api.VkUpload(vk_agent_auth)
-	constants.vk_agent        = vk_agent_auth.get_api()
+	const.vk_agent_upload = vk_api.VkUpload(vk_agent_auth)
+	const.vk_agent        = vk_agent_auth.get_api()
 
 	# Интерфейс для работы с ботом
 	vk_bot_auth = vk_api.VkApi(token = str(os.environ["BOT_TOKEN"]).strip())
-	constants.vk_bot      = vk_bot_auth.get_api()
+	const.vk_bot      = vk_bot_auth.get_api()
 
-	constants.queueHandler = QueueHandler()
-	constants.audioTools = AudioTools()
-	constants.vkBotWorker = VkBotWorker(program_version)
+	const.queueHandler = QueueHandler()
+	const.audioTools = AudioTools()
+	const.vkBotWorker = VkBotWorker(program_version, vk_bot_auth)
 
 	# Запуск listener
 	logger.info('Begin listening.')
 
 	while True:
 		try:
-			constants.vkBotWorker.listen_longpoll()
+			const.vkBotWorker.listen_longpoll()
 		except vk_api.exceptions.ApiError as er:
 			logger.error(f'VK API: {er}')
 

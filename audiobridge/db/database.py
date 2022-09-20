@@ -3,6 +3,7 @@
 
 import logging
 import os, sys
+from os.path import realpath
 import psycopg2
 from psycopg2 import Error
 
@@ -48,8 +49,9 @@ class DataBase():
 		"""Создание необходимых таблиц в случае их отсутствия.
 		"""
 		try:
+			path_dir = os.path.dirname(__file__)
 			with self.conn.cursor() as curs:
-				curs.execute(open("src/db/scripts/init_tables.sql", "r").read())
+				curs.execute(open(realpath(path_dir + "/scripts/init_tables.sql"), "r").read())
 
 		except (Exception, Error) as er:
 			#Закрытие освобождение памяти + выход из программы для предотвращения рекурсии и настройки PostgreSQL на хосте

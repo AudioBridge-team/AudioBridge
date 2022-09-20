@@ -1,16 +1,13 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-
 import logging
 import threading
 
-from bot.audioWorker import AudioWorker
-from common.config import Settings
-
-from common.constants import audioTools
-from common.constants import userRequests
-from common.sayOrReply import sayOrReply
+from audiobridge.bot.audioWorker import AudioWorker
+from audiobridge.common.config import Settings
+from audiobridge.common import constants as const
+from audiobridge.common.sayOrReply import sayOrReply
 
 
 logger = logging.getLogger('logger')
@@ -52,7 +49,7 @@ class QueueHandler():
 			user_id (int): Идентификатор пользователя.
 		"""
 		try:
-			if not userRequests.get(user_id):
+			if not const.userRequests.get(user_id):
 				sayOrReply(user_id, 'Очередь запросов уже пуста!')
 			else:
 				for i in range(len(self._pool_req), 0, -1):
@@ -62,9 +59,9 @@ class QueueHandler():
 					for worker in self._workers.get(user_id):
 						worker.stop()
 					# Подведение отчёта о загрузке плейлиста (если он загружался)
-					audioTools.playlist_summarize(user_id)
+					const.audioTools.playlist_summarize(user_id)
 					del self._workers[user_id]
-					del userRequests[user_id]
+					del const.userRequests[user_id]
 				sayOrReply(user_id, 'Очередь запросов очищена!')
 		except Exception as er:
 			logger.error(er)

@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from vk_api.utils import get_random_id
-from common.constants import vk_bot
+from audiobridge.common import constants as const
 
 
 def sayOrReply(user_id: int, _message: str, _reply_to: int = None) -> int:
@@ -17,5 +17,5 @@ def sayOrReply(user_id: int, _message: str, _reply_to: int = None) -> int:
 		int: Идентификатор отправленного сообщения.
 	"""
 	if _reply_to:
-		return vk_bot.messages.send(peer_id = user_id, message = _message, reply_to = _reply_to, random_id = get_random_id())
-	return vk_bot.messages.send(peer_id = user_id, message = _message, random_id = get_random_id())
+		return const.vk_bot.messages.send(peer_id = user_id, message = _message, reply_to = _reply_to, random_id = get_random_id())
+	return const.vk_bot.messages.send(peer_id = user_id, message = _message, random_id = get_random_id())

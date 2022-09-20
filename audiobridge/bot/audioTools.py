@@ -6,13 +6,10 @@ import datetime, time
 import subprocess
 import json
 
-from bot.customErrors import CustomError
-
-from common.config import Settings, PlaylistStates
-
-from common.constants import queueHandler
-from common.constants import userRequests, vk_bot
-from common.sayOrReply import sayOrReply
+from audiobridge.bot.customErrors import CustomError
+from audiobridge.common.config import Settings, PlaylistStates
+from audiobridge.common import constants as const
+from audiobridge.common.sayOrReply import sayOrReply
 
 
 logger = logging.getLogger('logger')
@@ -138,14 +135,14 @@ class AudioTools():
 			if not totalTime:
 				raise CustomError('Ошибка обработки плейлиста.')
 
-			vk_bot.messages.edit(peer_id = user_id, message = f'Запрос добавлен в очередь (плейлист: {len(urls)})', message_id = msg_start_id)
+			const.vk_bot.messages.edit(peer_id = user_id, message = f'Запрос добавлен в очередь (плейлист: {len(urls)})', message_id = msg_start_id)
 
 		except CustomError as er:
 			sayOrReply(user_id, f'Произошла ошибка: {er}', msg_id)
 
 			# Удаление сообщения с порядком очереди
-			vk_bot.messages.delete(delete_for_all = 1, message_ids = msg_start_id)
-			del userRequests[user_id]
+			const.vk_bot.messages.delete(delete_for_all = 1, message_ids = msg_start_id)
+			del const.userRequests[user_id]
 			logger.error(f'Произошла ошибка: {er}')
 
 		except Exception as er:
@@ -153,16 +150,16 @@ class AudioTools():
 			sayOrReply(user_id, error_string, msg_id)
 
 			# Удаление сообщения с порядком очереди
-			vk_bot.messages.delete(delete_for_all = 1, message_ids = msg_start_id)
-			del userRequests[user_id]
+			const.vk_bot.messages.delete(delete_for_all = 1, message_ids = msg_start_id)
+			del const.userRequests[user_id]
 			logger.error(f'Поймал исключение: {er}')
 
 		else:
 			self.playlist_result[user_id] = {'msg_id' : msg_id}  # Отчёт скачивания плейлиста
 			for i, url in enumerate(urls):
 				self.playlist_result[user_id][url[1]] = PlaylistStates.PLAYLIST_UNSTATED
-				userRequests[user_id] -= 1
-				queueHandler.add_new_request([param, [url[0]], [i+1, len(urls)]])
+				const.userRequests[user_id] -= 1
+				const.queueHandler.add_new_request([param, [url[0]], [i+1, len(urls)]])
 
 	def playlist_summarize(self, user_id: int):
 		"""Подведение отчёта об обработки плейлиста.

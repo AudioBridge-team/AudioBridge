@@ -4,17 +4,14 @@
 import logging
 import os
 import threading
+import vk_api
 from vk_api.bot_longpoll import VkBotEventType
 
-from myVkBotLongPoll import MyVkBotLongPoll
-from commands.user import UserCommands
-from common.config import RequestIndex, Settings
-
-from common.constants import vk_bot_auth, vk_bot, vk_agent
-from common.constants import audioTools, queueHandler
-from common.constants import userRequests
-
-from common.sayOrReply import sayOrReply
+from audiobridge.bot.myVkBotLongPoll import MyVkBotLongPoll
+from audiobridge.commands.user import UserCommands
+from audiobridge.common.config import RequestIndex, Settings
+from audiobridge.common import constants as const
+from audiobridge.common.sayOrReply import sayOrReply
 
 
 logger = logging.getLogger('logger')
@@ -23,16 +20,17 @@ class VkBotWorker():
 	"""Обработка пользовательских запросов.
 	"""
 
-	def __init__(self, program_version: str):
+	def __init__(self, program_version: str, vk_bot_auth: vk_api.VkApi):
 		"""Инициализация класса VkBotWorker.
 
 		Args:
 			program_version (str): Версия бота.
+			vk_bot_auth (vk_api.VkApi) Апи бота в группе Вк.
 		"""
 		self.program_version = program_version
 		self.longpoll        = MyVkBotLongPoll(vk_bot_auth, str(os.environ['BOT_ID']).strip())
 		# Обработка невыполненных запросов после обновления, краша бота
-		unanswered_messages  = vk_bot.messages.getDialogs(unanswered=1)
+		unanswered_messages  = const.vk_bot.messages.getDialogs(unanswered=1)
 		for user_message in unanswered_messages.get('items'):
 			# Проверка на сообщение от пользователя, а не беседы
 			msg_obj = user_message.get('message')
@@ -55,7 +53,7 @@ class VkBotWorker():
 			return False
 		command = msg_options[0].strip().lower()
 		if(command == UserCommands.CLEAR.value):
-			queueHandler.clear_pool(user_id)
+			const.queueHandler.clear_pool(user_id)
 			return True
 		return False
 
@@ -70,7 +68,7 @@ class VkBotWorker():
 		"""
 		video_url = video_url[video_url.find(RequestIndex.INDEX_VK_VIDEO.value) + len(RequestIndex.INDEX_VK_VIDEO.value):]
 		logger.debug(f'Vk video info: {video_url}')
-		response = vk_agent.video.get(videos = video_url)
+		response = const.vk_agent.video.get(videos = video_url)
 		items = response.get('items')
 		if not items:
 			return ''
@@ -94,14 +92,14 @@ class VkBotWorker():
 			return
 
 		# Инициализация ячейки конкретного пользователя
-		if not userRequests.get(user_id):
-			userRequests[user_id] = 0
+		if not const.userRequests.get(user_id):
+			const.userRequests[user_id] = 0
 		# Проверка на текущую загрузку плейлиста
-		if userRequests.get(user_id) < 0:
+		if const.userRequests.get(user_id) < 0:
 			sayOrReply(user_id, 'Ошибка: Пожалуйста, дождитесь окончания загрузки плейлиста.')
 			return
 		# Проверка на максимальное число запросов за раз
-		if userRequests.get(user_id) == Settings.MAX_REQUESTS_QUEUE:
+		if const.userRequests.get(user_id) == Settings.MAX_REQUESTS_QUEUE:
 			sayOrReply(user_id, 'Ошибка: Кол-во ваших запросов в общей очереди не может превышать {0}.'.format(Settings.MAX_REQUESTS_QUEUE))
 			return
 
@@ -142,7 +140,7 @@ class VkBotWorker():
 		# Обработка запроса с плейлистом
 		if RequestIndex.INDEX_PLAYLIST.value in options[0]:
 			# Проверка на отсутствие других задач от данного пользователя
-			if (userRequests.get(user_id)):
+			if (const.userRequests.get(user_id)):
 				sayOrReply(user_id, 'Ошибка: Для загрузки плейлиста очередь запросов должна быть пуста.')
 				return
 			# Проверка на корректность запроса
@@ -151,10 +149,10 @@ class VkBotWorker():
 				sayOrReply(user_id, msg_error, message_id)
 				return
 			# Создание задачи + вызов функции фрагментации плейлиста, чтобы свести запрос к обычной единице (одной ссылке)
-			userRequests[user_id] = -1
+			const.userRequests[user_id] = -1
 			msg_start_id = sayOrReply(user_id, 'Запрос добавлен в очередь (плейлист)')
 			task         = [[msg_start_id, user_id, message_id], options]
-			threading.Thread(target = audioTools.playlist_processing(task)).start()
+			threading.Thread(target = const.audioTools.playlist_processing(task)).start()
 			return
 		# Обработка обычного запроса
 		# Обработка YouTube Shorts
@@ -170,10 +168,10 @@ class VkBotWorker():
 				return
 			options[0] = video_url
 		# Создание задачи и её добавление в обработчик очереди
-		userRequests[user_id] += 1
-		msg_start_id = sayOrReply(user_id, 'Запрос добавлен в очередь ({0}/{1})'.format(userRequests.get(user_id), Settings.MAX_REQUESTS_QUEUE.value))
+		const.userRequests[user_id] += 1
+		msg_start_id = sayOrReply(user_id, 'Запрос добавлен в очередь ({0}/{1})'.format(const.userRequests.get(user_id), Settings.MAX_REQUESTS_QUEUE.value))
 		task         = [[msg_start_id, user_id, message_id], options]
-		queueHandler.add_new_request(task)
+		const.queueHandler.add_new_request(task)
 
 	def listen_longpoll(self):
 		"""Прослушивание новых сообщений от пользователей.
