@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import logging, time, sys, os
-from logging import FileHandler, StreamHandler, Formatter
+import time
+import sys, os
+import logging
+from logging import FileHandler, Logger, StreamHandler, Formatter
 
-def setup(logger_name: str, path: str, level=logging.DEBUG):
+
+def setup(logger_name: str, path: str, level=logging.DEBUG) -> Logger:
 	"""Установка логгера.
 
 	Args:
@@ -31,3 +34,5 @@ def setup(logger_name: str, path: str, level=logging.DEBUG):
 
 	logger.addHandler(stdout_handler)
 	logger.addHandler(file_handler)
+
+	return logging.getLogger('logger')

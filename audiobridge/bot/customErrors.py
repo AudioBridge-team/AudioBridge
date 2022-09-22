@@ -3,6 +3,7 @@
 
 import argparse
 
+
 class CustomError(Exception):
 	"""Класс вызова настраиваемой ошибки.
 

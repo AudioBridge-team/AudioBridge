@@ -6,6 +6,10 @@
 и этот проект придерживается [Semantic Versioning].
 
 ## [Unreleased]
+## [1.3.1] - 20-09-2022
+### Changed
+- Полностью переработана структура программы: каждый класс был вынесен в соответствующий ему модуль. Такое решение структуризирует ведение проекта и упрощает его дальнейшее развитие
+
 ## [1.3.0] — 31-08-2022
 ### Added
 * Добавлена функция в `audioBridge.py` `vk_video_handler` для получения прямой ссылки на прикреплённое видео
@@ -137,6 +141,7 @@
 
 <!-- Versions -->
 [unreleased]: https://github.com/shonqwezon-team/AudioBridge/compare/prod...dev
+[1.3.1]: https://github.com/shonqwezon-team/AudioBridge/compare/v1.3.0...v1.3.1
 [1.3.0]: https://github.com/shonqwezon-team/AudioBridge/compare/v1.2.9...v1.3.0
 [1.2.9]: https://github.com/shonqwezon-team/AudioBridge/compare/v1.2.8...v1.2.9
 [1.2.8]: https://github.com/shonqwezon-team/AudioBridge/compare/v1.2.7...v1.2.8

@@ -2,6 +2,8 @@
 # -*- coding: utf-8 -*-
 
 from enum import Enum
+
+
 class UserCommands(Enum):
 	"""Команды для всех пользователей.
 
