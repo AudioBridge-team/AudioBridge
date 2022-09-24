@@ -16,6 +16,8 @@ from audiobridge.bot.vkBotWorker import VkBotWorker
 from audiobridge.bot import loggerSetup
 from audiobridge.common import constants as const
 
+from audiobridge.common import config
+
 
 def main():
 	"""Подготовка бота к работе.
@@ -75,6 +77,9 @@ def main():
 	# Запуск listener
 	logger.info('Begin listening.')
 
+	cfg = config.Settings()
+	print(cfg.MAX_WORKERS, type(cfg.MAX_WORKERS))
+	print(cfg.MAX_FILESIZE, type(cfg.MAX_FILESIZE))
 	while True:
 		try:
 			const.vkBotWorker.listen_longpoll()
