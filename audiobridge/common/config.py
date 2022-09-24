@@ -4,28 +4,56 @@
 import json
 from betterconf import field, Config
 from betterconf.config import AbstractProvider
-from betterconf.caster import AbstractCaster
+from betterconf.caster import to_int, AbstractCaster
 
 
 class JSONProvider(AbstractProvider):
-    SETTINGS_JSON_FILE = "bot_settings.json"
+	"""Чтение конфига из json файла.
 
-    def __init__(self):
-        with open(self.SETTINGS_JSON_FILE, "r") as f:
-            self._settings = json.load(f)
+	Args:
+		AbstractProvider (AbstractProvider): AbstractProvider.
+	"""
+	SETTINGS_JSON_FILE = "bot_settings.json"
 
-    def get(self, name):
-        return self._settings.get(name)
+	def __init__(self):
+		"""Загрузка json файла.
+		"""
+		with open(self.SETTINGS_JSON_FILE, "r") as f:
+			self._settings = json.load(f)
+
+	def get(self, name: str):
+		"""Получение значения по ключу
+
+		Args:
+			name (str): Ключ.
+
+		Returns:
+			Any: Значение.
+		"""
+		return self._settings.get(name)
 
 class ConvertToInt(AbstractCaster):
-    def cast(self, val: str):
-        return eval(val)
+	"""Конвертирование строки в арифметическое выражение.
+
+	Args:
+		AbstractCaster (AbstractCaster): AbstractCaster.
+	"""
+	def cast(self, val: str) -> int:
+		"""Посчитать арифметическое выражение.
+
+		Args:
+			val (str): Арифметическое выражение.
+
+		Returns:
+			int: Результат.
+		"""
+		return eval(val)
 
 class Settings(Config):
 	"""Настройка работы воркера.
 
 	Args:
-		IntEnum (IntEnum): IntEnum.
+		Config (Config): Config.
 	"""
 	MAX_WORKERS        = field("max_workers", provider=JSONProvider(), default=6) 											# максимальное число потоков для всех обработки запросов
 	MAX_UNITS          = field("max_units", provider=JSONProvider(), default=1) 											# число потоков для обработки запросов от одного пользователя
@@ -37,11 +65,41 @@ class Settings(Config):
 	MAX_ATTEMPTS       = field("max_attempts", provider=JSONProvider(), default=3) 											# количество попыток при ошибке скачивания
 	TIME_ATTEMPT       = field("time_attempt", provider=JSONProvider(), default=1) 											# интервал между попытками скачивания (сек)
 
+class BotAuth(Config):
+	"""Данные авторизации бота и агента.
+
+	Args:
+		Config (Config): Config.
+	"""
+	BOT_ID      = field("BOT_ID", caster=to_int)
+	BOT_TOKEN   = field("BOT_TOKEN")
+	AGENT_TOKEN = field("AGENT_TOKEN")
+
+class VkGroup(Config):
+	"""Информация, касающаяся элементов группы
+
+	Args:
+		Config (Config): Config.
+	"""
+	CHANGELOG_PAGE_ID = field("CHANGELOG_PAGE_ID", caster=to_int, default=-1)
+
+class Database(Config):
+	"""Данные авторизации базы данных PostgreSql.
+
+	Args:
+		Config (Config): Config.
+	"""
+	DB_NAME     = field("DB_NAME")
+	PG_USER     = field("PG_USER")
+	PG_PASSWORD = field("PG_PASSWORD")
+	PG_HOST     = field("PG_HOST")
+	PG_PORT     = field("PG_PORT", caster=to_int)
+
 class RequestIndex(Config):
 	"""Показатели типа запроса.
 
 	Args:
-		Enum (Enum): Enum.
+		Config (Config): Config.
 	"""
 	INDEX_PLAYLIST       = "/playlist"      # показатель плейлиста
 	INDEX_URL            = "http" 			# показатель ссылки
@@ -52,7 +110,7 @@ class PlaylistStates(Config):
 	"""Состояние загрузки элемента из плейлиста.
 
 	Args:
-		IntEnum (IntEnum): IntEnum.
+		Config (Config): Config.
 	"""
 	PLAYLIST_SUCCESSFUL = 1
 	PLAYLIST_COPYRIGHT  = 2

@@ -17,6 +17,8 @@ from audiobridge.tools.sayOrReply import sayOrReply
 
 
 logger = logging.getLogger('logger')
+settings_conf = Settings()
+playlist_conf = PlaylistStates()
 
 class AudioWorker(threading.Thread):
 	"""Аудио воркер — класс скачивания песен и загрузки в Вк.
@@ -69,7 +71,7 @@ class AudioWorker(threading.Thread):
 
 			attempts = 0
 			video_duration = -1
-			while attempts != Settings.MAX_ATTEMPTS:
+			while attempts != settings_conf.MAX_ATTEMPTS:
 				# Проверка на соблюдение ограничения длительности видео (MAX_VIDEO_DURATION)
 				proc = subprocess.Popen(vars.audioTools.getVideoInfo('duration', options[0]), stdout = subprocess.PIPE, stderr = subprocess.PIPE, text = True, shell = True)
 				stdout, stderr = proc.communicate()
@@ -77,7 +79,7 @@ class AudioWorker(threading.Thread):
 					logger.error(f'Получение длительности видео ({attempts}): {stderr.strip()}')
 					if ('HTTP Error 403' in stderr):
 						attempts += 1
-						time.sleep(Settings.TIME_ATTEMPT)
+						time.sleep(settings_conf.TIME_ATTEMPT)
 						continue
 					elif ('Sign in to confirm your age' in stderr):
 						raise CustomError('Ошибка: Невозможно скачать видео из-за возрастных ограничений.')
@@ -92,7 +94,7 @@ class AudioWorker(threading.Thread):
 
 			if video_duration == -1:
 				raise CustomError('Ошибка: Возникла неизвестная ошибка, обратитесь к разработчику...')
-			elif video_duration > Settings.MAX_VIDEO_DURATION:
+			elif video_duration > settings_conf.MAX_VIDEO_DURATION:
 				raise CustomError('Ошибка: Длительность будущей аудиозаписи превышает 3 часа.')
 
 			# Обработка запроса с таймингами среза
@@ -109,7 +111,7 @@ class AudioWorker(threading.Thread):
 
 			# Загрузка файла
 			attempts = 0
-			while attempts != Settings.MAX_ATTEMPTS:
+			while attempts != settings_conf.MAX_ATTEMPTS:
 				proc = subprocess.Popen(downloadString, stdout = subprocess.PIPE, stderr = subprocess.PIPE, text = True, shell = True)
 				line = str(proc.stdout.readline())
 				while line:
@@ -127,7 +129,7 @@ class AudioWorker(threading.Thread):
 								self.progress_msg_id = sayOrReply(self.user_id, f'Загрузка началась [{self.task_id}/{self.task_size}]')
 							else:
 								self.progress_msg_id = sayOrReply(self.user_id, 'Загрузка началась', self.msg_id)
-						if cUpdateProcess == Settings.MSG_PERIOD:
+						if cUpdateProcess == settings_conf.MSG_PERIOD:
 							progress = line[line.find(' '):line.find('КиБ/сек.') + 5].strip()
 							if progress:
 								vars.vk_bot.messages.edit(peer_id = self.user_id, message = progress, message_id = self.progress_msg_id)
@@ -146,7 +148,7 @@ class AudioWorker(threading.Thread):
 					if ('HTTP Error 403' in stderr): # ERROR: unable to download video data: HTTP Error 403: Forbidden
 						logger.warning(f'Поймал ошибку 403.')
 						attempts += 1
-						time.sleep(Settings.TIME_ATTEMPT)
+						time.sleep(settings_conf.TIME_ATTEMPT)
 						continue
 					else:
 						logger.error(f'Скачивание видео ({attempts}): {stderr.strip()}')
@@ -161,7 +163,7 @@ class AudioWorker(threading.Thread):
 				raise CustomError('Ошибка: Некорректный адрес Youtube-видео.')
 
 			# Проверка размера файла (необходимо из-за внутренних ограничений VK)
-			if os.path.getsize(self.path) > Settings.MAX_FILESIZE:
+			if os.path.getsize(self.path) > settings_conf.MAX_FILESIZE:
 				raise CustomError('Размер аудиозаписи превышает 200 Мб!')
 			else:
 				os.rename(self.path, 'B' + self.path)
@@ -221,7 +223,7 @@ class AudioWorker(threading.Thread):
 
 				if self._playlist:
 					vars.vk_bot.messages.send(peer_id = self.user_id, attachment = attachment, random_id = get_random_id())
-					vars.audioTools.playlist_result[self.user_id][self.title] = PlaylistStates.PLAYLIST_SUCCESSFUL
+					vars.audioTools.playlist_result[self.user_id][self.title] = playlist_conf.PLAYLIST_SUCCESSFUL
 				else:
 					vars.vk_bot.messages.send(peer_id = self.user_id, attachment = attachment, reply_to = self.msg_id, random_id = get_random_id())
 
@@ -233,7 +235,7 @@ class AudioWorker(threading.Thread):
 		except vk_api.exceptions.ApiError as er:
 			if self._playlist:
 				if er.code == 270 and self.title:
-					vars.audioTools.playlist_result[self.user_id][self.title] = PlaylistStates.PLAYLIST_COPYRIGHT
+					vars.audioTools.playlist_result[self.user_id][self.title] = playlist_conf.PLAYLIST_COPYRIGHT
 			else:
 				error_string = 'Ошибка: Невозможно обработать плейлист. Убедитесь, что запрос корректный и отправьте его повторно.'
 				if er.code == 270:

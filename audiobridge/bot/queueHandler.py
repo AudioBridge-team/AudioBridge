@@ -11,6 +11,7 @@ from audiobridge.tools.sayOrReply import sayOrReply
 
 
 logger = logging.getLogger('logger')
+settings_conf = Settings()
 
 class QueueHandler():
 	"""Класс управления очередью запросов пользователя.
@@ -75,7 +76,7 @@ class QueueHandler():
 		"""
 		self._pool_req.append(task)
 		# Проверка на превышение кол-ва максимально возможных воркеров
-		if (self.size_workers < Settings.MAX_WORKERS): self._run_worker()
+		if (self.size_workers < settings_conf.MAX_WORKERS): self._run_worker()
 
 	def ack_request(self, user_id: int, worker: threading.Thread):
 		"""Подтверждение выполнения пользовательского запроса.
@@ -111,7 +112,7 @@ class QueueHandler():
 				del self._pool_req[i]
 				return
 			# Если пользователь имеет активные запросы
-			elif (len(self._workers.get(user_id)) < Settings.MAX_UNITS):
+			elif (len(self._workers.get(user_id)) < settings_conf.MAX_UNITS):
 				worker = AudioWorker(task)
 				worker.name = f'{user_id}-worker <{len(self._workers.get(user_id, []))}>'
 				worker.start()

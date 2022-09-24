@@ -3,7 +3,6 @@
 
 import sys
 import locale
-import os
 from datetime import date
 
 import vk_api
@@ -16,12 +15,14 @@ from audiobridge.bot.vkBotWorker import VkBotWorker
 from audiobridge.tools import loggerSetup
 from audiobridge.common import vars
 
-from audiobridge.common import config
+from audiobridge.common.config import BotAuth
 
 
 def main():
 	"""Подготовка бота к работе.
 	"""
+	from dotenv import load_dotenv
+	load_dotenv()
 	# Доступные параметры запуска
 	parser = ArgParser()
 	parser.add_argument(
@@ -50,24 +51,25 @@ def main():
 
 	# Подгрузка .env файла на windows
 	logger.info(f'Platform is {sys.platform}')
-	if sys.platform == "win32":
-		from dotenv import load_dotenv
-		load_dotenv()
+	# if sys.platform == "win32":
+	# 	from dotenv import load_dotenv
+	# 	load_dotenv()
 
 	# Инициализация класса для подключение к базе данных
 	db = DataBase()
+	auth_conf = BotAuth()
 
 	logger.info(f'Filesystem encoding: {sys.getfilesystemencoding()}, Preferred encoding: {locale.getpreferredencoding()}')
-	logger.info(f'Current version {program_version}, Bot Group ID: {str(os.environ["BOT_ID"]).strip()}')
+	logger.info(f'Current version {program_version}, Bot Group ID: {auth_conf.BOT_ID}')
 	logger.info('Logging into VKontakte...')
 
 	# Интерфейс для работы с аккаунтом агента (который необходим для загрузки аудио)
-	vk_agent_auth   = vk_api.VkApi(token = str(os.environ["AGENT_TOKEN"]).strip())
+	vk_agent_auth   = vk_api.VkApi(token = auth_conf.AGENT_TOKEN)
 	vars.vk_agent_upload = vk_api.VkUpload(vk_agent_auth)
 	vars.vk_agent        = vk_agent_auth.get_api()
 
 	# Интерфейс для работы с ботом
-	vk_bot_auth = vk_api.VkApi(token = str(os.environ["BOT_TOKEN"]).strip())
+	vk_bot_auth = vk_api.VkApi(token = auth_conf.BOT_TOKEN)
 	vars.vk_bot      = vk_bot_auth.get_api()
 
 	vars.queueHandler = QueueHandler()
