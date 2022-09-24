@@ -21,8 +21,6 @@ from audiobridge.common.config import BotAuth
 def main():
 	"""Подготовка бота к работе.
 	"""
-	from dotenv import load_dotenv
-	load_dotenv()
 	# Доступные параметры запуска
 	parser = ArgParser()
 	parser.add_argument(
@@ -51,9 +49,9 @@ def main():
 
 	# Подгрузка .env файла на windows
 	logger.info(f'Platform is {sys.platform}')
-	# if sys.platform == "win32":
-	# 	from dotenv import load_dotenv
-	# 	load_dotenv()
+	if sys.platform == "win32":
+		from dotenv import load_dotenv
+		load_dotenv()
 
 	# Инициализация класса для подключение к базе данных
 	db = DataBase()
