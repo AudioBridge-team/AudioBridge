@@ -9,12 +9,12 @@ from datetime import date
 import vk_api
 
 from audiobridge.db.database import DataBase
-from audiobridge.bot.customErrors import ArgParser
+from audiobridge.tools.customErrors import ArgParser
 from audiobridge.bot.queueHandler import QueueHandler
 from audiobridge.bot.audioTools import AudioTools
 from audiobridge.bot.vkBotWorker import VkBotWorker
-from audiobridge.bot import loggerSetup
-from audiobridge.common import constants as const
+from audiobridge.tools import loggerSetup
+from audiobridge.common import vars
 
 from audiobridge.common import config
 
@@ -63,26 +63,23 @@ def main():
 
 	# Интерфейс для работы с аккаунтом агента (который необходим для загрузки аудио)
 	vk_agent_auth   = vk_api.VkApi(token = str(os.environ["AGENT_TOKEN"]).strip())
-	const.vk_agent_upload = vk_api.VkUpload(vk_agent_auth)
-	const.vk_agent        = vk_agent_auth.get_api()
+	vars.vk_agent_upload = vk_api.VkUpload(vk_agent_auth)
+	vars.vk_agent        = vk_agent_auth.get_api()
 
 	# Интерфейс для работы с ботом
 	vk_bot_auth = vk_api.VkApi(token = str(os.environ["BOT_TOKEN"]).strip())
-	const.vk_bot      = vk_bot_auth.get_api()
+	vars.vk_bot      = vk_bot_auth.get_api()
 
-	const.queueHandler = QueueHandler()
-	const.audioTools = AudioTools()
-	const.vkBotWorker = VkBotWorker(program_version, vk_bot_auth)
+	vars.queueHandler = QueueHandler()
+	vars.audioTools = AudioTools()
+	vars.vkBotWorker = VkBotWorker(program_version, vk_bot_auth)
 
 	# Запуск listener
 	logger.info('Begin listening.')
 
-	cfg = config.Settings()
-	print(cfg.MAX_WORKERS, type(cfg.MAX_WORKERS))
-	print(cfg.MAX_FILESIZE, type(cfg.MAX_FILESIZE))
 	while True:
 		try:
-			const.vkBotWorker.listen_longpoll()
+			vars.vkBotWorker.listen_longpoll()
 		except vk_api.exceptions.ApiError as er:
 			logger.error(f'VK API: {er}')
 

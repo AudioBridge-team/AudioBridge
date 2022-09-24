@@ -7,11 +7,11 @@ import threading
 import vk_api
 from vk_api.bot_longpoll import VkBotEventType
 
-from audiobridge.bot.myVkBotLongPoll import MyVkBotLongPoll
+from audiobridge.tools.myVkBotLongPoll import MyVkBotLongPoll
 from audiobridge.commands.user import UserCommands
 from audiobridge.common.config import RequestIndex, Settings
-from audiobridge.common import constants as const
-from audiobridge.common.sayOrReply import sayOrReply
+from audiobridge.common import vars
+from audiobridge.tools.sayOrReply import sayOrReply
 
 
 logger = logging.getLogger('logger')
@@ -30,7 +30,7 @@ class VkBotWorker():
 		self.program_version = program_version
 		self.longpoll        = MyVkBotLongPoll(vk_bot_auth, str(os.environ['BOT_ID']).strip())
 		# Обработка невыполненных запросов после обновления, краша бота
-		unanswered_messages  = const.vk_bot.messages.getDialogs(unanswered=1)
+		unanswered_messages  = vars.vk_bot.messages.getDialogs(unanswered=1)
 		for user_message in unanswered_messages.get('items'):
 			# Проверка на сообщение от пользователя, а не беседы
 			msg_obj = user_message.get('message')
@@ -53,7 +53,7 @@ class VkBotWorker():
 			return False
 		command = msg_options[0].strip().lower()
 		if(command == UserCommands.CLEAR.value):
-			const.queueHandler.clear_pool(user_id)
+			vars.queueHandler.clear_pool(user_id)
 			return True
 		return False
 
@@ -66,9 +66,9 @@ class VkBotWorker():
 		Returns:
 			str: Прямая ссылка на скачивание прикреплённого видео.
 		"""
-		video_url = video_url[video_url.find(RequestIndex.INDEX_VK_VIDEO.value) + len(RequestIndex.INDEX_VK_VIDEO.value):]
+		video_url = video_url[video_url.find(RequestIndex.INDEX_VK_VIDEO) + len(RequestIndex.INDEX_VK_VIDEO):]
 		logger.debug(f'Vk video info: {video_url}')
-		response = const.vk_agent.video.get(videos = video_url)
+		response = vars.vk_agent.video.get(videos = video_url)
 		items = response.get('items')
 		if not items:
 			return ''
@@ -92,14 +92,14 @@ class VkBotWorker():
 			return
 
 		# Инициализация ячейки конкретного пользователя
-		if not const.userRequests.get(user_id):
-			const.userRequests[user_id] = 0
+		if not vars.userRequests.get(user_id):
+			vars.userRequests[user_id] = 0
 		# Проверка на текущую загрузку плейлиста
-		if const.userRequests.get(user_id) < 0:
+		if vars.userRequests.get(user_id) < 0:
 			sayOrReply(user_id, 'Ошибка: Пожалуйста, дождитесь окончания загрузки плейлиста.')
 			return
 		# Проверка на максимальное число запросов за раз
-		if const.userRequests.get(user_id) == Settings.MAX_REQUESTS_QUEUE:
+		if vars.userRequests.get(user_id) == Settings.MAX_REQUESTS_QUEUE:
 			sayOrReply(user_id, 'Ошибка: Кол-во ваших запросов в общей очереди не может превышать {0}.'.format(Settings.MAX_REQUESTS_QUEUE))
 			return
 
@@ -124,7 +124,7 @@ class VkBotWorker():
 
 						video = f'{video_owner_id}_{video_id}'
 						logger.debug(f'Attachment video: {video}')
-						options = [ f'https://{RequestIndex.INDEX_VK_VIDEO.value}{video}' ]
+						options = [ f'https://{RequestIndex.INDEX_VK_VIDEO}{video}' ]
 
 					elif attachment_type == 'link':
 						options = [ attachment_info[0].get('link').get('url') ]
@@ -134,13 +134,13 @@ class VkBotWorker():
 					sayOrReply(user_id, 'Ошибка: Невозможно обработать прикреплённое видео. Пришлите ссылку.', message_id)
 					return
 		# Безопасный метод проверки, как list.get()
-		if not next(iter(options), '').startswith(RequestIndex.INDEX_URL.value):
+		if not next(iter(options), '').startswith(RequestIndex.INDEX_URL):
 			sayOrReply(user_id, 'Не обнаружена ссылка для скачивания.', message_id)
 			return
 		# Обработка запроса с плейлистом
-		if RequestIndex.INDEX_PLAYLIST.value in options[0]:
+		if RequestIndex.INDEX_PLAYLIST in options[0]:
 			# Проверка на отсутствие других задач от данного пользователя
-			if (const.userRequests.get(user_id)):
+			if (vars.userRequests.get(user_id)):
 				sayOrReply(user_id, 'Ошибка: Для загрузки плейлиста очередь запросов должна быть пуста.')
 				return
 			# Проверка на корректность запроса
@@ -149,18 +149,18 @@ class VkBotWorker():
 				sayOrReply(user_id, msg_error, message_id)
 				return
 			# Создание задачи + вызов функции фрагментации плейлиста, чтобы свести запрос к обычной единице (одной ссылке)
-			const.userRequests[user_id] = -1
+			vars.userRequests[user_id] = -1
 			msg_start_id = sayOrReply(user_id, 'Запрос добавлен в очередь (плейлист)')
 			task         = [[msg_start_id, user_id, message_id], options]
-			threading.Thread(target = const.audioTools.playlist_processing(task)).start()
+			threading.Thread(target = vars.audioTools.playlist_processing(task)).start()
 			return
 		# Обработка обычного запроса
 		# Обработка YouTube Shorts
-		if RequestIndex.INDEX_YOUTUBE_SHORTS.value in options[0]:
+		if RequestIndex.INDEX_YOUTUBE_SHORTS in options[0]:
 			logger.debug("Обнаружен YouTube Shorts. Замена ссылки...")
-			options[0] = options[0].replace(RequestIndex.INDEX_YOUTUBE_SHORTS.value, "/watch?v=")
+			options[0] = options[0].replace(RequestIndex.INDEX_YOUTUBE_SHORTS, "/watch?v=")
 		# Обработка Vk Video
-		elif RequestIndex.INDEX_VK_VIDEO.value in options[0]:
+		elif RequestIndex.INDEX_VK_VIDEO in options[0]:
 			logger.debug("Обнаружено Vk video. Получение прямой ссылки...")
 			video_url = self.vk_video_handler(options[0].strip())
 			if not video_url:
@@ -168,10 +168,10 @@ class VkBotWorker():
 				return
 			options[0] = video_url
 		# Создание задачи и её добавление в обработчик очереди
-		const.userRequests[user_id] += 1
-		msg_start_id = sayOrReply(user_id, 'Запрос добавлен в очередь ({0}/{1})'.format(const.userRequests.get(user_id), Settings.MAX_REQUESTS_QUEUE.value))
+		vars.userRequests[user_id] += 1
+		msg_start_id = sayOrReply(user_id, 'Запрос добавлен в очередь ({0}/{1})'.format(vars.userRequests.get(user_id), Settings.MAX_REQUESTS_QUEUE))
 		task         = [[msg_start_id, user_id, message_id], options]
-		const.queueHandler.add_new_request(task)
+		vars.queueHandler.add_new_request(task)
 
 	def listen_longpoll(self):
 		"""Прослушивание новых сообщений от пользователей.

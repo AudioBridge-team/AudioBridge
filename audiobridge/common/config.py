@@ -2,14 +2,13 @@
 # -*- coding: utf-8 -*-
 
 import json
-from enum import auto
 from betterconf import field, Config
 from betterconf.config import AbstractProvider
-from betterconf.caster import to_bool, to_int, AbstractCaster
+from betterconf.caster import AbstractCaster
 
 
 class JSONProvider(AbstractProvider):
-    SETTINGS_JSON_FILE = "settings.json"
+    SETTINGS_JSON_FILE = "bot_settings.json"
 
     def __init__(self):
         with open(self.SETTINGS_JSON_FILE, "r") as f:
@@ -28,15 +27,15 @@ class Settings(Config):
 	Args:
 		IntEnum (IntEnum): IntEnum.
 	"""
-	MAX_WORKERS        = field("max_workers", provider=JSONProvider()) 									# максимальное число потоков для всех обработки запросов
-	MAX_UNITS          = field("max_units", provider=JSONProvider()) 									# число потоков для обработки запросов от одного пользователя
-	MAX_REQUESTS_QUEUE = field("max_requests_queue", provider=JSONProvider()) 							# максимальное кол-во запросов в общую очередь от одного пользователя
+	MAX_WORKERS        = field("max_workers", provider=JSONProvider(), default=6) 											# максимальное число потоков для всех обработки запросов
+	MAX_UNITS          = field("max_units", provider=JSONProvider(), default=1) 											# число потоков для обработки запросов от одного пользователя
+	MAX_REQUESTS_QUEUE = field("max_requests_queue", provider=JSONProvider(), default=5) 									# максимальное кол-во запросов в общую очередь от одного пользователя
 
-	MAX_FILESIZE       = field("max_filesize", caster=ConvertToInt(), provider=JSONProvider()) 			# максимальный размер аудио файла
-	MSG_PERIOD         = field("msg_period", provider=JSONProvider()) 									# период обновления процесса загрузки файла на сервер
-	MAX_VIDEO_DURATION = field("max_video_duration", caster=ConvertToInt(), provider=JSONProvider()) 	# максимальная длительность видео в секундах
-	MAX_ATTEMPTS       = field("max_attempts", provider=JSONProvider()) 								# количество попыток при ошибке скачивания
-	TIME_ATTEMPT       = field("time_attempt", provider=JSONProvider()) 								# интервал между попытками скачивания (сек)
+	MAX_FILESIZE       = field("max_filesize", caster=ConvertToInt(), provider=JSONProvider(), default=200 * 1024 * 1024) 	# максимальный размер аудио файла
+	MSG_PERIOD         = field("msg_period", provider=JSONProvider(), default=50) 											# период обновления процесса загрузки файла на сервер
+	MAX_VIDEO_DURATION = field("max_video_duration", caster=ConvertToInt(), provider=JSONProvider(), default=3 * 60 * 60) 	# максимальная длительность видео в секундах
+	MAX_ATTEMPTS       = field("max_attempts", provider=JSONProvider(), default=3) 											# количество попыток при ошибке скачивания
+	TIME_ATTEMPT       = field("time_attempt", provider=JSONProvider(), default=1) 											# интервал между попытками скачивания (сек)
 
 class RequestIndex(Config):
 	"""Показатели типа запроса.
@@ -55,6 +54,6 @@ class PlaylistStates(Config):
 	Args:
 		IntEnum (IntEnum): IntEnum.
 	"""
-	PLAYLIST_SUCCESSFUL = auto()
-	PLAYLIST_COPYRIGHT  = auto()
-	PLAYLIST_UNSTATED   = auto()
+	PLAYLIST_SUCCESSFUL = 1
+	PLAYLIST_COPYRIGHT  = 2
+	PLAYLIST_UNSTATED   = 3
