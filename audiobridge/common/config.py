@@ -101,10 +101,11 @@ class RequestIndex(Config):
 	Args:
 		Config (Config): Config.
 	"""
-	INDEX_PLAYLIST       = "/playlist"      # показатель плейлиста
-	INDEX_URL            = "http" 			# показатель ссылки
-	INDEX_YOUTUBE_SHORTS = "/shorts/"		# показатель YouTube Shorts
-	INDEX_VK_VIDEO       = "vk.com/video"	# показатель Вк видео
+	INDEX_PLATFORM_YOUTUBE = "YouTube"		# Показатель принадлежности видео к платформе YouTube
+	INDEX_PLAYLIST         = "/playlist"    # показатель плейлиста
+	INDEX_URL              = "http" 		# показатель ссылки
+	INDEX_YOUTUBE_SHORTS   = "/shorts/"		# показатель YouTube Shorts
+	INDEX_VK_VIDEO         = "vk.com/video"	# показатель Вк видео
 
 class PlaylistStates(Config):
 	"""Состояние загрузки элемента из плейлиста.

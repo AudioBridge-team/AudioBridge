@@ -124,10 +124,12 @@ class VkBotWorker():
 						video_info     = attachment_info[0].get('video')
 						video_owner_id = video_info.get('owner_id')
 						video_id       = video_info.get('id')
+						video_platform = video_info.get("platform", "undefined")
 
 						video = f'{video_owner_id}_{video_id}'
-						logger.debug(f'Attachment video: {video}')
-						options = [ f'https://{request_conf.INDEX_VK_VIDEO}{video}' ]
+						logger.debug(f'Attachment video: {video} (platform: {video_platform})')
+						if video_platform != request_conf.INDEX_PLATFORM_YOUTUBE:
+							options = [ f'https://{request_conf.INDEX_VK_VIDEO}{video}' ]
 
 					elif attachment_type == 'link':
 						options = [ attachment_info[0].get('link').get('url') ]
