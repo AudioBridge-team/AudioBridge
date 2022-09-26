@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 
 import logging
-import os
 import threading
 import vk_api
 from vk_api.bot_longpoll import VkBotEventType
@@ -128,8 +127,7 @@ class VkBotWorker():
 
 						video = f'{video_owner_id}_{video_id}'
 						logger.debug(f'Attachment video: {video} (platform: {video_platform})')
-						if video_platform != request_conf.INDEX_PLATFORM_YOUTUBE:
-							options = [ f'https://{request_conf.INDEX_VK_VIDEO}{video}' ]
+						options = [ f'https://{request_conf.INDEX_VK_VIDEO}{video}' ] if video_platform != request_conf.INDEX_PLATFORM_YOUTUBE else [ video_platform ]
 
 					elif attachment_type == 'link':
 						options = [ attachment_info[0].get('link').get('url') ]
@@ -138,7 +136,12 @@ class VkBotWorker():
 					logger.warning(f'Attachment: {er}')
 					sayOrReply(user_id, 'Ошибка: Невозможно обработать прикреплённое видео. Пришлите ссылку.', message_id)
 					return
-		# Безопасный метод проверки, как list.get()
+
+		# Вызов ошибки при наличии прикреплённого YouTube видео
+		if request_conf.INDEX_PLATFORM_YOUTUBE in options:
+			sayOrReply(user_id, 'Ошибка: невозможно обработать прикреплённое YouTube видео. Отправьте ссылку в текстовом виде.', message_id)
+			return
+		# Безопасный метод проверки, наподобие list.get()
 		if not next(iter(options), '').startswith(request_conf.INDEX_URL):
 			sayOrReply(user_id, 'Не обнаружена ссылка для скачивания.', message_id)
 			return

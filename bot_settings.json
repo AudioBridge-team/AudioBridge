@@ -1,4 +1,6 @@
 {
+	"sync_changelog"    : true,
+	"release_update"    : true,
 	"max_workers"       : 6,
 	"max_units"         : 1,
 	"max_requests_queue": 5,

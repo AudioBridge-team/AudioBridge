@@ -12,6 +12,7 @@ from audiobridge.tools.customErrors import ArgParser
 from audiobridge.bot.queueHandler import QueueHandler
 from audiobridge.bot.audioTools import AudioTools
 from audiobridge.bot.vkBotWorker import VkBotWorker
+from audiobridge.bot.vkGroupManager import VkGroupManager
 from audiobridge.tools import loggerSetup
 from audiobridge.common import vars
 
@@ -73,6 +74,8 @@ def main():
 	vars.queueHandler = QueueHandler()
 	vars.audioTools = AudioTools()
 	vars.vkBotWorker = VkBotWorker(program_version, vk_bot_auth)
+
+	vkGroupManager = VkGroupManager()
 
 	# Запуск listener
 	logger.info('Begin listening.')

@@ -81,6 +81,8 @@ class VkGroup(Config):
 	Args:
 		Config (Config): Config.
 	"""
+	SYNC_CHANGELOG    = field("sync_changelog", provider=JSONProvider(), default=False)
+	RELEASE_UPDATE    = field("release_update", provider=JSONProvider(), default=False)
 	CHANGELOG_PAGE_ID = field("CHANGELOG_PAGE_ID", caster=to_int, default=-1)
 
 class Database(Config):
