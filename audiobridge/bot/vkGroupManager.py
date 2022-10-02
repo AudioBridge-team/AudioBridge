@@ -23,9 +23,15 @@ class VkGroupManager():
 		for line in wiki.splitlines(True):
 			if line.startswith('='):
 				line = '=' + line.strip() + '='
-				if '[' in line and ']' in line:
-					# добавление знака | в заголовках с ссылками
-					pass
+				if "Unreleased" in line:
+					line += '\n'
+			if '[' in line and ']' in line:
+				last_pos = 0
+				while last_pos != -1:
+					last_pos = line.find('[', last_pos+1)
+					if last_pos != -1:
+						pos = line.find(' ', last_pos)
+						line = line[:pos] + '|' + line[pos+1:]
 			fixed_wiki += line
 		return fixed_wiki
 
@@ -34,18 +40,14 @@ class VkGroupManager():
 			if vkgroup_conf.CHANGELOG_PAGE_ID == -1:
 				raise CustomError("Can't get changelog page id. Changelog wasn't synchronized!")
 
-			# proc = subprocess.Popen("pandoc CHANGELOG.md -t mediawiki", stdout = subprocess.PIPE, stderr = subprocess.PIPE, text = True, shell = True)
-			# stdout, stderr = proc.communicate()
-			# if stderr:
-			# 	raise CustomError(f"Can't convert .md to .wiki: {stderr}")
-			# if not stdout:
-			# 	raise CustomError('CHANGELOG.wiki is empty!')
+			proc = subprocess.Popen("pandoc CHANGELOG.md -t mediawiki", stdout = subprocess.PIPE, stderr = subprocess.PIPE, text = True, shell = True)
+			stdout, stderr = proc.communicate()
+			if stderr:
+				raise CustomError(f"Can't convert .md to .wiki: {stderr}")
+			if not stdout:
+				raise CustomError('CHANGELOG.wiki is empty!')
 
-			# vars.vk_agent.pages.save(text=stdout, page_id=vkgroup_conf.CHANGELOG_PAGE_ID, group_id=auth_conf.BOT_ID)
-
-			with open("CHANGELOG.wiki", "r", encoding="utf-8") as file:
-				wiki = file.read()
-				logger.debug(self._fix_wiki_for_vk(wiki))
+			vars.vk_agent.pages.save(text=self._fix_wiki_for_vk(stdout), page_id=vkgroup_conf.CHANGELOG_PAGE_ID, group_id=auth_conf.BOT_ID)
 
 		except CustomError as er:
 			logger.error(f'Custom: {er}')
