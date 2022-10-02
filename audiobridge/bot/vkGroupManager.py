@@ -48,6 +48,9 @@ class VkGroupManager():
 				raise CustomError('CHANGELOG.wiki is empty!')
 
 			vars.vk_agent.pages.save(text=self._fix_wiki_for_vk(stdout), page_id=vkgroup_conf.CHANGELOG_PAGE_ID, group_id=auth_conf.BOT_ID)
+			logger.debug("Changelog was synchronized successfully!")
+			if vkgroup_conf.RELEASE_UPDATE:
+				logger.debug("Releasing post with new update...")
 
 		except CustomError as er:
 			logger.error(f'Custom: {er}')
