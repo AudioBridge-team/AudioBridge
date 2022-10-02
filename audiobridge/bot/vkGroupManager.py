@@ -19,10 +19,15 @@ class VkGroupManager():
 			self._sync_changelog()
 
 	def _fix_wiki_for_vk(self, wiki: str) -> str:
-		# удаление переноса строки после заголовков
-		# добавление ещё одного знака = для заголовков
-		# добавление знака | в заголовках с ссылками
-		return wiki
+		fixed_wiki = ""
+		for line in wiki.splitlines(True):
+			if line.startswith('='):
+				line = '=' + line.strip() + '='
+				if '[' in line and ']' in line:
+					# добавление знака | в заголовках с ссылками
+					pass
+			fixed_wiki += line
+		return fixed_wiki
 
 	def _sync_changelog(self):
 		try:
@@ -40,7 +45,7 @@ class VkGroupManager():
 
 			with open("CHANGELOG.wiki", "r", encoding="utf-8") as file:
 				wiki = file.read()
-				logger.debug(self._fix_wiki_for_vk)
+				logger.debug(self._fix_wiki_for_vk(wiki))
 
 		except CustomError as er:
 			logger.error(f'Custom: {er}')
