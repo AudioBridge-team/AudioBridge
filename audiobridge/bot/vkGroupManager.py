@@ -12,13 +12,25 @@ vkgroup_conf = VkGroup()
 auth_conf    = BotAuth()
 
 class VkGroupManager():
+	"""Управление группой Вк.
+	"""
 	def __init__(self):
+		"""Инициализация класса VkGroupManager.
+		"""
 		logger.info(f'Synchronize vk changelog is: {vkgroup_conf.SYNC_CHANGELOG}')
 		logger.info(f'Release vk post-update is: {vkgroup_conf.RELEASE_UPDATE}')
 		if vkgroup_conf.SYNC_CHANGELOG:
 			self._sync_changelog()
 
 	def _fix_wiki_for_vk(self, wiki: str) -> str:
+		"""Доработка wiki формата под стилистику wiki-страниц Вк.
+
+		Args:
+			wiki (str): Переведенный текст из .md формата в .wiki формат.
+
+		Returns:
+			str: Доработанный текст под стилистику wiki-страниц Вк.
+		"""
 		fixed_wiki = ""
 		for line in wiki.splitlines(True):
 			if line.startswith('='):
@@ -36,6 +48,11 @@ class VkGroupManager():
 		return fixed_wiki
 
 	def _sync_changelog(self):
+		"""Синхронизация локального CHANGELOG.md с wiki-страницей в вк.
+
+		Raises:
+			CustomError: Вызов ошибки с настраиваемым содержанием.
+		"""
 		try:
 			if vkgroup_conf.CHANGELOG_PAGE_ID == -1:
 				raise CustomError("Can't get changelog page id. Changelog wasn't synchronized!")
