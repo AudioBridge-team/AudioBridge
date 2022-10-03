@@ -139,7 +139,7 @@ class VkBotWorker():
 
 		# Вызов ошибки при наличии прикреплённого YouTube видео
 		if request_conf.INDEX_PLATFORM_YOUTUBE in options:
-			sayOrReply(user_id, 'Ошибка: невозможно обработать прикреплённое YouTube видео. Отправьте ссылку в текстовом виде.', message_id)
+			sayOrReply(user_id, 'Ошибка: Невозможно обработать прикреплённое YouTube видео. Отправьте ссылку в текстовом виде.', message_id)
 			return
 		# Безопасный метод проверки, наподобие list.get()
 		if not next(iter(options), '').startswith(request_conf.INDEX_URL):
