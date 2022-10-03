@@ -6,11 +6,12 @@ import threading
 
 from audiobridge.bot.audioWorker import AudioWorker
 from audiobridge.common.config import Settings
-from audiobridge.common import constants as const
-from audiobridge.common.sayOrReply import sayOrReply
+from audiobridge.common import vars
+from audiobridge.tools.sayOrReply import sayOrReply
 
 
 logger = logging.getLogger('logger')
+settings_conf = Settings()
 
 class QueueHandler():
 	"""Класс управления очередью запросов пользователя.
@@ -49,7 +50,7 @@ class QueueHandler():
 			user_id (int): Идентификатор пользователя.
 		"""
 		try:
-			if not const.userRequests.get(user_id):
+			if not vars.userRequests.get(user_id):
 				sayOrReply(user_id, 'Очередь запросов уже пуста!')
 			else:
 				for i in range(len(self._pool_req), 0, -1):
@@ -59,9 +60,9 @@ class QueueHandler():
 					for worker in self._workers.get(user_id):
 						worker.stop()
 					# Подведение отчёта о загрузке плейлиста (если он загружался)
-					const.audioTools.playlist_summarize(user_id)
+					vars.audioTools.playlist_summarize(user_id)
 					del self._workers[user_id]
-					del const.userRequests[user_id]
+					del vars.userRequests[user_id]
 				sayOrReply(user_id, 'Очередь запросов очищена!')
 		except Exception as er:
 			logger.error(er)
@@ -75,7 +76,7 @@ class QueueHandler():
 		"""
 		self._pool_req.append(task)
 		# Проверка на превышение кол-ва максимально возможных воркеров
-		if (self.size_workers < Settings.MAX_WORKERS): self._run_worker()
+		if (self.size_workers < settings_conf.MAX_WORKERS): self._run_worker()
 
 	def ack_request(self, user_id: int, worker: threading.Thread):
 		"""Подтверждение выполнения пользовательского запроса.
@@ -111,7 +112,7 @@ class QueueHandler():
 				del self._pool_req[i]
 				return
 			# Если пользователь имеет активные запросы
-			elif (len(self._workers.get(user_id)) < Settings.MAX_UNITS):
+			elif (len(self._workers.get(user_id)) < settings_conf.MAX_UNITS):
 				worker = AudioWorker(task)
 				worker.name = f'{user_id}-worker <{len(self._workers.get(user_id, []))}>'
 				worker.start()

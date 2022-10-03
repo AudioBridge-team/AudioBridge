@@ -6,9 +6,9 @@
 userRequests = dict()
 
 queueHandler = None
-audioTools = None
-vkBotWorker = None
+audioTools   = None
+vkBotWorker  = None
 
-vk_bot = None
-vk_agent = None
+vk_bot          = None
+vk_agent        = None
 vk_agent_upload = None

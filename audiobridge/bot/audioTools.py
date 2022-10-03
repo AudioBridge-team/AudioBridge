@@ -6,13 +6,15 @@ import datetime, time
 import subprocess
 import json
 
-from audiobridge.bot.customErrors import CustomError
+from audiobridge.tools.customErrors import CustomError
 from audiobridge.common.config import Settings, PlaylistStates
-from audiobridge.common import constants as const
-from audiobridge.common.sayOrReply import sayOrReply
+from audiobridge.common import vars
+from audiobridge.tools.sayOrReply import sayOrReply
 
 
 logger = logging.getLogger('logger')
+settings_conf = Settings()
+playlist_conf = PlaylistStates()
 
 class AudioTools():
 	"""Класс вспомогательных инструментов для обработки запроса.
@@ -104,13 +106,13 @@ class AudioTools():
 			attempts = 0
 
 			# Получение urls и проверка общей продолжительности запроса
-			while attempts != Settings.MAX_ATTEMPTS:
+			while attempts != settings_conf.MAX_ATTEMPTS:
 				proc = subprocess.Popen(informationString, stdout = subprocess.PIPE, stderr = subprocess.PIPE, text = True, shell = True)
 				line = str(proc.stdout.readline())
 				while line:
 					obj = json.loads(line.strip())
 					totalTime += int(float(obj['duration']))
-					if (totalTime > Settings.MAX_VIDEO_DURATION):
+					if (totalTime > settings_conf.MAX_VIDEO_DURATION):
 						raise CustomError('Ошибка: Суммарная продолжительность будущих аудиозаписей не может превышать 3 часа!')
 					urls.append([obj['webpage_url'], obj['title'].strip()])
 					line = str(proc.stdout.readline())
@@ -123,7 +125,7 @@ class AudioTools():
 				logger.error(f'Getting playlist information ({attempts}): {stderr.strip()}')
 				if ('HTTP Error 403' in stderr):
 					attempts += 1
-					time.sleep(Settings.TIME_ATTEMPT)
+					time.sleep(settings_conf.TIME_ATTEMPT)
 					continue
 				elif ('Sign in to confirm your age' in stderr):
 					raise CustomError('Ошибка: Невозможно скачать плейлист из-за возрастных ограничений.')
@@ -135,14 +137,14 @@ class AudioTools():
 			if not totalTime:
 				raise CustomError('Ошибка обработки плейлиста.')
 
-			const.vk_bot.messages.edit(peer_id = user_id, message = f'Запрос добавлен в очередь (плейлист: {len(urls)})', message_id = msg_start_id)
+			vars.vk_bot.messages.edit(peer_id = user_id, message = f'Запрос добавлен в очередь (плейлист: {len(urls)})', message_id = msg_start_id)
 
 		except CustomError as er:
 			sayOrReply(user_id, f'Произошла ошибка: {er}', msg_id)
 
 			# Удаление сообщения с порядком очереди
-			const.vk_bot.messages.delete(delete_for_all = 1, message_ids = msg_start_id)
-			del const.userRequests[user_id]
+			vars.vk_bot.messages.delete(delete_for_all = 1, message_ids = msg_start_id)
+			del vars.userRequests[user_id]
 			logger.error(f'Произошла ошибка: {er}')
 
 		except Exception as er:
@@ -150,16 +152,16 @@ class AudioTools():
 			sayOrReply(user_id, error_string, msg_id)
 
 			# Удаление сообщения с порядком очереди
-			const.vk_bot.messages.delete(delete_for_all = 1, message_ids = msg_start_id)
-			del const.userRequests[user_id]
+			vars.vk_bot.messages.delete(delete_for_all = 1, message_ids = msg_start_id)
+			del vars.userRequests[user_id]
 			logger.error(f'Поймал исключение: {er}')
 
 		else:
 			self.playlist_result[user_id] = {'msg_id' : msg_id}  # Отчёт скачивания плейлиста
 			for i, url in enumerate(urls):
-				self.playlist_result[user_id][url[1]] = PlaylistStates.PLAYLIST_UNSTATED
-				const.userRequests[user_id] -= 1
-				const.queueHandler.add_new_request([param, [url[0]], [i+1, len(urls)]])
+				self.playlist_result[user_id][url[1]] = playlist_conf.PLAYLIST_UNSTATED
+				vars.userRequests[user_id] -= 1
+				vars.queueHandler.add_new_request([param, [url[0]], [i+1, len(urls)]])
 
 	def playlist_summarize(self, user_id: int):
 		"""Подведение отчёта об обработки плейлиста.
@@ -181,15 +183,15 @@ class AudioTools():
 						summary[status].append(title)
 				logger.debug(f'Сводка по плейлисту: {summary}')
 
-				if summary.get(PlaylistStates.PLAYLIST_SUCCESSFUL):
+				if summary.get(playlist_conf.PLAYLIST_SUCCESSFUL):
 					msg_summary += 'Успешно:\n'
-					for title in summary[PlaylistStates.PLAYLIST_SUCCESSFUL]: msg_summary += ('• ' + title + '\n')
-				if summary.get(PlaylistStates.PLAYLIST_COPYRIGHT):
+					for title in summary[playlist_conf.PLAYLIST_SUCCESSFUL]: msg_summary += ('• ' + title + '\n')
+				if summary.get(playlist_conf.PLAYLIST_COPYRIGHT):
 					msg_summary += '\nЗаблокировано из-за авторских прав:\n'
-					for title in summary[PlaylistStates.PLAYLIST_COPYRIGHT]: msg_summary += ('• ' + title + '\n')
-				if summary.get(PlaylistStates.PLAYLIST_UNSTATED):
+					for title in summary[playlist_conf.PLAYLIST_COPYRIGHT]: msg_summary += ('• ' + title + '\n')
+				if summary.get(playlist_conf.PLAYLIST_UNSTATED):
 					msg_summary += '\nНе загружено:\n'
-					for title in summary[PlaylistStates.PLAYLIST_UNSTATED]: msg_summary += ('• ' + title + '\n')
+					for title in summary[playlist_conf.PLAYLIST_UNSTATED]: msg_summary += ('• ' + title + '\n')
 				del self.playlist_result[user_id]
 				sayOrReply(user_id, msg_summary, msg_id)
 
