@@ -1,15 +1,18 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import logging, time, sys, os
-from logging import FileHandler, StreamHandler, Formatter
+import time
+import sys, os
+import logging
+from logging import FileHandler, Logger, StreamHandler, Formatter
 
-def setup(logger_name: str, path: str, level=logging.DEBUG):
-	"""Инициализация логгера
+
+def setup(logger_name: str, path: str, level=logging.DEBUG) -> Logger:
+	"""Установка логгера.
 
 	Args:
-		logger_name (str): Имя логгера
-		level (_type_, optional): logger level. Defaults to logging.DEBUG.
+		logger_name (str): Имя логгера.
+		level (logging, optional): Уровень работы логгера.. Defaults to logging.DEBUG.
 	"""
 	logger = logging.getLogger(logger_name)
 	logger.setLevel(level)
@@ -31,3 +34,5 @@ def setup(logger_name: str, path: str, level=logging.DEBUG):
 
 	logger.addHandler(stdout_handler)
 	logger.addHandler(file_handler)
+
+	return logging.getLogger('logger')

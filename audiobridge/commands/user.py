@@ -2,11 +2,13 @@
 # -*- coding: utf-8 -*-
 
 from enum import Enum
+
+
 class UserCommands(Enum):
-	"""Команды для всех пользователей
+	"""Команды для всех пользователей.
 
 	Args:
-		Enum (Enum): список команд
+		Enum (Enum): Enum.
 
 	Returns:
 		str: Описание команды
@@ -21,8 +23,19 @@ class UserCommands(Enum):
 		return obj
 
 	def __init__(self, _: str, description: str = None):
+		"""Инициализация команды.
+
+		Args:
+			_ (str): Название команды.
+			description (str, optional): Описание команды. Defaults to None.
+		"""
 		self._description_ = description
 
 	@property
 	def description(self):
+		"""Параметр описания команды.
+
+		Returns:
+			str: Описание команды.
+		"""
 		return self._description_

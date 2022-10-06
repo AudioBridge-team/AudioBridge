@@ -2,3 +2,4 @@ vk_api
 pydub
 youtube-dl
 psycopg2-binary
+betterconf
