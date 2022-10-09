@@ -2,9 +2,10 @@
 # -*- coding: utf-8 -*-
 
 import logging
-import datetime, time
+import time
 import subprocess
 import json
+from datetime import datetime
 
 from audiobridge.tools.customErrors import CustomError
 from audiobridge.common.config import Settings, PlaylistStates
