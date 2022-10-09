@@ -6,6 +6,10 @@
 
 ## [Unreleased]
 
+## [1.3.2] - 09-10-2022
+### Fixed
+* Исправлена ошибка в функции `getSeconds()` при обработке запросов с временем среза
+
 ## [1.3.1] - 20-09-2022
 ### Added
 * Добавлен новый конфигурационный файл `bot_settings.json`, в котором прописаны настройки обработки запросов пользователя и конвертации видео
@@ -148,6 +152,7 @@
 
 <!-- Versions -->
 [unreleased]: https://github.com/shonqwezon-team/AudioBridge/compare/prod...dev
+[1.3.2]: https://github.com/shonqwezon-team/AudioBridge/compare/v1.3.1...v1.3.2
 [1.3.1]: https://github.com/shonqwezon-team/AudioBridge/compare/v1.3.0...v1.3.1
 [1.3.0]: https://github.com/shonqwezon-team/AudioBridge/compare/v1.2.9...v1.3.0
 [1.2.9]: https://github.com/shonqwezon-team/AudioBridge/compare/v1.2.8...v1.2.9
