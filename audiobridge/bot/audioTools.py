@@ -28,6 +28,31 @@ class AudioTools():
 		"""
 		self.playlist_result = {}
 
+	def getSeconds(self, strTime: str) -> int:
+		"""Обработка строки со временем; в скором времени откажемся от этой функции.
+
+		Args:
+			strTime (str): Строка со временем.
+
+		Returns:
+			int: Время в секундах.
+		"""
+		strTime = strTime.strip()
+		try:
+			pattern = ''
+			if strTime.count(':') == 1:
+				pattern = '%M:%S'
+			if strTime.count(':') == 2:
+				pattern = '%H:%M:%S'
+			if pattern:
+				time_obj = datetime.strptime(strTime, pattern)
+				return time_obj.hour * 60 * 60 + time_obj.minute * 60 + time_obj.second
+			else:
+				return int(float(strTime))
+		except Exception as er:
+			logger.error(er)
+			return -1
+
 	def getAudioUrl(self, url: str) -> str:
 		"""Получение команды для выявления прямой ссылки аудиодорожки.
 
