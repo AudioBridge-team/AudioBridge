@@ -156,7 +156,7 @@ class AudioWorker(threading.Thread):
 			# Проверка наличия пути и url источника
 			if not self.path or not url:
 				raise CustomError('Ошибка: Некорректный адрес источника.')
-
+#--------------------------finish----------------------------------------------------
 			# Загрузка файла
 			attempts = 0
 			while attempts != settings_conf.MAX_ATTEMPTS:
@@ -204,7 +204,7 @@ class AudioWorker(threading.Thread):
 				else:
 					break
 			logger.debug(f'Скачивание видео, попытки: {attempts}')
-
+#------------------------------------------------------------------------------------
 			# Проверка размера файла (необходимо из-за внутренних ограничений VK)
 			if os.path.getsize(self.path) > settings_conf.MAX_FILESIZE:
 				raise CustomError('Размер аудиозаписи превышает 200 Мб!')
