@@ -41,6 +41,47 @@ class AudioWorker(threading.Thread):
 		self._task     = task
 		self._playlist = False
 
+	def tryCmd(self, command) -> str:
+		status = "unstated"
+		attempts = 0
+		try:
+			while attempts != settings_conf.MAX_ATTEMPTS:
+				if self._stop:
+					return "handled"
+				proc = subprocess.Popen(command, stdout = subprocess.PIPE, stderr = subprocess.PIPE, text = True, shell = True)
+				stdout, stderr = proc.communicate()
+				if (stderr):
+					logger.error(f'Ошибка выполнения команды ({attempts}): {stderr.strip()}')
+					if ('HTTP Error 403' in stderr):
+						attempts += 1
+						time.sleep(settings_conf.TIME_ATTEMPT)
+						continue
+					elif ('Sign in to confirm your age' in stderr):
+						raise CustomError('Ошибка: Невозможно скачать видео из-за возрастных ограничений.')
+					elif ('Video unavailable' in stderr):
+						raise CustomError('Ошибка: Видео недоступно из-за авторских прав или по другим причинам.')
+					else:
+						raise CustomError('Ошибка: Некорректный адрес источника.')
+				if stdout:
+					status = stdout
+					break
+
+		except CustomError as er:
+			if not self._playlist:
+				sayOrReply(self.user_id, er, self.msg_id)
+			logger.error(f'Custom: {er}')
+			status = "handled"
+
+		except Exception as er:
+			if not self._playlist:
+				error_string = 'Ошибка: Невозможно обработать запрос. Убедитесь, что запрос корректный, и отправьте его повторно.'
+				sayOrReply(self.user_id, error_string, self.msg_id)
+			logger.error(f'Исключение: {er}')
+			status = "handled"
+
+		finally:
+			return status
+
 	def run(self):
 		"""Запуск воркера в отдельном потоке.
 
@@ -69,35 +110,20 @@ class AudioWorker(threading.Thread):
 
 			logger.debug(f'Получена задача: {task}')
 
-			attempts = 0
-			video_duration = -1
-			while attempts != settings_conf.MAX_ATTEMPTS:
-				# Проверка на соблюдение ограничения длительности видео (MAX_VIDEO_DURATION)
-				proc = subprocess.Popen(vars.audioTools.getVideoInfo('duration', options[0]), stdout = subprocess.PIPE, stderr = subprocess.PIPE, text = True, shell = True)
-				stdout, stderr = proc.communicate()
-				if (stderr):
-					logger.error(f'Получение длительности видео ({attempts}): {stderr.strip()}')
-					if ('HTTP Error 403' in stderr):
-						attempts += 1
-						time.sleep(settings_conf.TIME_ATTEMPT)
-						continue
-					elif ('Sign in to confirm your age' in stderr):
-						raise CustomError('Ошибка: Невозможно скачать видео из-за возрастных ограничений.')
-					elif ('Video unavailable' in stderr):
-						raise CustomError('Ошибка: Видео недоступно из-за авторских прав или по другим причинам.')
-					else:
-						raise CustomError('Ошибка: Некорректный адрес Youtube-видео.')
-				video_duration = vars.audioTools.getSeconds(stdout)
-				if video_duration != -1:
-					break
-			logger.debug(f'Получение длительности видео (в сек.), попытки: {attempts}')
+			result = self.tryCmd(vars.audioTools.getVideoInfo('duration', options[0]))
+			if result == "unstated":
+				raise CustomError("Ошибка: неизвестная. Обратитесь к разработчикам для выявления проблем.")
+			if result == "handled":
+				# Завершение потока, т.к. ошибка известна и уже обработана
+				return
 
+			video_duration = vars.audioTools.getSeconds(result)
 			if video_duration == -1:
-				raise CustomError('Ошибка: Возникла неизвестная ошибка, обратитесь к разработчику...')
-			elif video_duration > settings_conf.MAX_VIDEO_DURATION:
-				raise CustomError('Ошибка: Длительность будущей аудиозаписи превышает 3 часа.')
+				raise CustomError("Ошибка: неизвестная. Обратитесь к разработчикам для выявления проблем.")
+			logger.debug(f'Получена длительность оригинального видео (в сек.): {video_duration}')
 
 			# Обработка запроса с таймингами среза
+			audioDuration = 0
 			if len(options) > 3:
 				startTime = vars.audioTools.getSeconds(options[3])
 				if startTime == -1:
@@ -106,8 +132,30 @@ class AudioWorker(threading.Thread):
 				if len(options) == 5:
 					audioDuration = vars.audioTools.getSeconds(options[4]) - startTime
 
-			proc = subprocess.Popen(vars.audioTools.getVideoInfo('id', options[0]), stdout = subprocess.PIPE, text = True, shell = True)
-			self.path = proc.communicate()[0].strip()
+			if video_duration > settings_conf.MAX_VIDEO_DURATION and audioDuration > settings_conf.MAX_VIDEO_DURATION:
+				raise CustomError('Ошибка: Длительность будущей аудиозаписи превышает 3 часа.')
+			if audioDuration >= video_duration or audioDuration <= 0:
+				audioDuration = 0
+
+			result = self.tryCmd(vars.audioTools.getVideoInfo('id', options[0]))
+			if result == "unstated":
+				raise CustomError("Ошибка: неизвестная. Обратитесь к разработчикам для выявления проблем.")
+			if result == "handled":
+				# Завершение потока, т.к. ошибка известна и уже обработана
+				return
+			self.path = result.strip()
+
+			result = self.tryCmd(vars.audioTools.getAudioUrl(options[0]))
+			if result == "unstated":
+				raise CustomError("Ошибка: неизвестная. Обратитесь к разработчикам для выявления проблем.")
+			if result == "handled":
+				# Завершение потока, т.к. ошибка известна и уже обработана
+				return
+			url = result.strip()
+
+			# Проверка наличия пути и url источника
+			if not self.path or not url:
+				raise CustomError('Ошибка: Некорректный адрес источника.')
 
 			# Загрузка файла
 			attempts = 0
@@ -157,33 +205,10 @@ class AudioWorker(threading.Thread):
 					break
 			logger.debug(f'Скачивание видео, попытки: {attempts}')
 
-			# Проверка валидности пути сохранения файла
-			if not self.path:
-				logger.error(f'Путь: попытки: {attempts}')
-				raise CustomError('Ошибка: Некорректный адрес Youtube-видео.')
-
 			# Проверка размера файла (необходимо из-за внутренних ограничений VK)
 			if os.path.getsize(self.path) > settings_conf.MAX_FILESIZE:
 				raise CustomError('Размер аудиозаписи превышает 200 Мб!')
 			else:
-				os.rename(self.path, 'B' + self.path)
-				self.path = 'B' + self.path
-
-				if self._stop: return
-
-				# Создание аудиосегмента
-				if len(options) > 3 and audioDuration < video_duration:
-					baseAudio = self.path
-					self.path = 'A' + self.path
-					audioString = 'ffmpeg -ss {0} -t {1} -i {2} {3}'.format(startTime, audioDuration, baseAudio, self.path)
-					logger.debug(f'Параметры запуска ffmpeg: {audioString}')
-					subprocess.Popen(audioString, stdout = subprocess.PIPE, text = True, shell = True).wait()
-					if os.path.isfile(baseAudio):
-						os.remove(baseAudio)
-						logger.debug(f'Успех: Удаление файла видео: "{baseAudio}".')
-					else:
-						logger.error(f'Ошибка: Файл видео не существует.')
-
 				# Поиск и коррекция данных аудиозаписи
 				artist = 'unknown'
 				self.title = 'unknown'
@@ -216,7 +241,7 @@ class AudioWorker(threading.Thread):
 
 				if self._stop: return
 				# Загрузка аудиозаписи на сервера VK + её отправка получателю
-				audio_obj = vars.vk_agent_upload.audio(self.path, artist, self.title)
+				audio_obj = vars.vk_bot.audio(self.path, artist, self.title)
 				audio_id = audio_obj.get('id')
 				audio_owner_id = audio_obj.get('owner_id')
 				attachment = f'audio{audio_owner_id}_{audio_id}'
@@ -237,7 +262,7 @@ class AudioWorker(threading.Thread):
 				if er.code == 270 and self.title:
 					vars.audioTools.playlist_result[self.user_id][self.title] = playlist_conf.PLAYLIST_COPYRIGHT
 			else:
-				error_string = 'Ошибка: Невозможно обработать плейлист. Убедитесь, что запрос корректный и отправьте его повторно.'
+				error_string = 'Ошибка: Невозможно обработать запрос. Убедитесь, что запрос корректный, и отправьте его повторно.'
 				if er.code == 270:
 					error_string = 'Правообладатель ограничил доступ к данной аудиозаписи. Загрузка прервана'
 				sayOrReply(self.user_id, f'Ошибка: {error_string}', self.msg_id)
@@ -246,7 +271,7 @@ class AudioWorker(threading.Thread):
 
 		except Exception as er:
 			if not self._playlist:
-				error_string = 'Ошибка: Невозможно обработать плейлист. Убедитесь, что запрос корректный и отправьте его повторно.'
+				error_string = 'Ошибка: Невозможно обработать запрос. Убедитесь, что запрос корректный, и отправьте его повторно.'
 				sayOrReply(self.user_id, error_string, self.msg_id)
 			logger.error(f'Исключение: {er}')
 
