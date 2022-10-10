@@ -41,13 +41,13 @@ class AudioWorker(threading.Thread):
 		self._task     = task
 		self._playlist = False
 
-	def tryCmd(self, command) -> str:
-		status = "unstated"
+	def tryCmd(self, command) -> tuple:
+		status = (False, "Ошибка: Неизвестная. Обратитесь к разработчикам для выявления причины ошибки.")
 		attempts = 0
 		try:
 			while attempts != settings_conf.MAX_ATTEMPTS:
 				if self._stop:
-					return "handled"
+					return (False, "")
 				proc = subprocess.Popen(command, stdout = subprocess.PIPE, stderr = subprocess.PIPE, text = True, shell = True)
 				stdout, stderr = proc.communicate()
 				if (stderr):
@@ -63,21 +63,15 @@ class AudioWorker(threading.Thread):
 					else:
 						raise CustomError('Ошибка: Некорректный адрес источника.')
 				if stdout:
-					status = stdout
+					status = (True, stdout)
 					break
 
 		except CustomError as er:
-			if not self._playlist:
-				sayOrReply(self.user_id, er, self.msg_id)
-			logger.error(f'Custom: {er}')
-			status = "handled"
+			return (False, er)
 
 		except Exception as er:
-			if not self._playlist:
-				error_string = 'Ошибка: Невозможно обработать запрос. Убедитесь, что запрос корректный, и отправьте его повторно.'
-				sayOrReply(self.user_id, error_string, self.msg_id)
 			logger.error(f'Исключение: {er}')
-			status = "handled"
+			return (False, "Ошибка: Невозможно обработать запрос. Убедитесь, что запрос корректный, и отправьте его повторно.")
 
 		finally:
 			return status
@@ -111,12 +105,8 @@ class AudioWorker(threading.Thread):
 			logger.debug(f'Получена задача: {task}')
 
 			result = self.tryCmd(vars.audioTools.getVideoInfo('duration', options[0]))
-			if result == "unstated":
-				raise CustomError("Ошибка: неизвестная. Обратитесь к разработчикам для выявления проблем.")
-			if result == "handled":
-				# Завершение потока, т.к. ошибка известна и уже обработана
-				return
-
+			if not result[0]:
+				raise CustomError([1])
 			video_duration = vars.audioTools.getSeconds(result)
 			if video_duration == -1:
 				raise CustomError("Ошибка: неизвестная. Обратитесь к разработчикам для выявления проблем.")
@@ -138,19 +128,13 @@ class AudioWorker(threading.Thread):
 				audioDuration = 0
 
 			result = self.tryCmd(vars.audioTools.getVideoInfo('id', options[0]))
-			if result == "unstated":
-				raise CustomError("Ошибка: неизвестная. Обратитесь к разработчикам для выявления проблем.")
-			if result == "handled":
-				# Завершение потока, т.к. ошибка известна и уже обработана
-				return
+			if not result[0]:
+				raise CustomError([1])
 			self.path = result.strip()
 
 			result = self.tryCmd(vars.audioTools.getAudioUrl(options[0]))
-			if result == "unstated":
-				raise CustomError("Ошибка: неизвестная. Обратитесь к разработчикам для выявления проблем.")
-			if result == "handled":
-				# Завершение потока, т.к. ошибка известна и уже обработана
-				return
+			if not result[0]:
+				raise CustomError([1])
 			url = result.strip()
 
 			# Проверка наличия пути и url источника
@@ -253,9 +237,10 @@ class AudioWorker(threading.Thread):
 					vars.vk_bot.messages.send(peer_id = self.user_id, attachment = attachment, reply_to = self.msg_id, random_id = get_random_id())
 
 		except CustomError as er:
-			if not self._playlist:
-				sayOrReply(self.user_id, er, self.msg_id)
-			logger.error(f'Custom: {er}')
+			if er:
+				if not self._playlist:
+					sayOrReply(self.user_id, er, self.msg_id)
+				logger.error(f'Custom: {er}')
 
 		except vk_api.exceptions.ApiError as er:
 			if self._playlist:
