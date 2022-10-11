@@ -1,5 +1,5 @@
 {
-	"sync_changelog"    : true,
+	"sync_changelog"    : false,
 	"release_update"    : true,
 	"max_workers"       : 6,
 	"max_units"         : 1,
