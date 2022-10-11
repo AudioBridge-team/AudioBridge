@@ -41,40 +41,20 @@ class AudioWorker(threading.Thread):
 		self._task     = task
 		self._playlist = False
 
-	def tryCmd(self, command) -> tuple:
-		status = (False, "Ошибка: Неизвестная. Обратитесь к разработчикам для выявления причины ошибки.")
-		attempts = 0
-		try:
-			while attempts != settings_conf.MAX_ATTEMPTS:
-				if self._stop:
-					return (False, "")
-				proc = subprocess.Popen(command, stdout = subprocess.PIPE, stderr = subprocess.PIPE, text = True, shell = True)
-				stdout, stderr = proc.communicate()
-				if (stderr):
-					logger.error(f'Ошибка выполнения команды ({attempts}): {stderr.strip()}')
-					if ('HTTP Error 403' in stderr):
-						attempts += 1
-						time.sleep(settings_conf.TIME_ATTEMPT)
-						continue
-					elif ('Sign in to confirm your age' in stderr):
-						raise CustomError('Ошибка: Невозможно скачать видео из-за возрастных ограничений.')
-					elif ('Video unavailable' in stderr):
-						raise CustomError('Ошибка: Видео недоступно из-за авторских прав или по другим причинам.')
-					else:
-						raise CustomError('Ошибка: Некорректный адрес источника.')
-				if stdout:
-					status = (True, stdout)
-					break
-
-		except CustomError as er:
-			return (False, er)
-
-		except Exception as er:
-			logger.error(f'Исключение: {er}')
-			return (False, "Ошибка: Невозможно обработать запрос. Убедитесь, что запрос корректный, и отправьте его повторно.")
-
-		finally:
-			return status
+	def _getAudioInfo(self, url: str, attempts: 0) -> tuple:
+		cmd = 'ffmpeg -loglevel info -hide_banner -i "{0}"'.format(url)
+		proc = subprocess.Popen(cmd, stderr = subprocess.PIPE, text = True, shell = True)
+		audioInfo = proc.communicate()[1].strip()
+		logger.debug(audioInfo)
+		# если ошибка то рекурсия
+		if audioInfo.find("Duration:") == -1:
+			return None
+		audioInfo = audioInfo[audioInfo.find("Duration:"):]
+		audioInfo = audioInfo[:audioInfo.find('\n')]
+		audioInfo = audioInfo.split(',')
+		duration = audioInfo[0][audioInfo[0].find(':')+2:]
+		bitrate = audioInfo[2][audioInfo[2].find(':')+2:audioInfo[2].rfind(' ')]
+		return (duration, bitrate)
 
 	def run(self):
 		"""Запуск воркера в отдельном потоке.
@@ -99,18 +79,45 @@ class AudioWorker(threading.Thread):
 			self.path            = ''       # Путь сохранения файла
 			self.progress_msg_id = 0        # id сообщения с прогрессом загрузки
 
-			downloadString = 'youtube-dl --no-warnings --no-part --newline --id --extract-audio --audio-format mp3 --max-downloads 1 "{0}"'.format(options[0])
 			cUpdateProcess = -1
+			downloadString = 'ffmpeg -hide_banner -stats -i '
+			url = ""
 
 			logger.debug(f'Получена задача: {task}')
 
-			result = self.tryCmd(vars.audioTools.getVideoInfo('duration', options[0]))
-			if not result[0]:
-				raise CustomError([1])
-			video_duration = vars.audioTools.getSeconds(result)
-			if video_duration == -1:
-				raise CustomError("Ошибка: неизвестная. Обратитесь к разработчикам для выявления проблем.")
-			logger.debug(f'Получена длительность оригинального видео (в сек.): {video_duration}')
+			attempts = 0
+			while attempts != settings_conf.MAX_ATTEMPTS:
+				if self._stop: return
+				proc = subprocess.Popen(vars.audioTools.getAudioUrl(options[0]), stdout = subprocess.PIPE, stderr = subprocess.PIPE, text = True, shell = True)
+				stdout, stderr = proc.communicate()
+				if (stderr):
+					logger.error(f'Ошибка получения прямой ссылки ({attempts}): {stderr.strip()}')
+					if ('HTTP Error 403' in stderr):
+						attempts += 1
+						time.sleep(settings_conf.TIME_ATTEMPT)
+						continue
+					elif ('Sign in to confirm your age' in stderr):
+						raise CustomError('Ошибка: Невозможно скачать видео из-за возрастных ограничений.')
+					elif ('Video unavailable' in stderr):
+						raise CustomError('Ошибка: Видео недоступно из-за авторских прав или по другим причинам.')
+					else:
+						raise CustomError('Ошибка: Некорректный адрес источника.')
+				if stdout:
+					url = stdout.strip()
+					break
+
+			proc = subprocess.Popen(vars.audioTools.getVideoInfo('id', options[0]), stdout = subprocess.PIPE, text = True, shell = True)
+			self.path = proc.communicate()[0].strip()
+
+			# Проверка наличия пути и url источника
+			if not self.path or not url:
+				raise CustomError('Ошибка: Некорректный адрес источника.')
+
+			audioInfo = self._getAudioInfo(url)
+			if not audioInfo:
+				raise CustomError("Ошибка: Невозможно получить информацию о видео.")
+			logger.debug(audioInfo)
+			return
 
 			# Обработка запроса с таймингами среза
 			audioDuration = 0
@@ -121,25 +128,10 @@ class AudioWorker(threading.Thread):
 				audioDuration = video_duration - startTime
 				if len(options) == 5:
 					audioDuration = vars.audioTools.getSeconds(options[4]) - startTime
+				downloadString = 'ffmpeg -ss {startTime} -t {audioDuration} -hide_banner -stats -i '
 
-			if video_duration > settings_conf.MAX_VIDEO_DURATION and audioDuration > settings_conf.MAX_VIDEO_DURATION:
-				raise CustomError('Ошибка: Длительность будущей аудиозаписи превышает 3 часа.')
-			if audioDuration >= video_duration or audioDuration <= 0:
-				audioDuration = 0
-
-			result = self.tryCmd(vars.audioTools.getVideoInfo('id', options[0]))
-			if not result[0]:
-				raise CustomError([1])
-			self.path = result.strip()
-
-			result = self.tryCmd(vars.audioTools.getAudioUrl(options[0]))
-			if not result[0]:
-				raise CustomError([1])
-			url = result.strip()
-
-			# Проверка наличия пути и url источника
-			if not self.path or not url:
-				raise CustomError('Ошибка: Некорректный адрес источника.')
+			self.path += ".mp3"
+			downloadString += '"{0}" {1}'.format(url, self.path)
 #--------------------------finish----------------------------------------------------
 			# Загрузка файла
 			attempts = 0
@@ -237,10 +229,9 @@ class AudioWorker(threading.Thread):
 					vars.vk_bot.messages.send(peer_id = self.user_id, attachment = attachment, reply_to = self.msg_id, random_id = get_random_id())
 
 		except CustomError as er:
-			if er:
-				if not self._playlist:
-					sayOrReply(self.user_id, er, self.msg_id)
-				logger.error(f'Custom: {er}')
+			if not self._playlist:
+				sayOrReply(self.user_id, er, self.msg_id)
+			logger.error(f'Custom: {er}')
 
 		except vk_api.exceptions.ApiError as er:
 			if self._playlist:
