@@ -77,7 +77,7 @@ class AudioWorker(threading.Thread):
 			raise CustomError("Ошибка: Невозможно получить информацию о видео.")
 		proc = subprocess.Popen(cmd, stderr = subprocess.PIPE, text = True, shell = True)
 		audioInfo = proc.communicate()[1].strip()
-		if ('HTTP error 403' in audioInfo) or audioInfo.find("Duration:") == -1:
+		if ('http error 403' in audioInfo.lower()) or audioInfo.find("Duration:") == -1:
 			attempts += 1
 			logger.error(f"Ошибка получения информации об аудио ({attempts}):\n{audioInfo}")
 			time.sleep(settings_conf.TIME_ATTEMPT)
@@ -87,7 +87,7 @@ class AudioWorker(threading.Thread):
 		audioInfo = audioInfo[:audioInfo.find('\n')]
 		audioInfo = audioInfo.split(',')
 		duration = audioInfo[0][audioInfo[0].find(':')+2:]
-		if duration.find('.') != -1:
+		if '.' in duration:
 			duration = duration[:duration.find(".")]
 		bitrate = audioInfo[2][audioInfo[2].find(':')+2:audioInfo[2].rfind(' ')]
 
@@ -107,13 +107,13 @@ class AudioWorker(threading.Thread):
 		stdout, stderr = proc.communicate()
 		if (stderr):
 			logger.error(f'Ошибка получения прямой ссылки ({attempts}): {stderr.strip()}')
-			if ('HTTP Error 403' in stderr):
+			if ('http error 403' in stderr.lower()):
 				attempts += 1
 				time.sleep(settings_conf.TIME_ATTEMPT)
 				self._getAudioUrl(cmd, attempts)
-			elif ('Sign in to confirm your age' in stderr):
+			elif ('sign in to confirm your age' in stderr.lower()):
 				raise CustomError('Ошибка: Невозможно скачать видео из-за возрастных ограничений.')
-			elif ('Video unavailable' in stderr):
+			elif ('video unavailable' in stderr.lower()):
 				raise CustomError('Ошибка: Видео недоступно из-за авторских прав или по другим причинам.')
 			else:
 				raise CustomError('Ошибка: Некорректный адрес источника.')
@@ -126,25 +126,43 @@ class AudioWorker(threading.Thread):
 
 		return stdout.strip()
 
-	def _uploadAudio(self, cmd: str, attempts = 0):
+	def _downloadAudio(self, cmd: str, attempts = 0):
 		if attempts == settings_conf.MAX_ATTEMPTS:
 			raise CustomError("Ошибка: Невозможно загрузить видео.")
 		# Загрузка файла
-		proc = subprocess.Popen(cmd, stdout = subprocess.PIPE, stderr = subprocess.PIPE, text = True, shell = True)
-		line = str(proc.stdout.readline())
+		countUpdateProcess = 0
+		proc = subprocess.Popen(cmd, stderr = subprocess.PIPE, text = True, shell = True)
+		line = str(proc.stderr.readline())
+		if line:
+			if self._playlist:
+				self.progress_msg_id = sayOrReply(self.user_id, f'Загрузка началась [{self.task_id}/{self.task_size}]')
+			else:
+				self.progress_msg_id = sayOrReply(self.user_id, 'Загрузка началась', self.msg_id)
 		while line:
 			if self._stop: raise CustomError(code=CustomErrorCode.STOP_THREAD)
-			logger.debug("NEW LINE: {line}")
-			line = str(proc.stdout.readline())
-		stdout, stderr = proc.communicate()
 
-		logger.debug(f"Summarize:\n\tStdout: {stdout}\n\tStderr: {stderr}")
+			if "size=" in line.lower():
+				if countUpdateProcess == settings_conf.MSG_PERIOD:
+					size = line[6:].strip()
+					size = int(size[:size.find(' ')-2])
+					if size:
+						vars.vk_bot.messages.edit(peer_id = self.user_id, message = f"Загружено {int(round(size * 1024 / self.file_size, 2) * 100)}% ({round(size / 1024, 2)} / {round(self.file_size / 1024**2, 2)} Мб)", message_id = self.progress_msg_id)
+					countUpdateProcess = 0
+				countUpdateProcess += 1
 
-		if ('HTTP error 403' in stderr):
-			logger.warning(f'Ошибка: HTTP error 403.')
-			attempts += 1
-			time.sleep(settings_conf.TIME_ATTEMPT)
-			self._uploadAudio(cmd, attempts)
+			else:
+				logger.warning(f'Возникла ошибка во время скачивания файла:\n{line}')
+				attempts += 1
+				time.sleep(settings_conf.TIME_ATTEMPT)
+				self._downloadAudio(cmd, attempts)
+
+			line = str(proc.stderr.readline())
+
+		msg = "Загрузка файла завершена. Началась обработка."
+		if self._playlist:
+			msg += f" [{self.task_id}/{self.task_size}]"
+		vars.vk_bot.messages.edit(peer_id = self.user_id, message = msg, message_id = self.progress_msg_id)
+
 		logger.debug(f'Скачивание видео завершено, попытки: {attempts}')
 
 	def run(self):
@@ -167,11 +185,10 @@ class AudioWorker(threading.Thread):
 			self.msg_start_id    = param[0] # id сообщения с размером очереди (необходимо для удаления в конце обработки запроса)
 			self.user_id         = param[1] # id пользователя
 			self.msg_id          = param[2] # id сообщения пользователя (необходимо для ответа на него)
-			self.path            = ''       # Путь сохранения файла
+			self.path            = ""       # Путь сохранения файла
 			self.progress_msg_id = 0        # id сообщения с прогрессом загрузки
 
-			cUpdateProcess = -1
-			downloadString = 'ffmpeg -hide_banner -stats '
+			downloadString = 'ffmpeg -hide_banner -loglevel error -stats '
 
 			logger.debug(f'Получена задача: {task}')
 			url = self._getAudioUrl(cmdAudioUrl(options[0]))
@@ -201,21 +218,21 @@ class AudioWorker(threading.Thread):
 					audioDuration = self._toSeconds(options[4]) - startTime
 				downloadString += f'-ss {startTime} -t {audioDuration} '
 
-			file_size = audioDuration * int(audioInfo[1]) * 128 #  F (bytes) = t (s) * bitrate (kb / s) * 1024 // 8
+			self.file_size = audioDuration * int(audioInfo[1]) * 128 #  F (bytes) = t (s) * bitrate (kb / s) * 1024 // 8
 
 			# Проверка размера файла (необходимо из-за внутренних ограничений VK)
-			logger.debug(f"Предварительный размер файла: {round(file_size / 1024**2, 2)} Mb")
-			if file_size * 0.9 > settings_conf.MAX_FILESIZE:
+			logger.debug(f"Предварительный размер файла: {round(self.file_size / 1024**2, 2)} Mb")
+			if self.file_size * 0.9 > settings_conf.MAX_FILESIZE:
 				raise CustomError('Ошибка: Размер аудиозаписи превышает 200 Мб!')
 
 			downloadString += '-i "{0}" {1}'.format(url, self.path)
 
-			self._uploadAudio(downloadString)
+			self._downloadAudio(downloadString)
 
-			file_size = os.path.getsize(self.path)
+			self.file_size = os.path.getsize(self.path)
 			# Проверка размера файла (необходимо из-за внутренних ограничений VK)
-			logger.debug(f"Фактический размер файла: {round(file_size / 1024**2, 2)} Mb")
-			if file_size > settings_conf.MAX_FILESIZE:
+			logger.debug(f"Фактический размер файла: {round(self.file_size / 1024**2, 2)} Mb")
+			if self.file_size > settings_conf.MAX_FILESIZE:
 				raise CustomError('Размер аудиозаписи превышает 200 Мб!')
 			else:
 				# Поиск и коррекция данных аудиозаписи
@@ -291,16 +308,11 @@ class AudioWorker(threading.Thread):
 				vars.vk_bot.messages.delete(delete_for_all = 1, message_ids = self.progress_msg_id)
 
 			# Удаление загруженного файла
-			if self.path:
-				if not '.mp3' in self.path:
-					for f_name in os.listdir():
-						if f_name.startswith(self.path): self.path = f_name
-
-				if os.path.isfile(self.path):
-					os.remove(self.path)
-					logger.debug(f'Успешно удалил аудио-файл: {self.path}')
-				else:
-					logger.error('Ошибка: Аудио-файл не существует.')
+			if os.path.isfile(self.path):
+				os.remove(self.path)
+				logger.debug(f'Успешно удалил аудио-файл: {self.path}')
+			else:
+				logger.error('Ошибка: Аудио-файл не существует.')
 
 			if not self._stop:
 				# Удаление сообщения с порядком очереди
