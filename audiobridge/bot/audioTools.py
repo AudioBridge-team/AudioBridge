@@ -5,7 +5,6 @@ import logging
 import time
 import subprocess
 import json
-from datetime import datetime
 
 from audiobridge.tools.customErrors import CustomError
 from audiobridge.common.config import Settings, PlaylistStates
@@ -27,54 +26,6 @@ class AudioTools():
 		"""Инициализация класса AudioTools.
 		"""
 		self.playlist_result = {}
-
-	def getSeconds(self, strTime: str) -> int:
-		"""Обработка строки со временем; в скором времени откажемся от этой функции.
-
-		Args:
-			strTime (str): Строка со временем.
-
-		Returns:
-			int: Время в секундах.
-		"""
-		strTime = strTime.strip()
-		try:
-			pattern = ''
-			if strTime.count(':') == 1:
-				pattern = '%M:%S'
-			if strTime.count(':') == 2:
-				pattern = '%H:%M:%S'
-			if pattern:
-				time_obj = datetime.strptime(strTime, pattern)
-				return time_obj.hour * 60 * 60 + time_obj.minute * 60 + time_obj.second
-			else:
-				return int(float(strTime))
-		except Exception as er:
-			logger.error(er)
-			return -1
-
-	def getAudioUrl(self, url: str) -> str:
-		"""Получение команды для выявления прямой ссылки аудиодорожки.
-
-		Args:
-			url (str): Ссылка на видео.
-
-		Returns:
-			str: Команда для выявления прямой ссылки аудиодорожки.
-		"""
-		return 'youtube-dl --max-downloads 1 --no-warnings --get-url --extract-audio  {0}'.format(url)
-
-	def getVideoInfo(self, key: str, url: str) -> str:
-		"""Получение строки для извлечения определённой информацию о видео по ключу.
-
-		Args:
-			key (str): Информация, нужно узнать.
-			url (str): Ссылка на видео.
-
-		Returns:
-			str: Строка для извлечения определённой информацию о видео по ключу.
-		"""
-		return 'youtube-dl --max-downloads 1 --no-warnings --get-filename -o "%({0})s" "{1}"'.format(key, url)
 
 	def getPlaylistInfo(self, filter: str, url: str) -> str:
 		"""Получение строки для извлечения элементов из плейлиста.

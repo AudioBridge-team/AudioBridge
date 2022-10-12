@@ -5,11 +5,12 @@ import logging
 import os
 import threading, subprocess
 import time
+from datetime import datetime
 
 import vk_api
 from vk_api.utils import get_random_id
 
-from audiobridge.tools.customErrors import CustomError
+from audiobridge.tools.customErrors import CustomError, CustomErrorCode
 
 from audiobridge.common.config import Settings, PlaylistStates
 from audiobridge.common import vars
@@ -19,6 +20,10 @@ from audiobridge.tools.sayOrReply import sayOrReply
 logger = logging.getLogger('logger')
 settings_conf = Settings()
 playlist_conf = PlaylistStates()
+
+cmdAudioUrl  = lambda url: 'youtube-dl --max-downloads 1 --no-warnings --get-url --extract-audio  {0}'.format(url)
+cmdAudioInfo = lambda url: 'ffmpeg -loglevel info -hide_banner -i "{0}"'.format(url)
+cmdVideoInfo = lambda key, url: 'youtube-dl --max-downloads 1 --no-warnings --get-filename -o "%({0})s" "{1}"'.format(key, url)
 
 class AudioWorker(threading.Thread):
 	"""Аудио воркер — класс скачивания песен и загрузки в Вк.
@@ -41,20 +46,106 @@ class AudioWorker(threading.Thread):
 		self._task     = task
 		self._playlist = False
 
-	def _getAudioInfo(self, url: str, attempts: 0) -> tuple:
-		cmd = 'ffmpeg -loglevel info -hide_banner -i "{0}"'.format(url)
+	def _toSeconds(self, strTime: str) -> int:
+		"""Обработка строки со временем; в скором времени откажемся от этой функции.
+
+		Args:
+			strTime (str): Строка со временем.
+
+		Returns:
+			int: Время в секундах.
+		"""
+		strTime = strTime.strip()
+		try:
+			pattern = ''
+			if strTime.count(':') == 1:
+				pattern = '%M:%S'
+			if strTime.count(':') == 2:
+				pattern = '%H:%M:%S'
+			if pattern:
+				time_obj = datetime.strptime(strTime, pattern)
+				return time_obj.hour * 60 * 60 + time_obj.minute * 60 + time_obj.second
+			else:
+				return int(float(strTime))
+		except Exception as er:
+			logger.error(er)
+			return -1
+
+	def _getAudioInfo(self, cmd: str, attempts = 0) -> tuple:
+		if self._stop: raise CustomError(code=CustomErrorCode.STOP_THREAD)
+		if attempts == settings_conf.MAX_ATTEMPTS:
+			raise CustomError("Ошибка: Невозможно получить информацию о видео.")
 		proc = subprocess.Popen(cmd, stderr = subprocess.PIPE, text = True, shell = True)
 		audioInfo = proc.communicate()[1].strip()
-		logger.debug(audioInfo)
-		# если ошибка то рекурсия
-		if audioInfo.find("Duration:") == -1:
-			return None
+		if ('HTTP error 403' in audioInfo) or audioInfo.find("Duration:") == -1:
+			attempts += 1
+			logger.error(f"Ошибка получения информации об аудио ({attempts}):\n{audioInfo}")
+			time.sleep(settings_conf.TIME_ATTEMPT)
+			self._getAudioInfo(cmd, attempts)
+
 		audioInfo = audioInfo[audioInfo.find("Duration:"):]
 		audioInfo = audioInfo[:audioInfo.find('\n')]
 		audioInfo = audioInfo.split(',')
 		duration = audioInfo[0][audioInfo[0].find(':')+2:]
+		if duration.find('.') != -1:
+			duration = duration[:duration.find(".")]
 		bitrate = audioInfo[2][audioInfo[2].find(':')+2:audioInfo[2].rfind(' ')]
-		return (duration, bitrate)
+
+		if not duration or not bitrate:
+			attempts += 1
+			logger.error(f"Отсутствует длительность аудио или его битрейт: ({attempts}):\n\tДлительность: {duration}\n\tБитрейт: {bitrate}")
+			time.sleep(settings_conf.TIME_ATTEMPT)
+			self._getAudioInfo(cmd, attempts)
+
+		return duration, bitrate
+
+	def _getAudioUrl(self, cmd: str, attempts = 0) -> str:
+		if self._stop: raise CustomError(code=CustomErrorCode.STOP_THREAD)
+		if attempts == settings_conf.MAX_ATTEMPTS:
+			raise CustomError("Ошибка: Невозможно получить информацию о видео.")
+		proc = subprocess.Popen(cmd, stdout = subprocess.PIPE, stderr = subprocess.PIPE, text = True, shell = True)
+		stdout, stderr = proc.communicate()
+		if (stderr):
+			logger.error(f'Ошибка получения прямой ссылки ({attempts}): {stderr.strip()}')
+			if ('HTTP Error 403' in stderr):
+				attempts += 1
+				time.sleep(settings_conf.TIME_ATTEMPT)
+				self._getAudioUrl(cmd, attempts)
+			elif ('Sign in to confirm your age' in stderr):
+				raise CustomError('Ошибка: Невозможно скачать видео из-за возрастных ограничений.')
+			elif ('Video unavailable' in stderr):
+				raise CustomError('Ошибка: Видео недоступно из-за авторских прав или по другим причинам.')
+			else:
+				raise CustomError('Ошибка: Некорректный адрес источника.')
+
+		if not stdout:
+			attempts += 1
+			logger.error(f"Прямая ссылка нулевая: ({attempts}): {stdout}")
+			time.sleep(settings_conf.TIME_ATTEMPT)
+			self._getAudioUrl(cmd, attempts)
+
+		return stdout.strip()
+
+	def _uploadAudio(self, cmd: str, attempts = 0):
+		if attempts == settings_conf.MAX_ATTEMPTS:
+			raise CustomError("Ошибка: Невозможно загрузить видео.")
+		# Загрузка файла
+		proc = subprocess.Popen(cmd, stdout = subprocess.PIPE, stderr = subprocess.PIPE, text = True, shell = True)
+		line = str(proc.stdout.readline())
+		while line:
+			if self._stop: raise CustomError(code=CustomErrorCode.STOP_THREAD)
+			logger.debug("NEW LINE: {line}")
+			line = str(proc.stdout.readline())
+		stdout, stderr = proc.communicate()
+
+		logger.debug(f"Summarize:\n\tStdout: {stdout}\n\tStderr: {stderr}")
+
+		if ('HTTP error 403' in stderr):
+			logger.warning(f'Ошибка: HTTP error 403.')
+			attempts += 1
+			time.sleep(settings_conf.TIME_ATTEMPT)
+			self._uploadAudio(cmd, attempts)
+		logger.debug(f'Скачивание видео завершено, попытки: {attempts}')
 
 	def run(self):
 		"""Запуск воркера в отдельном потоке.
@@ -80,109 +171,51 @@ class AudioWorker(threading.Thread):
 			self.progress_msg_id = 0        # id сообщения с прогрессом загрузки
 
 			cUpdateProcess = -1
-			downloadString = 'ffmpeg -hide_banner -stats -i '
-			url = ""
+			downloadString = 'ffmpeg -hide_banner -stats '
 
 			logger.debug(f'Получена задача: {task}')
+			url = self._getAudioUrl(cmdAudioUrl(options[0]))
 
-			attempts = 0
-			while attempts != settings_conf.MAX_ATTEMPTS:
-				if self._stop: return
-				proc = subprocess.Popen(vars.audioTools.getAudioUrl(options[0]), stdout = subprocess.PIPE, stderr = subprocess.PIPE, text = True, shell = True)
-				stdout, stderr = proc.communicate()
-				if (stderr):
-					logger.error(f'Ошибка получения прямой ссылки ({attempts}): {stderr.strip()}')
-					if ('HTTP Error 403' in stderr):
-						attempts += 1
-						time.sleep(settings_conf.TIME_ATTEMPT)
-						continue
-					elif ('Sign in to confirm your age' in stderr):
-						raise CustomError('Ошибка: Невозможно скачать видео из-за возрастных ограничений.')
-					elif ('Video unavailable' in stderr):
-						raise CustomError('Ошибка: Видео недоступно из-за авторских прав или по другим причинам.')
-					else:
-						raise CustomError('Ошибка: Некорректный адрес источника.')
-				if stdout:
-					url = stdout.strip()
-					break
-
-			proc = subprocess.Popen(vars.audioTools.getVideoInfo('id', options[0]), stdout = subprocess.PIPE, text = True, shell = True)
+			proc = subprocess.Popen(cmdVideoInfo('id', options[0]), stdout = subprocess.PIPE, text = True, shell = True)
 			self.path = proc.communicate()[0].strip()
 
 			# Проверка наличия пути и url источника
 			if not self.path or not url:
 				raise CustomError('Ошибка: Некорректный адрес источника.')
+			now = str(time.time())
+			now = now[now.find('.')-2:now.find('.')] + now[now.find('.')+1:now.find('.')+3]
+			self.path += f"{now}.mp3"
 
-			audioInfo = self._getAudioInfo(url)
-			if not audioInfo:
+			audioInfo = self._getAudioInfo(cmdAudioInfo(url))
+			logger.debug(f"Информация об аудио успешно получена: {audioInfo}")
+			audioDuration = self._toSeconds(audioInfo[0])
+			if audioDuration == -1:
 				raise CustomError("Ошибка: Невозможно получить информацию о видео.")
-			logger.debug(audioInfo)
-			return
 
-			# Обработка запроса с таймингами среза
-			audioDuration = 0
 			if len(options) > 3:
-				startTime = vars.audioTools.getSeconds(options[3])
+				startTime = self._toSeconds(options[3])
 				if startTime == -1:
 					raise CustomError('Ошибка: Неверный формат времени среза.')
-				audioDuration = video_duration - startTime
+				audioDuration = audioDuration - startTime
 				if len(options) == 5:
-					audioDuration = vars.audioTools.getSeconds(options[4]) - startTime
-				downloadString = 'ffmpeg -ss {startTime} -t {audioDuration} -hide_banner -stats -i '
+					audioDuration = self._toSeconds(options[4]) - startTime
+				downloadString += f'-ss {startTime} -t {audioDuration} '
 
-			self.path += ".mp3"
-			downloadString += '"{0}" {1}'.format(url, self.path)
-#--------------------------finish----------------------------------------------------
-			# Загрузка файла
-			attempts = 0
-			while attempts != settings_conf.MAX_ATTEMPTS:
-				proc = subprocess.Popen(downloadString, stdout = subprocess.PIPE, stderr = subprocess.PIPE, text = True, shell = True)
-				line = str(proc.stdout.readline())
-				while line:
-					if self._stop: return
+			file_size = audioDuration * int(audioInfo[1]) * 128 #  F (bytes) = t (s) * bitrate (kb / s) * 1024 // 8
 
-					# Поиск пути сохранения файла
-					if 'Destination' in line and '.mp3' in line:
-						self.path = line[line.find(':')+2:len(line)].strip()
-						logger.debug(f'Путь: {self.path}')
-
-					# Обновление сообщения с процессом загрузки файла
-					if ' of ' in line:
-						if cUpdateProcess == -1:
-							if self._playlist:
-								self.progress_msg_id = sayOrReply(self.user_id, f'Загрузка началась [{self.task_id}/{self.task_size}]')
-							else:
-								self.progress_msg_id = sayOrReply(self.user_id, 'Загрузка началась', self.msg_id)
-						if cUpdateProcess == settings_conf.MSG_PERIOD:
-							progress = line[line.find(' '):line.find('КиБ/сек.') + 5].strip()
-							if progress:
-								vars.vk_bot.messages.edit(peer_id = self.user_id, message = progress, message_id = self.progress_msg_id)
-							cUpdateProcess = 0
-						if ' in ' in line:
-							progress = line[line.find(' '):len(line)].strip()
-							if progress:
-								msg = progress
-								if self._playlist: msg += f' [{self.task_id}/{self.task_size}]'
-								vars.vk_bot.messages.edit(peer_id = self.user_id, message = msg, message_id = self.progress_msg_id)
-						cUpdateProcess += 1
-					line = str(proc.stdout.readline())
-				stdout, stderr = proc.communicate()
-
-				if (stderr):
-					if ('HTTP Error 403' in stderr): # ERROR: unable to download video data: HTTP Error 403: Forbidden
-						logger.warning(f'Поймал ошибку 403.')
-						attempts += 1
-						time.sleep(settings_conf.TIME_ATTEMPT)
-						continue
-					else:
-						logger.error(f'Скачивание видео ({attempts}): {stderr.strip()}')
-						raise CustomError('Невозможно скачать видео!')
-				else:
-					break
-			logger.debug(f'Скачивание видео, попытки: {attempts}')
-#------------------------------------------------------------------------------------
 			# Проверка размера файла (необходимо из-за внутренних ограничений VK)
-			if os.path.getsize(self.path) > settings_conf.MAX_FILESIZE:
+			logger.debug(f"Предварительный размер файла: {round(file_size / 1024**2, 2)} Mb")
+			if file_size * 0.9 > settings_conf.MAX_FILESIZE:
+				raise CustomError('Ошибка: Размер аудиозаписи превышает 200 Мб!')
+
+			downloadString += '-i "{0}" {1}'.format(url, self.path)
+
+			self._uploadAudio(downloadString)
+
+			file_size = os.path.getsize(self.path)
+			# Проверка размера файла (необходимо из-за внутренних ограничений VK)
+			logger.debug(f"Фактический размер файла: {round(file_size / 1024**2, 2)} Mb")
+			if file_size > settings_conf.MAX_FILESIZE:
 				raise CustomError('Размер аудиозаписи превышает 200 Мб!')
 			else:
 				# Поиск и коррекция данных аудиозаписи
@@ -191,11 +224,11 @@ class AudioWorker(threading.Thread):
 
 				# URL
 				if len(options) == 1:
-					proc = subprocess.Popen(vars.audioTools.getVideoInfo('title', options[0]), stdout = subprocess.PIPE, text = True, shell = True)
+					proc = subprocess.Popen(cmdVideoInfo('title', options[0]), stdout = subprocess.PIPE, text = True, shell = True)
 					file_name = proc.communicate()[0].strip()
 					if file_name:
 						self.title = file_name
-					proc = subprocess.Popen(vars.audioTools.getVideoInfo('channel', options[0]), stdout = subprocess.PIPE, text = True, shell = True)
+					proc = subprocess.Popen(cmdVideoInfo('channel', options[0]), stdout = subprocess.PIPE, text = True, shell = True)
 					file_author = proc.communicate()[0].strip()
 					if file_author:
 						artist = file_author
@@ -203,7 +236,7 @@ class AudioWorker(threading.Thread):
 				# URL + song_name
 				elif len(options) == 2:
 					self.title = options[1]
-					proc = subprocess.Popen(vars.audioTools.getVideoInfo('channel', options[0]), stdout = subprocess.PIPE, text = True, shell = True)
+					proc = subprocess.Popen(cmdVideoInfo('channel', options[0]), stdout = subprocess.PIPE, text = True, shell = True)
 					file_author = proc.communicate()[0].strip()
 					if file_author:
 						artist = file_author
@@ -215,9 +248,9 @@ class AudioWorker(threading.Thread):
 				if len(self.title) > 50:
 					self.title[0:51]
 
-				if self._stop: return
+				if self._stop: raise CustomError(code=CustomErrorCode.STOP_THREAD)
 				# Загрузка аудиозаписи на сервера VK + её отправка получателю
-				audio_obj = vars.vk_bot.audio(self.path, artist, self.title)
+				audio_obj = vars.vk_agent_upload.audio(self.path, artist, self.title)
 				audio_id = audio_obj.get('id')
 				audio_owner_id = audio_obj.get('owner_id')
 				attachment = f'audio{audio_owner_id}_{audio_id}'
@@ -229,9 +262,10 @@ class AudioWorker(threading.Thread):
 					vars.vk_bot.messages.send(peer_id = self.user_id, attachment = attachment, reply_to = self.msg_id, random_id = get_random_id())
 
 		except CustomError as er:
-			if not self._playlist:
-				sayOrReply(self.user_id, er, self.msg_id)
-			logger.error(f'Custom: {er}')
+			if er.code != CustomErrorCode.STOP_THREAD:
+				if not self._playlist:
+					sayOrReply(self.user_id, er, self.msg_id)
+				logger.error(f'Custom: {er}')
 
 		except vk_api.exceptions.ApiError as er:
 			if self._playlist:

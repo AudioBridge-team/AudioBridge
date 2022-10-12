@@ -2,7 +2,16 @@
 # -*- coding: utf-8 -*-
 
 import argparse
+from betterconf import Config
 
+
+class CustomErrorCode(Config):
+	"""Типовой код настраиваемой ошибки.
+
+	Args:
+		Config (Config): Config.
+	"""
+	STOP_THREAD = 1
 
 class CustomError(Exception):
 	"""Класс вызова настраиваемой ошибки.
@@ -10,13 +19,15 @@ class CustomError(Exception):
 	Args:
 		Exception (Exception): Exception.
 	"""
-	def __init__(self, text: str):
+	def __init__(self, text = "", code = 0):
 		"""Инициализация класса CustomError.
 
 		Args:
 			text (str): Текст ошибки.
+			code (int): Код ошибки.
 		"""
 		self.txt = text
+		self.code = code
 
 class ArgParser(argparse.ArgumentParser):
 	"""Парсинг аргументов запуска программы.
