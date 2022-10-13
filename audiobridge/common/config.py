@@ -63,7 +63,7 @@ class Settings(Config):
 	MSG_PERIOD         = field("msg_period", provider=JSONProvider(), default=50) 											# период обновления процесса загрузки файла на сервер
 	MAX_VIDEO_DURATION = field("max_video_duration", caster=ConvertToInt(), provider=JSONProvider(), default=3 * 60 * 60) 	# максимальная длительность видео в секундах
 	MAX_ATTEMPTS       = field("max_attempts", provider=JSONProvider(), default=3) 											# количество попыток при ошибке скачивания
-	TIME_ATTEMPT       = field("time_attempt", provider=JSONProvider(), default=1) 											# интервал между попытками скачивания (сек)
+	TIME_ATTEMPT       = field("time_attempt", provider=JSONProvider(), default=2) 											# интервал между попытками скачивания (сек)
 
 class BotAuth(Config):
 	"""Данные авторизации бота и агента.

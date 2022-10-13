@@ -21,7 +21,7 @@ logger = logging.getLogger('logger')
 settings_conf = Settings()
 playlist_conf = PlaylistStates()
 
-cmdAudioUrl  = lambda url: 'youtube-dl --max-downloads 1 --no-warnings --get-url --extract-audio  {0}'.format(url)
+cmdAudioUrl  = lambda url: 'youtube-dl --max-downloads 1 --no-warnings --get-url --extract-audio "{0}"'.format(url)
 cmdAudioInfo = lambda url: 'ffmpeg -loglevel info -hide_banner -i "{0}"'.format(url)
 cmdVideoInfo = lambda key, url: 'youtube-dl --max-downloads 1 --no-warnings --get-filename -o "%({0})s" "{1}"'.format(key, url)
 
@@ -105,7 +105,7 @@ class AudioWorker(threading.Thread):
 			raise CustomError("Ошибка: Невозможно получить информацию о видео.")
 		proc = subprocess.Popen(cmd, stdout = subprocess.PIPE, stderr = subprocess.PIPE, text = True, shell = True)
 		stdout, stderr = proc.communicate()
-		if (stderr):
+		if stderr:
 			logger.error(f'Ошибка получения прямой ссылки ({attempts}): {stderr.strip()}')
 			if ('http error 403' in stderr.lower()):
 				attempts += 1
@@ -133,7 +133,7 @@ class AudioWorker(threading.Thread):
 		countUpdateProcess = 0
 		proc = subprocess.Popen(cmd, stderr = subprocess.PIPE, text = True, shell = True)
 		line = str(proc.stderr.readline())
-		if line:
+		if line and not attempts:
 			if self._playlist:
 				self.progress_msg_id = sayOrReply(self.user_id, f'Загрузка началась [{self.task_id}/{self.task_size}]')
 			else:
@@ -149,16 +149,17 @@ class AudioWorker(threading.Thread):
 						vars.vk_bot.messages.edit(peer_id = self.user_id, message = f"Загружено {int(round(size * 1024 / self.file_size, 2) * 100)}% ({round(size / 1024, 2)} / {round(self.file_size / 1024**2, 2)} Мб)", message_id = self.progress_msg_id)
 					countUpdateProcess = 0
 				countUpdateProcess += 1
-
+			elif "out of range" in line.lower():
+				raise CustomError("Ошибка: Время среза превышает продолжительность аудио.")
 			else:
-				logger.warning(f'Возникла ошибка во время скачивания файла:\n{line}')
+				logger.warning(f'Возникла ошибка во время скачивания файла:\n\t{line}')
 				attempts += 1
 				time.sleep(settings_conf.TIME_ATTEMPT)
 				self._downloadAudio(cmd, attempts)
 
 			line = str(proc.stderr.readline())
 
-		msg = "Загрузка файла завершена. Началась обработка."
+		msg = "Загрузка файла завершена. Началась обработка"
 		if self._playlist:
 			msg += f" [{self.task_id}/{self.task_size}]"
 		vars.vk_bot.messages.edit(peer_id = self.user_id, message = msg, message_id = self.progress_msg_id)
@@ -217,6 +218,9 @@ class AudioWorker(threading.Thread):
 				if len(options) == 5:
 					audioDuration = self._toSeconds(options[4]) - startTime
 				downloadString += f'-ss {startTime} -t {audioDuration} '
+
+			if audioDuration <= 0:
+				raise CustomError("Ошибка: Время среза превышает продолжительность аудио.")
 
 			self.file_size = audioDuration * int(audioInfo[1]) * 128 #  F (bytes) = t (s) * bitrate (kb / s) * 1024 // 8
 
