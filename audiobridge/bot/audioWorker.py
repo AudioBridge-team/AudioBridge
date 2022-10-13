@@ -67,6 +67,9 @@ class AudioWorker(threading.Thread):
 				return time_obj.hour * 60 * 60 + time_obj.minute * 60 + time_obj.second
 			else:
 				return int(float(strTime))
+		except ValueError as er:
+			logger.error(f"Wrong time: {strTime}")
+			return -1
 		except Exception as er:
 			logger.error(er)
 			return -1
