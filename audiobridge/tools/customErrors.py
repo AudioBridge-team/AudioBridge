@@ -6,12 +6,12 @@ from betterconf import Config
 
 
 class CustomErrorCode(Config):
-	"""Типовой код настраиваемой ошибки.
+	"""Код причины настраиваемой ошибки.
 
 	Args:
 		Config (Config): Config.
 	"""
-	STOP_THREAD = 1
+	STOP_THREAD = 1		# Умышленная остановка загрузки пользователем
 
 class CustomError(Exception):
 	"""Класс вызова настраиваемой ошибки.
