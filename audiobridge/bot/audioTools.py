@@ -69,6 +69,8 @@ class AudioTools():
 				raise CustomError('Ошибка: Невозможно скачать плейлист из-за возрастных ограничений.')
 			elif ('video unavailable' in stderr.lower()):
 				raise CustomError('Ошибка: Плейлист недоступен из-за авторских прав или по иным причинам.')
+			elif ('valueerror: invalid literal for int() with base 10' in stderr.lower()):
+				raise CustomError('Ошибка: Неверный формат второго аргумента (количество скачиваемых аудио).')
 			else:
 				raise CustomError('Ошибка: Неверные параметры скачивания и/или URL плейлиста.')
 
