@@ -112,7 +112,7 @@ class QueueHandler():
 				del self._pool_req[i]
 				return
 			# Если пользователь имеет активные запросы
-			elif (len(self._workers.get(user_id)) < settings_conf.MAX_UNITS):
+			if len(self._workers.get(user_id)) < settings_conf.MAX_UNITS:
 				worker = AudioWorker(task)
 				worker.name = f'{user_id}-worker <{len(self._workers.get(user_id, []))}>'
 				worker.start()
