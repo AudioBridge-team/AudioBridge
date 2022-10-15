@@ -5,8 +5,8 @@
 	"max_units"         : 1,
 	"max_requests_queue": 5,
 	"max_filesize"      : "200 * 1024 * 1024",
-	"msg_period"        : 50,
+	"msg_period"        : 60,
 	"max_video_duration": "3 * 60 * 60",
 	"max_attempts"      : 3,
-	"time_attempt"      : 1
+	"time_attempt"      : 2
 }
