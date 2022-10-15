@@ -178,7 +178,7 @@ class AudioWorker(threading.Thread):
 		if attempts == settings_conf.MAX_ATTEMPTS:
 			raise CustomError("Ошибка: Невозможно загрузить видео.")
 		# Загрузка файла
-		countUpdateProcess = 0
+		last_msg_time = time.time()
 		proc = subprocess.Popen(cmd, stderr = subprocess.PIPE, text = True, shell = True)
 		line = str(proc.stderr.readline())
 		# Отправка сообщения с началом загрузки аудио
@@ -193,13 +193,12 @@ class AudioWorker(threading.Thread):
 				raise CustomError(code=CustomErrorCode.STOP_THREAD)
 			if "size=" in line.lower():
 				# Обновление сообщения с процессом загрузки по количеству прошедших "тактов" (необходимо для предотвращения непреднамеренного спама)
-				if countUpdateProcess == settings_conf.MSG_PERIOD:
+				if round(time.time() - last_msg_time) >= settings_conf.MSG_PERIOD:
 					size = line[6:].strip()
 					size = int(size[:size.find(' ')-2])
 					if size:
 						vars.vk_bot.messages.edit(peer_id = self.user_id, message = f"Загружено {int(round(size * 1024 / self.file_size, 2) * 100)}% ({round(size / 1024, 2)} / {round(self.file_size / 1024**2, 2)} Мб)", message_id = self.progress_msg_id)
-					countUpdateProcess = 0
-				countUpdateProcess += 1
+					last_msg_time = time.time()
 			elif "out of range" in line.lower():
 				raise CustomError("Ошибка: Время среза превышает продолжительность аудио.")
 			else:
@@ -269,7 +268,9 @@ class AudioWorker(threading.Thread):
 					raise CustomError('Ошибка: Неверный формат времени среза.')
 				audioDuration = audioDuration - startTime
 				if len(options) == 5:
-					audioDuration = self._toSeconds(options[4]) - startTime
+					endTime = self._toSeconds(options[4])
+					if endTime < audioDuration + startTime:
+						audioDuration = endTime - startTime
 				downloadString += f'-ss {startTime} -t {audioDuration} '
 
 			if audioDuration <= 0:
@@ -350,10 +351,13 @@ class AudioWorker(threading.Thread):
 				error_string = 'Ошибка: Невозможно обработать запрос. Убедитесь, что запрос корректный, и отправьте его повторно.'
 				# Ошибка авторских прав
 				if er.code == 270:
-					error_string = 'Правообладатель ограничил доступ к данной аудиозаписи. Загрузка прервана'
-				sayOrReply(self.user_id, f'Ошибка: {error_string}', self.msg_id)
+					error_string = 'Ошибка: Правообладатель ограничил доступ к данной аудиозаписи. Загрузка прервана'
+				elif er.code == 15:
+					if self.file_size < 50 * 1024:
+						error_string = 'Ошибка: Вк запрещает загрузку треков, вес которых меньше 50 Кб.'
+				sayOrReply(self.user_id, f'{error_string}', self.msg_id)
 			# Добавить проверку через sql на успешность загрузки видео
-			logger.error(f'VK API: {er}')
+			logger.error(f'VK API: \n\tCode: {er.code}\n\tBody: {er}')
 
 		except Exception as er:
 			# Обработка ошибок, не относящихся к компонентам плейлиста
