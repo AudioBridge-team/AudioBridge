@@ -108,7 +108,7 @@ class AudioTools():
 				start_playlist = options[1][:1]
 				informationString = cmdPlaylistInfo(f'--playlist-start {start_playlist}', options[0])
 			else:
-				informationString = cmdPlaylistInfo(f'--playlist-items {options[1]}', options[0])
+				informationString = cmdPlaylistInfo(f'--playlist-items {str(options[1]).replace(" ", "")}', options[0])
 
 			urls = self._getPlaylistElements(informationString)
 
