@@ -122,8 +122,9 @@ class AudioWorker(threading.Thread):
 		if not duration or not bitrate:
 			attempts += 1
 			logger.error(f"Отсутствует длительность аудио или его битрейт: ({attempts}):\n\tДлительность: {duration}\n\tБитрейт: {bitrate}")
+			self.url = ""
 			time.sleep(settings_conf.TIME_ATTEMPT)
-			self._getAudioInfo(cmd, attempts)
+			self._getAudioInfo(origin_url, attempts)
 		# Выход из рекурсии, если информация была успешно получена
 		return duration, bitrate
 
@@ -324,7 +325,7 @@ class AudioWorker(threading.Thread):
 					file_author = proc.communicate()[0].strip()
 					if file_author:
 						artist = file_author
-				# URL + song_name + song_autor
+				# URL + song_name + song_author
 				else:
 					artist = options[2]
 					self.title = options[1]
