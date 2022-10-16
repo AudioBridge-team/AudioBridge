@@ -74,7 +74,7 @@ class AudioWorker(threading.Thread):
 			logger.error(er)
 			return -1
 
-	def _getAudioInfo(self, cmd: str, attempts = 0) -> tuple:
+	def _getAudioInfo(self, origin_url: str, attempts = 0) -> tuple:
 		"""Извлечение продолжительности и битрейта аудио.
 
 		Args:
@@ -93,14 +93,21 @@ class AudioWorker(threading.Thread):
 		# Выход из рекурсии, если превышено число попыток выполнения команды
 		if attempts == settings_conf.MAX_ATTEMPTS:
 			raise CustomError("Ошибка: Невозможно получить информацию о видео.")
-		proc = subprocess.Popen(cmd, stderr = subprocess.PIPE, text = True, shell = True)
+		# Проверка на существование прямой ссылки
+		if not self.url:
+			# Получение прямой ссылки аудио
+			self.url = self._getAudioUrl(cmdAudioUrl(origin_url))
+
+		proc = subprocess.Popen(cmdAudioInfo(self.url), stderr = subprocess.PIPE, text = True, shell = True)
 		audioInfo = proc.communicate()[1].strip()
 		# Данная ошибка может произойти неожиданно, поэтому приходится повторять попытку выполнения команды через определённое время
 		if ('http error 403' in audioInfo.lower()) or audioInfo.find("Duration:") == -1:
 			attempts += 1
 			logger.error(f"Ошибка получения информации об аудио ({attempts}):\n{audioInfo}")
+			# Обнуление прямой ссылки для получения новой
+			self.url = ""
 			time.sleep(settings_conf.TIME_ATTEMPT)
-			self._getAudioInfo(cmd, attempts)
+			self._getAudioInfo(origin_url, attempts)
 
 		audioInfo = audioInfo[audioInfo.find("Duration:"):]
 		audioInfo = audioInfo[:audioInfo.find('\n')]
@@ -164,7 +171,7 @@ class AudioWorker(threading.Thread):
 		# Выход из рекурсии, если информация была успешно получена
 		return stdout.strip()
 
-	def _downloadAudio(self, cmd: str, attempts = 0):
+	def _downloadAudio(self, cmd_body: str, origin_url: str, attempts = 0):
 		"""Загрузка аудио.
 
 		Args:
@@ -177,8 +184,13 @@ class AudioWorker(threading.Thread):
 		# Выход из рекурсии, если превышено число попыток выполнения команды
 		if attempts == settings_conf.MAX_ATTEMPTS:
 			raise CustomError("Ошибка: Невозможно загрузить видео.")
+		if not self.url:
+			# Получение прямой ссылки аудио
+			self.url = self._getAudioUrl(cmdAudioUrl(origin_url))
+
 		# Загрузка файла
 		last_msg_time = time.time()
+		cmd = cmd_body + '-i "{0}" {1}'.format(self.url, self.path)
 		proc = subprocess.Popen(cmd, stderr = subprocess.PIPE, text = True, shell = True)
 		line = str(proc.stderr.readline())
 		# Отправка сообщения с началом загрузки аудио
@@ -202,10 +214,11 @@ class AudioWorker(threading.Thread):
 			elif "out of range" in line.lower():
 				raise CustomError("Ошибка: Время среза превышает продолжительность аудио.")
 			else:
-				logger.warning(f'Возникла ошибка во время скачивания файла:\n\t{line}')
+				logger.warning(f'Возникла ошибка во время скачивания файла ({attempts}):\n\t{line}')
 				attempts += 1
+				self.url = ""
 				time.sleep(settings_conf.TIME_ATTEMPT)
-				self._downloadAudio(cmd, attempts)
+				self._downloadAudio(cmd_body, origin_url, attempts)
 
 			line = str(proc.stderr.readline())
 
@@ -237,26 +250,13 @@ class AudioWorker(threading.Thread):
 			self.msg_id          = param[2] # id сообщения пользователя (необходимо для ответа на него)
 			self.path            = ""       # Путь сохранения файла
 			self.progress_msg_id = 0        # id сообщения с прогрессом загрузки
+			self.url             = "" 		# Прямая ссылка аудио
 
 			downloadString = 'ffmpeg -hide_banner -loglevel error -stats '
 
 			logger.debug(f'Получена задача: {task}')
-			# Получение прямой ссылки аудио
-			url = self._getAudioUrl(cmdAudioUrl(options[0]))
-			# Получение id аудио для отслеживания текущих загрузок (в будущем будет интегрирована ДБ для оптимизации работы при одинаковых запросах)
-			proc = subprocess.Popen(cmdVideoInfo('id', options[0]), stdout = subprocess.PIPE, text = True, shell = True)
-			self.path = proc.communicate()[0].strip()
-
-			# Проверка наличия пути и url источника
-			if not self.path or not url:
-				raise CustomError('Ошибка: Некорректный адрес источника.')
-			# Добавление в конец id штампа времени для уникальности названия файлов (временное решение во время отсутствия ДБ)
-			now = str(time.time())
-			now = now[now.find('.')-2:now.find('.')] + now[now.find('.')+1:now.find('.')+3]
-			self.path += f"{now}.mp3"
-
 			# Получение продолжительности и битрейта аудио для расчёта приблизительного веса файла
-			audioInfo = self._getAudioInfo(cmdAudioInfo(url))
+			audioInfo = self._getAudioInfo(options[0])
 			logger.debug(f"Информация об аудио успешно получена: {audioInfo}")
 			audioDuration = self._toSeconds(audioInfo[0])
 			if audioDuration == -1:
@@ -283,9 +283,20 @@ class AudioWorker(threading.Thread):
 			if self.file_size * 0.9 > settings_conf.MAX_FILESIZE:
 				raise CustomError('Ошибка: Размер аудиозаписи превышает 200 Мб!')
 
-			downloadString += '-i "{0}" {1}'.format(url, self.path)
+			# Получение id аудио для отслеживания текущих загрузок (в будущем будет интегрирована ДБ для оптимизации работы при одинаковых запросах)
+			proc = subprocess.Popen(cmdVideoInfo('id', options[0]), stdout = subprocess.PIPE, text = True, shell = True)
+			self.path = proc.communicate()[0].strip()
+
+			# Проверка наличия пути и url источника
+			if not self.path:
+				raise CustomError('Ошибка: Некорректный адрес источника.')
+			# Добавление в конец id штампа времени для уникальности названия файлов (временное решение во время отсутствия ДБ)
+			now = str(time.time())
+			now = now[now.find('.')-2:now.find('.')] + now[now.find('.')+1:now.find('.')+3]
+			self.path += f"{now}.mp3"
+
 			# Скачивание аудио
-			self._downloadAudio(downloadString)
+			self._downloadAudio(downloadString, options[0])
 			# Получение реального размера файла
 			self.file_size = os.path.getsize(self.path)
 			# Проверка размера файла (необходимо из-за внутренних ограничений VK)
