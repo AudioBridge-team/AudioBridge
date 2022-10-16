@@ -253,7 +253,7 @@ class AudioWorker(threading.Thread):
 			self.progress_msg_id = 0        # id сообщения с прогрессом загрузки
 			self.url             = "" 		# Прямая ссылка аудио
 
-			downloadString = 'ffmpeg -hide_banner -loglevel error -stats '
+			downloadString = 'ffmpeg -y -hide_banner -loglevel error -stats '
 
 			logger.debug(f'Получена задача: {task}')
 			# Получение продолжительности и битрейта аудио для расчёта приблизительного веса файла
