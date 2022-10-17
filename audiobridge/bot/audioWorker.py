@@ -107,7 +107,7 @@ class AudioWorker(threading.Thread):
 			# Обнуление прямой ссылки для получения новой
 			self.url = ""
 			time.sleep(settings_conf.TIME_ATTEMPT)
-			self._getAudioInfo(origin_url, attempts)
+			return self._getAudioInfo(origin_url, attempts)
 
 		audioInfo = audioInfo[audioInfo.find("Duration:"):]
 		audioInfo = audioInfo[:audioInfo.find('\n')]
@@ -124,7 +124,7 @@ class AudioWorker(threading.Thread):
 			logger.error(f"Отсутствует длительность аудио или его битрейт: ({attempts}):\n\tДлительность: {duration}\n\tБитрейт: {bitrate}")
 			self.url = ""
 			time.sleep(settings_conf.TIME_ATTEMPT)
-			self._getAudioInfo(origin_url, attempts)
+			return self._getAudioInfo(origin_url, attempts)
 		# Выход из рекурсии, если информация была успешно получена
 		return duration, bitrate
 
@@ -155,7 +155,7 @@ class AudioWorker(threading.Thread):
 			if ('http error 403' in stderr.lower()):
 				attempts += 1
 				time.sleep(settings_conf.TIME_ATTEMPT)
-				self._getAudioUrl(cmd, attempts)
+				return self._getAudioUrl(cmd, attempts)
 			elif ('sign in to confirm your age' in stderr.lower()):
 				raise CustomError('Ошибка: Невозможно скачать видео из-за возрастных ограничений.')
 			elif ('video unavailable' in stderr.lower()):
@@ -168,7 +168,7 @@ class AudioWorker(threading.Thread):
 			attempts += 1
 			logger.error(f"Прямая ссылка нулевая: ({attempts}): {stdout}")
 			time.sleep(settings_conf.TIME_ATTEMPT)
-			self._getAudioUrl(cmd, attempts)
+			return self._getAudioUrl(cmd, attempts)
 		# Выход из рекурсии, если информация была успешно получена
 		return stdout.strip()
 
@@ -253,7 +253,7 @@ class AudioWorker(threading.Thread):
 			self.progress_msg_id = 0        # id сообщения с прогрессом загрузки
 			self.url             = "" 		# Прямая ссылка аудио
 
-			downloadString = 'ffmpeg -hide_banner -loglevel error -stats '
+			downloadString = 'ffmpeg -y -hide_banner -loglevel error -stats '
 
 			logger.debug(f'Получена задача: {task}')
 			# Получение продолжительности и битрейта аудио для расчёта приблизительного веса файла
