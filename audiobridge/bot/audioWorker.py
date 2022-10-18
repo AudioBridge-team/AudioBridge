@@ -215,7 +215,7 @@ class AudioWorker(threading.Thread):
 			elif "out of range" in line.lower():
 				raise CustomError("Ошибка: Время среза превышает продолжительность аудио.")
 			else:
-				logger.warning(f'Возникла ошибка во время скачивания файла ({attempts}):\n\t{line}')
+				logger.error(f'Возникла ошибка во время скачивания файла ({attempts}):\n\t{line}')
 				attempts += 1
 				self.url = ""
 				time.sleep(settings_conf.TIME_ATTEMPT)
@@ -294,7 +294,7 @@ class AudioWorker(threading.Thread):
 			# Добавление в конец id штампа времени для уникальности названия файлов (временное решение во время отсутствия ДБ)
 			now = str(time.time())
 			now = now[now.find('.')-2:now.find('.')] + now[now.find('.')+1:now.find('.')+3]
-			self.path += f"{now}.mp3"
+			self.path = f"{now}{self.path}.mp3"
 
 			# Скачивание аудио
 			self._downloadAudio(downloadString, options[0])
