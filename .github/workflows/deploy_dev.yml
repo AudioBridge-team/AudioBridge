@@ -2,7 +2,7 @@
 
 name: Deploy-Dev
 
-# The workflow will run when debugging is pushed into certain branch
+# The workflow will run when debugging is pushed into dev branch
 on:
   push:
     branches: [ dev ]

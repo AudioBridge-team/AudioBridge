@@ -2,10 +2,10 @@
 
 name: Deploy-Release
 
-# The workflow will run when release is published
+# The workflow will run when release is pushed into prod branch
 on:
-  release:
-    types: [ published ]
+  push:
+    branches: [ prod ]
 
 # A workflow
 jobs:
@@ -24,7 +24,7 @@ jobs:
           script: |
             cd /root/AudioBridge
             rm -rf prod
-            git clone -b "${{ github.event.release.tag_name }}" --single-branch git@github.com:shonqwezon-team/AudioBridge.git prod
+            git clone -b prod --single-branch git@github.com:shonqwezon-team/AudioBridge.git prod
             cd prod
             chmod u+x install.zsh
-            ./install.zsh -v "${{ github.event.release.tag_name }}"
+            ./install.zsh -v "prod"
