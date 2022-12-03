@@ -149,7 +149,7 @@ class VkBotWorker():
 		if request_conf.INDEX_PLAYLIST in options[0]:
 			# Проверка на отсутствие других задач от данного пользователя
 			if (vars.userRequests.get(user_id)):
-				sayOrReply(user_id, 'Ошибка: Для загрузки плейлиста очередь запросов должна быть пуста.')
+				sayOrReply(user_id, 'Ошибка: Для загрузки плейлиста очередь запросов должна быть пустой.')
 				return
 			# Проверка на корректность запроса
 			pl_param = ""

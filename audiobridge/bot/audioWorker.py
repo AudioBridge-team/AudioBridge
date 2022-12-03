@@ -25,14 +25,14 @@ playlist_conf = PlaylistStates()
 param_type    = ParametersType()
 yt_dlpShell   = Yt_dlpShell()
 
-cmdAudioBitrate = lambda url: 'ffmpeg -loglevel info -hide_banner -i "{0}"'.format(f"$(yt-dlp --max-downloads 1 --no-warnings -x -g '{url}')") # Команда для получения битрейта аудио
+cmdAudioBitrate = lambda url: 'ffmpeg -loglevel info -hide_banner -i "{0}"'.format(f"$(yt-dlp --no-playlist --no-warnings -x -g '{url}')") # Команда для получения битрейта аудио
 
 ydl_opts = {
 	'logger': yt_dlpShell,
 	'nocheckcertificate': True,
 	'retries': settings_conf.MAX_ATTEMPTS,
 	'format': 'bestaudio/best',
-	'playlist_items': '1'
+	'noplaylist': True
 }
 
 class AudioWorker(threading.Thread):
@@ -104,13 +104,14 @@ class AudioWorker(threading.Thread):
 		Raises:
 			CustomError: Пользовательская ошибка.
 		"""
-		proc = subprocess.Popen(cmd, stdout = subprocess.PIPE, stderr = subprocess.PIPE, text = True, shell = True)
-		line = str(proc.stderr.readline())
-		last_msg_time = time.time()
+		logger.debug(f'Скачивание видео началось')
 		if self._playlist:
 			self.progress_msg_id = sayOrReply(self.user_id, f'Загрузка началась [{self.task_id}/{self.task_size}]')
 		else:
 			self.progress_msg_id = sayOrReply(self.user_id, 'Загрузка началась', self.msg_reply)
+		last_msg_time = time.time()
+		proc = subprocess.Popen(cmd, stdout = subprocess.PIPE, stderr = subprocess.PIPE, text = True, shell = True)
+		line = str(proc.stderr.readline())
 		while line:
 			if self._stop:
 				raise CustomError(code=CustomErrorCode.STOP_THREAD)
@@ -181,7 +182,7 @@ class AudioWorker(threading.Thread):
 
 			self.path            = ""       							# Путь сохранения файла
 
-			download_string = 'yt-dlp --max-downloads 1 --no-warnings --retries {attempts} --retry-sleep {sleep} --no-part -f "bestaudio/best" --audio-format "mp3" -x -o "{path}.%(ext)s" --downloader "ffmpeg" --downloader-args "ffmpeg:-hide_banner -loglevel error -stats" {interval}{url!r}'
+			download_string = 'yt-dlp --no-playlist --no-warnings --retries {attempts} --retry-sleep {sleep} --no-part -f "bestaudio/best" --audio-format "mp3" -x -o "{path}.%(ext)s" --downloader "ffmpeg" --downloader-args "ffmpeg:-hide_banner -loglevel error -stats" {interval}{url!r}'
 
 			logger.debug(f'Получена задача: {self._task}')
 
