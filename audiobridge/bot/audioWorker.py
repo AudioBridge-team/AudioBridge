@@ -136,7 +136,7 @@ class AudioWorker(threading.Thread):
 		vars.vk_bot.messages.edit(peer_id = self.user_id, message = msg, message_id = self.progress_msg_id)
 		logger.debug(f'Скачивание видео завершено')
 
-	def _analyzeTitle(self, video_title: str) -> str:
+	def _analyzeTitle(self, video_title: str, channel: str) -> tuple:
 		"""Извлечение из полного заголовка видео название работы.
 
 		Args:
@@ -145,13 +145,16 @@ class AudioWorker(threading.Thread):
 		Returns:
 			str: Название самой работы (песни) без хештегов и авторов.
 		"""
-		logger.debug(f"Original title: {video_title}")
-		title = video_title
+
+		logger.debug(f"Original data: \n\tTitle: {video_title}\n\tAuthor: {channel}")
+		title, author = video_title, channel
 		try:
 			for symbol in ['-', '–', '—', '|']:
 				if symbol in video_title:
 					sliced_title = list(map(str.strip, filter(None, video_title.split(symbol))))
 					title = sliced_title[-1]
+					if not author:
+						author = sliced_title[0]
 					break
 			for symbol in ['\"', '\'']:
 				if title.count(symbol) > 1:
@@ -160,7 +163,9 @@ class AudioWorker(threading.Thread):
 					break
 		except Exception as er:
 			logger.error(f"Can't analyze video tittle: {er}")
-		return title
+		if not author:
+			author = "Unknown"
+		return title, author
 
 	def run(self):
 		"""Запуск воркера в отдельном потоке.
@@ -195,8 +200,7 @@ class AudioWorker(threading.Thread):
 				self.path = audioInfo.get("id", None)
 				if not (audio_duration and self.path):
 					raise CustomError("Ошибка: Невозможно получить информацию о видео.")
-				self.title = self._analyzeTitle(audioInfo.get("title", "Unknown"))
-				author = audioInfo.get("channel", "Unknown")
+				self.title, author = self._analyzeTitle(audioInfo.get("title"), audioInfo.get("channel"))
 			else:
 				raise CustomError("Ошибка: Невозможно получить информацию о видео.")
 			logger.debug(f"Информация об аудио успешно получена: {audio_duration}, {self.title}, {author}")
