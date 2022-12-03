@@ -8,9 +8,8 @@ from datetime import date
 import vk_api
 
 from audiobridge.db.database import DataBase
-from audiobridge.tools.customErrors import ArgParser
 from audiobridge.bot.queueHandler import QueueHandler
-from audiobridge.bot.audioTools import AudioTools
+from audiobridge.bot.playlistHandler import PlaylistHandler
 from audiobridge.bot.vkBotWorker import VkBotWorker
 from audiobridge.bot.vkGroupManager import VkGroupManager
 from audiobridge.tools import loggerSetup
@@ -18,31 +17,16 @@ from audiobridge.common import vars
 
 from audiobridge.common.config import BotAuth
 
+auth_conf = BotAuth()
 
 def main():
 	"""Подготовка бота к работе.
 	"""
-	# Доступные параметры запуска
-	parser = ArgParser()
-	parser.add_argument(
-		"-v",
-		"--version",
-		default = "v1.0.0",
-		help    = "Version of the bot")
-
-	# Значение аргументов запуска по умолчанию
-	program_version = "v1.0.0"
-
-	# Обработка параметров запуска
-	try:
-		args = parser.parse_args()
-	except Exception as er:
-		parser.print_help()
-	else:
-		program_version = args.version.strip().lower()
+	# Версия бота
+	bot_version = auth_conf.BOT_VERSION
 
 	# Путь сохранения логов на удалённом сервере
-	logger_path = f'../data/logs/{program_version}-{date.today()}.log'
+	logger_path = f'../data/logs/{bot_version}-{date.today()}.log'
 	# Инициализация и подключение глобального logger
 	logger = loggerSetup.setup('logger', logger_path)
 
@@ -56,10 +40,9 @@ def main():
 
 	# Инициализация класса для подключение к базе данных
 	db = DataBase()
-	auth_conf = BotAuth()
 
 	logger.info(f'Filesystem encoding: {sys.getfilesystemencoding()}, Preferred encoding: {locale.getpreferredencoding()}')
-	logger.info(f'Current version {program_version}, Bot Group ID: {auth_conf.BOT_ID}')
+	logger.info(f'Current version {bot_version}, Bot Group ID: {auth_conf.BOT_ID}')
 	logger.info('Logging into VKontakte...')
 
 	# Интерфейс для работы с аккаунтом агента (который необходим для загрузки аудио)
@@ -72,8 +55,8 @@ def main():
 	vars.vk_bot      = vk_bot_auth.get_api()
 
 	vars.queueHandler = QueueHandler()
-	vars.audioTools = AudioTools()
-	vars.vkBotWorker = VkBotWorker(program_version, vk_bot_auth)
+	vars.playlistHandler = PlaylistHandler()
+	vars.vkBotWorker = VkBotWorker(bot_version, vk_bot_auth)
 
 	vkGroupManager = VkGroupManager()
 

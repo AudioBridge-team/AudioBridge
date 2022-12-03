@@ -1,4 +1,5 @@
 {
+	"bot_version"		: "v1.3.4",
 	"sync_changelog"    : true,
 	"release_update"    : true,
 	"max_workers"       : 6,

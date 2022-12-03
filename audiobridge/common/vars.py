@@ -5,9 +5,9 @@
 # (отрицательные значения — загрузка плейлиста, положительные — загрузка единичных песен)
 userRequests = dict()
 
-queueHandler = None
-audioTools   = None
-vkBotWorker  = None
+queueHandler    = None
+playlistHandler = None
+vkBotWorker     = None
 
 vk_bot          = None
 vk_agent        = None
