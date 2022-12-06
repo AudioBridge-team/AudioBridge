@@ -105,6 +105,7 @@ class QueueHandler():
 		"""Запуск аудио воркера.
 		"""
 		# Проверка на превышение кол-ва максимально возможных воркеров и наличие запросов в очереди
+		logger.debug(f"Current workers size: {self.size_workers}/{settings_conf.MAX_WORKERS}")
 		if (self.size_workers < settings_conf.MAX_WORKERS) and self.size_queue:
 			for task in self._pool_req:
 				user_id = task.get(param_type.USER_ID)
