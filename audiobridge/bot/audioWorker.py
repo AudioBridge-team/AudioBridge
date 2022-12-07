@@ -126,7 +126,7 @@ class AudioWorker(threading.Thread):
 			line = str(proc.stderr.readline())
 
 		stdout, stderr = proc.communicate()
-		logger.debug(f"LOG:\n\t\nSTDOUT: {stdout.strip()}\n\tSTDERR: {stderr.strip()}")
+		logger.debug(f"LOG:\n\tSTDOUT:\n{stdout.strip()}\n\tSTDERR:\n{stderr.strip()}")
 		# Обработка возникшей в процессе загрузки ошибки
 		if stdout: yt_dlpShell.define_error_type(stdout)
 
@@ -187,7 +187,7 @@ class AudioWorker(threading.Thread):
 
 			self.path            = ""       							# Путь сохранения файла
 
-			download_string = 'yt-dlp --no-playlist --no-warnings --retries {attempts} --retry-sleep {sleep} --no-part -f "bestaudio/best" --audio-format "mp3" -x -o "{path}.%(ext)s" --downloader "ffmpeg" --downloader-args "ffmpeg:-hide_banner -loglevel error -stats" {interval}{url!r}'
+			download_string = 'yt-dlp --no-playlist --no-warnings --retries {attempts} --retry-sleep {sleep} --no-part -f "bestaudio/best" --audio-format "mp3" -x -o "{path}.%(ext)s" --downloader "ffmpeg" --downloader-args "ffmpeg:-hide_banner -loglevel error -stats" {interval} {url!r}'
 
 			logger.debug(f'Получена задача: {self._task}')
 
@@ -232,7 +232,7 @@ class AudioWorker(threading.Thread):
 						raise CustomError('Ошибка: Некорректная продолжительность среза.')
 					audio_duration = interval_duration
 					audio_interval = '*' + audio_interval
-				audioSection = f'--download-sections "{audio_interval}" '
+				audioSection = f'--force-keyframes-at-cuts --download-sections "{audio_interval}"'
 			logger.debug(f"Актуальная длительность видео: {audio_duration}")
 
 			# Приблизительный вес файла
