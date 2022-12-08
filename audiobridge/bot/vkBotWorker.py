@@ -8,7 +8,7 @@ from vk_api.bot_longpoll import VkBotEventType
 
 from audiobridge.tools.myVkBotLongPoll import MyVkBotLongPoll
 from audiobridge.commands.user import UserCommands
-from audiobridge.common.config import RequestIndex, Settings, BotAuth
+from audiobridge.common.config import RequestIndex, Settings, BotAuth, ParametersType
 from audiobridge.common import vars
 from audiobridge.tools.sayOrReply import sayOrReply
 
@@ -17,6 +17,7 @@ logger        = logging.getLogger('logger')
 request_conf  = RequestIndex()
 settings_conf = Settings()
 auth_conf     = BotAuth()
+param_type    = ParametersType()
 
 class VkBotWorker():
 	"""Обработка пользовательских запросов.
@@ -53,7 +54,7 @@ class VkBotWorker():
 		"""
 		if not msg_options:
 			return False
-		command = msg_options[0].strip().lower()
+		command = msg_options[0].lower()
 		if(command == UserCommands.CLEAR.value):
 			vars.queueHandler.clear_pool(user_id)
 			return True
@@ -85,7 +86,7 @@ class VkBotWorker():
 		user_id    = msg_obj.get('peer_id')
 		message_id = msg_obj.get('id')
 
-		options = list(filter(None, msg_obj.get('text').split('\n')))
+		options = list(map(str.strip, filter(None, msg_obj.get('text').split('\n'))))
 		logger.debug(f'New message: ({len(options)}) {options}')
 
 		# Обработка команд
@@ -104,7 +105,6 @@ class VkBotWorker():
 		if vars.userRequests.get(user_id) == settings_conf.MAX_REQUESTS_QUEUE:
 			sayOrReply(user_id, 'Ошибка: Кол-во ваших запросов в общей очереди не может превышать {0}.'.format(settings_conf.MAX_REQUESTS_QUEUE))
 			return
-
 		# Проверка на превышения числа возможных аргументов запроса
 		if len(options) > 5:
 			sayOrReply(user_id, 'Ошибка: Слишком много аргументов.', message_id)
@@ -149,18 +149,23 @@ class VkBotWorker():
 		if request_conf.INDEX_PLAYLIST in options[0]:
 			# Проверка на отсутствие других задач от данного пользователя
 			if (vars.userRequests.get(user_id)):
-				sayOrReply(user_id, 'Ошибка: Для загрузки плейлиста очередь запросов должна быть пуста.')
+				sayOrReply(user_id, 'Ошибка: Для загрузки плейлиста очередь запросов должна быть пустой.')
 				return
 			# Проверка на корректность запроса
-			if len(options) != 2:
-				msg_error = 'Ошибка: Не указаны номера загружаемых видео.' if len(options) < 2 else 'Ошибка: Слишком много параметров для загрузки плейлиста.'
-				sayOrReply(user_id, msg_error, message_id)
+			pl_param = ""
+			if len(options) == 2:
+				pl_param = options[1].replace(' ', "")
+			elif len(options) > 2:
+				sayOrReply(user_id, "Ошибка: Слишком много параметров для загрузки плейлиста.", message_id)
 				return
 			# Создание задачи + вызов функции фрагментации плейлиста, чтобы свести запрос к обычной единице (одной ссылке)
 			vars.userRequests[user_id] = -1
 			msg_start_id = sayOrReply(user_id, 'Запрос добавлен в очередь (плейлист)')
-			task         = [[msg_start_id, user_id, message_id], options]
-			threading.Thread(target = vars.audioTools.playlist_processing(task)).start()
+			task = dict(zip(range(3), [msg_start_id, user_id, message_id]))
+			task[param_type.URL] = options[0]
+			task[param_type.PL_PARAM] = pl_param
+			task[param_type.PL_TYPE] = True
+			threading.Thread(target = vars.playlistHandler.extract_elements(task)).start()
 			return
 		# Обработка обычного запроса
 		# Обработка YouTube Shorts
@@ -170,7 +175,7 @@ class VkBotWorker():
 		# Обработка Vk Video
 		elif request_conf.INDEX_VK_VIDEO in options[0]:
 			logger.debug("Обнаружено Vk video. Получение прямой ссылки...")
-			video_url = self.vk_video_handler(options[0].strip())
+			video_url = self.vk_video_handler(options[0])
 			if not video_url:
 				sayOrReply(user_id, 'Ошибка: Невозможно обработать прикреплённое видео, т.к. оно скрыто настройками приватности автора', message_id)
 				return
@@ -178,7 +183,9 @@ class VkBotWorker():
 		# Создание задачи и её добавление в обработчик очереди
 		vars.userRequests[user_id] += 1
 		msg_start_id = sayOrReply(user_id, 'Запрос добавлен в очередь ({0}/{1})'.format(vars.userRequests.get(user_id), settings_conf.MAX_REQUESTS_QUEUE))
-		task         = [[msg_start_id, user_id, message_id], options]
+		task = dict(zip(range(3), [msg_start_id, user_id, message_id]))
+		task.update(dict(zip(range(param_type.URL, len(options) + param_type.URL), options)))
+		task[param_type.PL_TYPE] = False
 		vars.queueHandler.add_new_request(task)
 
 	def listen_longpoll(self):

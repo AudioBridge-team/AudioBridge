@@ -16,7 +16,6 @@ services:
     container_name: vkbot_container_${MODE}
     build:
       context: .
-    command: "-v ${BUILD_VERSION}"
     restart: always
     network_mode: host
     volumes:

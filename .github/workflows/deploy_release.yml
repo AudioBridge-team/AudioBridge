@@ -27,4 +27,4 @@ jobs:
             git clone -b prod --single-branch git@github.com:shonqwezon-team/AudioBridge.git prod
             cd prod
             chmod u+x install.zsh
-            ./install.zsh -v "prod"
+            ./install.zsh

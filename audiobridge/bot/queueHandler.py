@@ -3,15 +3,17 @@
 
 import logging
 import threading
+from queue import Queue
 
 from audiobridge.bot.audioWorker import AudioWorker
-from audiobridge.common.config import Settings
+from audiobridge.common.config import Settings, ParametersType
 from audiobridge.common import vars
 from audiobridge.tools.sayOrReply import sayOrReply
 
 
-logger = logging.getLogger('logger')
+logger        = logging.getLogger('logger')
 settings_conf = Settings()
+param_type    = ParametersType()
 
 class QueueHandler():
 	"""Класс управления очередью запросов пользователя.
@@ -20,7 +22,7 @@ class QueueHandler():
 	def __init__(self):
 		"""Инициализация класса QueueHandler.
 		"""
-		self._pool_req = [] # Размер общей очереди запросов
+		self._pool_req = [] # Общая очередь запросов
 		self._workers = {} 	# Список действующих воркеров.
 
 	@property
@@ -53,16 +55,16 @@ class QueueHandler():
 			if not vars.userRequests.get(user_id):
 				sayOrReply(user_id, 'Очередь запросов уже пуста!')
 			else:
-				for i in range(len(self._pool_req), 0, -1):
-					if (self._pool_req[i-1][0][1] == user_id):
-						del self._pool_req[i-1]
+				for i in range(self.size_queue-1, -1, -1):
+					if (self._pool_req[i].get(param_type.USER_ID) == user_id):
+						del self._pool_req[i]
 				if self._workers.get(user_id):
 					for worker in self._workers.get(user_id):
 						worker.stop()
 					# Подведение отчёта о загрузке плейлиста (если он загружался)
-					vars.audioTools.playlist_summarize(user_id)
+					vars.playlistHandler.summarize(user_id)
 					del self._workers[user_id]
-					del vars.userRequests[user_id]
+				del vars.userRequests[user_id]
 				sayOrReply(user_id, 'Очередь запросов очищена!')
 		except Exception as er:
 			logger.error(er)
@@ -75,8 +77,8 @@ class QueueHandler():
 			task (dict): Пользовательского запрос, включающий в себя необходимую информацию для загрузки музыки.
 		"""
 		self._pool_req.append(task)
-		# Проверка на превышение кол-ва максимально возможных воркеров
-		if (self.size_workers < settings_conf.MAX_WORKERS): self._run_worker()
+		logger.debug(f"{task}\nCurrent pool size = {self.size_queue}")
+		self._run_worker()
 
 	def ack_request(self, user_id: int, worker: threading.Thread):
 		"""Подтверждение выполнения пользовательского запроса.
@@ -87,35 +89,35 @@ class QueueHandler():
 		"""
 		try:
 			self._workers.get(user_id).remove(worker)
-			if not len(self._workers.get(user_id)): del self._workers[user_id]
+			if not len(self._workers.get(user_id)):
+				del self._workers[user_id]
 			self._run_worker()
 
 		except Exception as er:
 			logger.error(er)
-			if user_id in self._workers: del self._workers[user_id]
-			for i in range(len(self._pool_req), 0, -1):
-				if (self._pool_req[i-1][0][1] == user_id):
-					del self._pool_req[i-1]
+			if user_id in self._workers:
+				del self._workers[user_id]
+			for i in range(self.size_queue-1, -1, -1):
+				if self._pool_req[i].get(param_type.USER_ID) == user_id:
+					del self._pool_req[i]
 
 	def _run_worker(self):
 		"""Запуск аудио воркера.
 		"""
-		for i, task in enumerate(self._pool_req):
-			user_id = task[0][1]
-
-			# Если пользователь не имеет активных запросов
-			if not self._workers.get(user_id):
-				worker = AudioWorker(task)
-				worker.name = f'{user_id}-worker <{len(self._workers.get(user_id, []))}>'
-				worker.start()
-				self._workers[user_id] = [worker]
-				del self._pool_req[i]
-				return
-			# Если пользователь имеет активные запросы
-			if len(self._workers.get(user_id)) < settings_conf.MAX_UNITS:
-				worker = AudioWorker(task)
-				worker.name = f'{user_id}-worker <{len(self._workers.get(user_id, []))}>'
-				worker.start()
-				self._workers[user_id].append(worker)
-				del self._pool_req[i]
-				return
+		# Проверка на превышение кол-ва максимально возможных воркеров и наличие запросов в очереди
+		logger.debug(f"Current workers size: {self.size_workers}/{settings_conf.MAX_WORKERS}")
+		if (self.size_workers < settings_conf.MAX_WORKERS) and self.size_queue:
+			for task in self._pool_req:
+				user_id = task.get(param_type.USER_ID)
+				# Если пользователь имеет активные запросы
+				user_threads = len(self._workers.get(user_id, []))
+				# Проверка на превышение кол-ва воркеров на одного юзера
+				if user_threads < settings_conf.MAX_UNITS:
+					worker = AudioWorker(task)
+					worker.name = f'{user_id}-worker <{user_threads}>'
+					worker.start()
+					if not self._workers.get(user_id):
+						self._workers[user_id] = []
+					self._workers[user_id].append(worker)
+					self._pool_req.remove(task)
+					break

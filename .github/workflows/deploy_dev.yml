@@ -27,4 +27,4 @@ jobs:
             git clone -b dev --single-branch git@github.com:shonqwezon-team/AudioBridge.git dev
             cd dev
             chmod u+x install.zsh
-            ./install.zsh -v "dev" -d
+            ./install.zsh -d

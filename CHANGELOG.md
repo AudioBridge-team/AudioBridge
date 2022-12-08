@@ -5,6 +5,29 @@
 и этот проект придерживается [Semantic Versioning].
 
 ## [Unreleased]
+## [1.3.4] - 02-12-2022
+### Added
+* <tools/customErrors> Создан единый список ошибок `yt-dlp` и их ключей, для улучшения читаемости кода
+* <tools/yt_dlpShell> Создан для обработки сообщений `yt-dlp`
+* <bot/audioWorker> Добавлена функция `_analyzeTitle` для извлечения из заголовка видео названия работы (без хештегов и авторов)
+* <bot/audioWorker> Добавлена функция `_getAudioBitrate` для получения битрейта видео, необходимо для оценки приблизительного размера mp3 файла
+
+### Changed
+* Изменена модель `Workflow` над проектом, из-за недочётов предыдущей
+* Указывание версии бота перенесено из параметров запуска в конфигурационный файл `bot_settings.json`
+* <requirements> Устаревший модуль `youtube-dl` заменён на активно развивающийся форк `yt-dlp`
+* Название класса и файла `AudioTools` заменено на `PlaylistHandler` из-за полной специализации на соответствующих задачах
+* <bot/playlistHandler> Получение элементов плейлиста было переложено на `yt-dlp`
+* Передача запроса теперь осуществляется в форме `dict`
+
+### Removed
+* <__main__> Удалён `ArgParser` из-за ненадобности
+* <bot/playlistHandler> Удалён метод `_getPlaylistElements`, т.к. его функцию заменил форк `yt-dlp`
+* <bot/audioWorker> Удалены функции `_toSeconds`, `_getAudioInfo`, `_getAudioUrl` из-за того, что их заменил функционал `yt-dlp`
+
+### Fixed
+* <bot/queueHandler> Исправлена работа
+
 ## [1.3.3] - 16-10-2022
 ### Fixed
 * Исправлена обработка ошибки `HTTP error 404` для модуля `ffmpeg`
@@ -169,6 +192,7 @@
 
 <!-- Versions -->
 [unreleased]: https://github.com/shonqwezon-team/AudioBridge/compare/prod...dev
+[1.3.4]: https://github.com/shonqwezon-team/AudioBridge/compare/v1.3.3...v1.3.4
 [1.3.3]: https://github.com/shonqwezon-team/AudioBridge/compare/v1.3.2...v1.3.3
 [1.3.2]: https://github.com/shonqwezon-team/AudioBridge/compare/v1.3.1...v1.3.2
 [1.3.1]: https://github.com/shonqwezon-team/AudioBridge/compare/v1.3.0...v1.3.1
