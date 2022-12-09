@@ -294,10 +294,16 @@ class AudioWorker(threading.Thread):
 				error_string = 'Ошибка: Невозможно обработать запрос. Убедитесь, что запрос корректный, и отправьте его повторно.'
 				# Ошибка авторских прав
 				if er.code == 270:
-					error_string = 'Ошибка: Правообладатель ограничил доступ к данной аудиозаписи. Загрузка прервана'
+					error_string = 'Ошибка: Правообладатель ограничил доступ к данной аудиозаписи. Загрузка прервана.'
 				elif er.code == 15:
 					if self.file_size < 50 * 1024:
-						error_string = 'Ошибка: Вк запрещает загрузку треков, вес которых меньше 50 Кб.'
+						error_string = 'Ошибка: VK запрещает загрузку треков, вес которых меньше 50 Кб.'
+				elif er.code == 100:
+					if "server is undefined" in er.lower():
+						error_string = 'Ошибка: Невозможно загрузить аудиофайл из-за ошибки серверов VK. Повторите свой запрос чуть позже.'
+				elif er.code == 10:
+					error_string = 'Ошибка: Возникла непредвиденная ошибка со стороны VK. Повторите свой запрос чуть позже.'
+
 				sayOrReply(self.user_id, f'{error_string}', self.msg_reply)
 			# Добавить проверку через sql на успешность загрузки видео
 			logger.error(f'VK API: \n\tCode: {er.code}\n\tBody: {er}')
@@ -322,6 +328,7 @@ class AudioWorker(threading.Thread):
 				logger.error('Ошибка: Аудио-файл не существует.')
 
 			if not self._stop:
+				logger.debug('Reached a stop-condition')
 				# Удаление сообщения с порядком очереди
 				if vars.userRequests[self.user_id] < 0:
 					vars.userRequests[self.user_id] += 1
@@ -332,6 +339,7 @@ class AudioWorker(threading.Thread):
 				else:
 					vars.userRequests[self.user_id] -= 1
 					vars.vk_bot.messages.delete(delete_for_all = 1, message_ids = self.msg_start)
+				logger.debug('Reached receiving a report')
 				# Отчёт о проделанной обратки
 				logger.debug(
 					(
