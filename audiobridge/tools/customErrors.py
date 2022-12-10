@@ -8,19 +8,20 @@ from audiobridge.common.config import Settings
 settings_conf = Settings()
 # Список всех замеченных ошибок в процессе работы yt_dlp
 ytdlp_errors = {
-	"is not a valid url": "Некорректный адрес источника",
-	"http error 404": "Некорректный адрес источника",
-	"the channel/playlist does not exist": "Данный плейлист не существует",
-	"is not a valid specification": "Некорректный адрес источника",
-	"http error 404": "Неверные параметры скачивания плейлиста",
-	"unable to download webpage": "Некорректный адрес источника",
-
-	"unsupported url": "Данный URL не поддерживается",
+	"is not a valid url"                                            : "Некорректный адрес источника",
+	"http error 404"                                                : "Некорректный адрес источника",
+	"the channel/playlist does not exist"                           : "Данный плейлист не существует",
+	"is not a valid specification"                                  : "Некорректный адрес источника",
+	"http error 404"                                                : "Неверные параметры скачивания плейлиста",
+	"unable to download webpage"                                    : "Некорректный адрес источника",
+	"video unavailable"                                             : "Видео недоступно",
+	"this video was marked as adult content"                        : "VK заблокировал обработку видео из-за наличия взрослого контента",
+	"unsupported url"                                               : "Данный URL не поддерживается",
 	"the uploader has not made this video available in your country": "Правообладатель ограничил доступ к материалу в данной стране",
-	"this video is not available": "Видео недоступно",
-	"who has blocked it in your country on copyright": "Видео содержит заблокированный для нашей страны контент",
-	"since chapter information is unavailable": "Видео не содержит эпизодов, используйте тайминги",
-	"no chapters matching the regex": "Данного эпизода не существует. Проверьте корректность его написания"
+	"this video is not available"                                   : "Видео недоступно",
+	"who has blocked it in your country on copyright"               : "Видео содержит заблокированный для нашей страны контент",
+	"since chapter information is unavailable"                      : "Видео не содержит эпизодов, используйте тайминги",
+	"no chapters matching the regex"                                : "Данного эпизода не существует. Проверьте корректность его написания"
 }
 # Список прочих ошибок
 specific_errors = {
