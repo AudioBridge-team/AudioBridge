@@ -191,6 +191,7 @@ class VkBotWorker():
 	def listen_longpoll(self):
 		"""Прослушивание новых сообщений от пользователей.
 		"""
+		logger.debug("Started.")
 		for event in self.longpoll.listen():
 			if event.type != VkBotEventType.MESSAGE_NEW:
 				continue

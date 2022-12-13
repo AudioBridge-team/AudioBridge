@@ -66,8 +66,8 @@ def main():
 	while True:
 		try:
 			vars.vkBotWorker.listen_longpoll()
-		except vk_api.exceptions.ApiError as er:
-			logger.error(f'VK API: {er}')
+		except Exception as er:
+			logger.error(f'VK API ({er.code}): {er}')
 
 	logger.info('You will never see this.')
 
