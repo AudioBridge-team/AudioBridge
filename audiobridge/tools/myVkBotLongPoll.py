@@ -22,5 +22,5 @@ class MyVkBotLongPoll(VkBotLongPoll):
 			try:
 				for event in self.check():
 					yield event
-			except Exception as e:
-				logger.error(e)
+			except Exception as er:
+				logger.error(f'VK LONGPOLL ({er.code}): {er}')
