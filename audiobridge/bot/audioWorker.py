@@ -105,10 +105,9 @@ class AudioWorker(threading.Thread):
 			CustomError: Пользовательская ошибка.
 		"""
 		logger.debug(f'Скачивание видео началось')
-		if self._playlist:
-			self.progress_msg_id = sayOrReply(self.user_id, f'Загрузка началась [{self.task_id}/{self.task_size}]')
-		else:
-			self.progress_msg_id = sayOrReply(self.user_id, 'Загрузка началась', self.msg_reply)
+		pl_suffix = f" [{self.task_id}/{self.task_size}]" if self._playlist else ""
+
+		self.progress_msg_id = sayOrReply(self.user_id, 'Загрузка началась' + pl_suffix, self.msg_reply)
 		last_msg_time = time.time()
 		proc = subprocess.Popen(cmd, stdout = subprocess.PIPE, stderr = subprocess.PIPE, text = True, shell = True)
 		line = str(proc.stderr.readline())
@@ -121,7 +120,7 @@ class AudioWorker(threading.Thread):
 					size = line[6:].strip()
 					size = int(size[:size.find(' ')-2])
 					if size:
-						vars.vk_bot.messages.edit(peer_id = self.user_id, message = f"Загружено {int(round(size * 1024 / self.file_size, 2) * 100)}% ({round(size / 1024, 2)} / {round(self.file_size / 1024**2, 2)} Мб)", message_id = self.progress_msg_id)
+						vars.vk_bot.messages.edit(peer_id = self.user_id, message = f"Загружено {int(round(size * 1024 / self.file_size, 2) * 100)}% ({round(size / 1024, 2)} / {round(self.file_size / 1024**2, 2)} Мб)" + pl_suffix, message_id = self.progress_msg_id)
 					last_msg_time = time.time()
 			line = str(proc.stderr.readline())
 
@@ -130,9 +129,7 @@ class AudioWorker(threading.Thread):
 		# Обработка возникшей в процессе загрузки ошибки
 		if stdout: yt_dlpShell.define_error_type(stdout)
 
-		msg = "Загрузка файла завершена. Началась обработка"
-		if self._playlist:
-			msg += f" [{self.task_id}/{self.task_size}]"
+		msg = "Загрузка файла завершена. Началась обработка" + pl_suffix
 		vars.vk_bot.messages.edit(peer_id = self.user_id, message = msg, message_id = self.progress_msg_id)
 		logger.debug(f'Скачивание видео завершено')
 
