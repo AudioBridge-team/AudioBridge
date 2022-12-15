@@ -25,7 +25,7 @@ ytdlp_errors = {
 }
 # Список прочих ошибок
 specific_errors = {
-	"MAX_VIDEO_DURATION": f"Суммарная продолжительность будущих аудиозаписей не может превышать {settings_conf.MAX_VIDEO_DURATION} часа!"
+	"MAX_VIDEO_DURATION": f"Суммарная продолжительность будущих аудиозаписей не может превышать {settings_conf.MAX_VIDEO_DURATION // 3600} часа!"
 }
 
 class CustomErrorCode(Config):

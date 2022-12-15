@@ -32,15 +32,6 @@ class VkBotWorker():
 		"""
 		self.program_version = program_version
 		self.longpoll        = MyVkBotLongPoll(vk_bot_auth, auth_conf.BOT_ID)
-		# Обработка невыполненных запросов после обновления, краша бота
-		unanswered_messages  = vars.vk_bot.messages.getDialogs(unanswered=1)
-		for user_message in unanswered_messages.get('items'):
-			# Проверка на сообщение от пользователя, а не беседы
-			msg_obj = user_message.get('message')
-			if 'users_count' not in msg_obj:
-				msg_obj['peer_id'] = msg_obj.pop('user_id')
-				msg_obj['text']    = msg_obj.pop('body')
-				self.message_handler(msg_obj)
 
 	def command_handler(self, msg_options: list, user_id: int) -> bool:
 		"""Обработка пользовательских команд.
@@ -192,11 +183,26 @@ class VkBotWorker():
 		"""Прослушивание новых сообщений от пользователей.
 		"""
 		logger.debug("Started.")
+		self.unanswered_message_handler()
 		for event in self.longpoll.listen():
+			logger.info(event.type)
 			if event.type != VkBotEventType.MESSAGE_NEW:
 				continue
 			msg_obj = event.obj.message
 			# Проверка на сообщение от пользователя, а не беседы
 			# logger.debug(f'Получено новое сообщение: {msg_obj}')
 			if msg_obj.get('from_id') == msg_obj.get('peer_id'):
+				self.message_handler(msg_obj)
+
+	def unanswered_message_handler(self):
+		"""Обработка невыполненных запросов после обновления, краша бота.
+		"""
+		unanswered_messages = vars.vk_bot.messages.getDialogs(unanswered=1)
+		logger.debug(f"Number of unanswered massages: {len(unanswered_messages.get('items'))}")
+		for user_message in unanswered_messages.get('items'):
+			# Проверка на сообщение от пользователя, а не беседы
+			msg_obj = user_message.get('message')
+			if 'users_count' not in msg_obj:
+				msg_obj['peer_id'] = msg_obj.pop('user_id')
+				msg_obj['text']    = msg_obj.pop('body')
 				self.message_handler(msg_obj)
