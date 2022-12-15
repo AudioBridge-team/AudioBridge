@@ -72,7 +72,8 @@ class AudioWorker(threading.Thread):
 			raise CustomError(code=CustomErrorCode.STOP_THREAD)
 		# Выход из рекурсии, если превышено число попыток выполнения команды
 		if attempts == settings_conf.MAX_ATTEMPTS:
-			raise CustomError("Ошибка: Невозможно получить информацию о видео.")
+			logger.warning("Can't get real audio bitrate, return default volume.")
+			return 128
 		# Проверка на существование прямой ссылки
 		proc = subprocess.Popen(cmdAudioBitrate(url), stderr = subprocess.PIPE, text = True, shell = True)
 		audioInfo = proc.communicate()[1].strip()
@@ -237,7 +238,7 @@ class AudioWorker(threading.Thread):
 
 			# Проверка размера файла (необходимо из-за внутренних ограничений VK)
 			logger.debug(f"Предварительный размер файла: {round(self.file_size / 1024**2, 2)} Mb")
-			if self.file_size * 0.9 > settings_conf.MAX_FILESIZE:
+			if self.file_size * 0.85 > settings_conf.MAX_FILESIZE:
 				raise CustomError('Ошибка: Размер аудиозаписи превышает 200 Мб!')
 
 			self.path = str(self.user_id) + self.path
