@@ -6,8 +6,25 @@
 		{
 			"label": "Install requirements",
 			"type": "shell",
-			"command": "pip install -Ur requirements.txt",
+			//"command": "pip install -Ur requirements.txt",
+			// ↓ Helps when SSL is broken for some reason ↓
+			"command": "pip install -Ur requirements.txt  --trusted-host pypi.org --trusted-host files.pythonhosted.org",
 			"problemMatcher": [ "$tsc" ]
+		},
+		{
+			"label": "Run main project file",
+			"command": "py -m audiobridge",
+			"type": "shell",
+			"presentation": {
+				"reveal": "always",
+				"panel": "new",
+				"focus": true
+			},
+			"problemMatcher": [ "$tsc" ],
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			}
 		},
 		{
 			"label": "Run file...",
@@ -21,19 +38,11 @@
 			"problemMatcher": [ "$tsc" ]
 		},
 		{
-			"label": "Run main project file",
-			"command": "py -3 './src/audioBridge.py'",
+			"label": "Run pydoc",
+			"command": "python -m pydoc audiobridge",
 			"type": "shell",
-			"presentation": {
-				"reveal": "always",
-				"panel": "new",
-				"focus": true
-			},
-			"problemMatcher": [ "$tsc" ],
-			"group": {
-				"kind": "build",
-				"isDefault": true
-			}
+			"presentation": {},
+			"problemMatcher": [ "$tsc" ]
 		}
 	]
 }

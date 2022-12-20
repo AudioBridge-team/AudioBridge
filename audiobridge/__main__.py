@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+import os
 import sys
 import locale
 from datetime import date
 
 import vk_api
+
+from audiobridge.tools.customErrors import CustomError, CustomErrorCode
 
 from audiobridge.db.database import DataBase
 from audiobridge.bot.queueHandler import QueueHandler
@@ -17,11 +20,15 @@ from audiobridge.common import vars
 
 from audiobridge.common.config import BotAuth
 
+if not os.path.isfile('.env.dev') and not os.path.isfile('.env.prod'):
+	raise CustomError('Ошибка: Нет файла ".env.dev" или ".env.pro".') #(code=CustomErrorCode.STOP_THREAD)
+
 auth_conf = BotAuth()
 
 def main():
 	"""Подготовка бота к работе.
 	"""
+
 	# Версия бота
 	bot_version = auth_conf.BOT_VERSION
 

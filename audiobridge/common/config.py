@@ -112,6 +112,7 @@ class Database(Config):
 	Args:
 		Config (Config): Config.
 	"""
+
 	DB_NAME     = field("DB_NAME")
 	PG_USER     = field("PG_USER")
 	PG_PASSWORD = field("PG_PASSWORD")

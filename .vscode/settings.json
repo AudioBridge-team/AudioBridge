@@ -22,9 +22,15 @@
 	"keep-a-changelog.defaultRepository": "AudioBridge",
 	"keep-a-changelog.dateFormat": "DD/MM/YYYY",
 	"keep-a-changelog.validFiles": [
-
-
 		"changelog"
 	],
 	"autoDocstring.docstringFormat": "google",
+	/* https://stackoverflow.com/q/29968499/8175291 */
+	//"workbench.colorCustomizations": {
+	//	"editor-ruler.foreground": "#0099AA"
+	//},
+	"editor.rulers": [
+		80,
+		125
+	]
 }
