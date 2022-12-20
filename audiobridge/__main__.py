@@ -46,19 +46,19 @@ def main():
 	logger.info('Logging into VKontakte...')
 
 	# Интерфейс для работы с аккаунтом агента (который необходим для загрузки аудио)
-	vk_agent_auth   = vk_api.VkApi(token = auth_conf.AGENT_TOKEN)
+	vk_agent_auth        = vk_api.VkApi(token = auth_conf.AGENT_TOKEN)
 	vars.vk_agent_upload = vk_api.VkUpload(vk_agent_auth)
 	vars.vk_agent        = vk_agent_auth.get_api()
 
 	# Интерфейс для работы с ботом
 	vk_bot_auth = vk_api.VkApi(token = auth_conf.BOT_TOKEN)
-	vars.vk_bot      = vk_bot_auth.get_api()
+	vars.vk_bot = vk_bot_auth.get_api()
 
-	vars.queueHandler = QueueHandler()
+	vars.queueHandler    = QueueHandler()
 	vars.playlistHandler = PlaylistHandler()
-	vars.vkBotWorker = VkBotWorker(bot_version, vk_bot_auth)
+	vars.vkBotWorker     = VkBotWorker(bot_version, vk_bot_auth)
 
-	vkGroupManager = VkGroupManager()
+	vkGroupManager       = VkGroupManager()
 
 	# Запуск listener
 	logger.info('Begin listening.')

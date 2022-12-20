@@ -11,11 +11,12 @@ import yt_dlp
 import vk_api
 from vk_api.utils import get_random_id
 
-from audiobridge.tools.customErrors import CustomError, CustomErrorCode
+from audiobridge.tools.customErrors import CustomError, CustomErrorCode, vkapi_errors
 
 from audiobridge.common.config import Settings, PlaylistStates, ParametersType
 from audiobridge.common import vars
 from audiobridge.tools.sayOrReply import sayOrReply
+from audiobridge.tools.deleteMsg import deleteMsg
 from audiobridge.tools.yt_dlpShell import Yt_dlpShell
 
 
@@ -25,7 +26,8 @@ playlist_conf = PlaylistStates()
 param_type    = ParametersType()
 yt_dlpShell   = Yt_dlpShell()
 
-cmdAudioBitrate = lambda url: 'ffmpeg -loglevel info -hide_banner -i "{0}"'.format(f"$(yt-dlp --no-playlist --no-warnings -x -g '{url}')") # Команда для получения битрейта аудио
+# Команда для получения битрейта аудио
+cmdAudioBitrate = lambda url: 'ffmpeg -loglevel info -hide_banner -i "{0}"'.format(f"$(yt-dlp --no-playlist --no-warnings -x -g '{url}')")
 
 ydl_opts = {
 	'logger': yt_dlpShell,
@@ -173,19 +175,45 @@ class AudioWorker(threading.Thread):
 		"""
 		logger.info('AudioWorker: Запуск.')
 		try:
-			self.msg_start       = self._task.get(param_type.MSG_START) # id сообщения с размером очереди (необходимо для удаления в конце обработки запроса)
-			self.user_id         = self._task.get(param_type.USER_ID) 	# id пользователя
-			self.msg_reply       = self._task.get(param_type.MSG_REPLY) # id сообщения пользователя (необходимо для ответа на него)
+			# id сообщения с размером очереди (необходимо для удаления в конце обработки запроса)
+			self.msg_start       = self._task.get(param_type.MSG_START)
+			# id пользователя
+			self.user_id         = self._task.get(param_type.USER_ID)
+			# id сообщения пользователя (необходимо для ответа на него)
+			self.msg_reply       = self._task.get(param_type.MSG_REPLY)
 
-			self.progress_msg_id = 0 									# id сообщения с прогрессом загрузки
-			self._playlist       = self._task.get(param_type.PL_TYPE) 	# Если True, то запрос является плейлистом
+			# id сообщения с прогрессом загрузки
+			self.progress_msg_id = 0
+			# Если True, то запрос является плейлистом
+			self._playlist       = self._task.get(param_type.PL_TYPE)
+
 			if self._playlist:
-				self.task_id   = self._task.get(param_type.PL_ELEMENT)	# Порядковый номер элемента в плейлисте
-				self.task_size = self._task.get(param_type.PL_SIZE)		# Размер плейлиста
+				# Порядковый номер элемента в плейлисте
+				self.task_id   = self._task.get(param_type.PL_ELEMENT)
+				# Размер плейлиста
+				self.task_size = self._task.get(param_type.PL_SIZE)
+			# Путь сохранения файла
 
-			self.path            = ""       							# Путь сохранения файла
+			self.path            = ""
 
-			download_string = 'yt-dlp --no-playlist --no-warnings --retries {attempts} --retry-sleep {sleep} --no-part -f "bestaudio/best" --audio-format "mp3" -x -o "{path}.%(ext)s" --downloader "ffmpeg" --downloader-args "ffmpeg:-hide_banner -loglevel error -stats" {interval} {url!r}'
+			download_string = " ".join([
+				'yt-dlp',
+				'--no-playlist',
+				'--no-warnings',
+				'--retries {attempts}',
+				'--retry-sleep {sleep}',
+				'--no-part',
+				'-f "bestaudio/best"',
+				'--audio-format "mp3"',
+				'-x',
+				'-o "{path}.%(ext)s"',
+				'--downloader "ffmpeg"',
+				'--downloader-args',
+				'"ffmpeg:-hide_banner',
+				'-loglevel error',
+				'-stats"',
+				'{interval}',
+				'{url!r}'])
 
 			logger.debug(f'Получена задача: {self._task}')
 
@@ -193,14 +221,14 @@ class AudioWorker(threading.Thread):
 			author = ""
 			# Получение необходимой информации об аудио
 			audioInfo = yt_dlp.YoutubeDL(ydl_opts).extract_info(self._task.get(param_type.URL), download=False)
-			if audioInfo:
-				audio_duration = int(audioInfo.get("duration", 0))
-				self.path = audioInfo.get("id", None)
-				if not (audio_duration and self.path):
-					raise CustomError("Ошибка: Невозможно получить информацию о видео.")
-				self.title, author = self._analyzeTitle(audioInfo.get("title"), audioInfo.get("channel"))
-			else:
+			if not audioInfo:
 				raise CustomError("Ошибка: Невозможно получить информацию о видео.")
+
+			audio_duration = int(audioInfo.get("duration", 0))
+			self.path = audioInfo.get("id", None)
+			if not (audio_duration and self.path):
+				raise CustomError("Ошибка: Невозможно получить информацию о видео.")
+			self.title, author = self._analyzeTitle(audioInfo.get("title"), audioInfo.get("channel"))
 			logger.debug(f"Информация об аудио успешно получена: {audio_duration}, {self.title}, {author}")
 
 			# Обработка времени среза в случае, если оно указано
@@ -212,15 +240,16 @@ class AudioWorker(threading.Thread):
 					audio_interval = audio_interval.replace(' ', '')
 					timestamps = []
 					for timestamp in audio_interval.split('-'):
-						if timestamp:
-							if timestamp.count(':') > 3:
-								raise CustomError('Ошибка: Неверный формат времени среза.')
-							in_seconds = 0
-							for i, tmt in enumerate(reversed(list(map(int, timestamp.split(':'))))):
-								in_seconds += tmt * 60**i
-							if in_seconds > audio_duration:
-								raise CustomError('Ошибка: Некорректное время среза.')
-							timestamps.append(in_seconds)
+						if not timestamp:
+							continue
+						if timestamp.count(':') > 3:
+							raise CustomError('Ошибка: Неверный формат времени среза.')
+						in_seconds = 0
+						for i, tmt in enumerate(reversed(list(map(int, timestamp.split(':'))))):
+							in_seconds += tmt * 60**i
+						if in_seconds > audio_duration:
+							raise CustomError('Ошибка: Некорректное время среза.')
+						timestamps.append(in_seconds)
 					interval_duration = audio_duration
 					if len(timestamps) == 1:
 						if audio_interval.startswith('-'): interval_duration = timestamps[0]
@@ -242,7 +271,13 @@ class AudioWorker(threading.Thread):
 				raise CustomError('Ошибка: Размер аудиозаписи превышает 200 Мб!')
 
 			self.path = str(self.user_id) + self.path
-			download_string = download_string.format(path=self.path, url=self._task.get(param_type.URL), interval=audioSection, attempts=settings_conf.MAX_ATTEMPTS, sleep=settings_conf.TIME_ATTEMPT)
+			download_string = download_string.format(
+				path=self.path,
+				url=self._task.get(param_type.URL),
+				interval=audioSection,
+				attempts=settings_conf.MAX_ATTEMPTS,
+				sleep=settings_conf.TIME_ATTEMPT
+			)
 			self.path += ".mp3"
 
 			# Скачивание аудио
@@ -289,18 +324,14 @@ class AudioWorker(threading.Thread):
 				if er.code == 270 and self.task_id:
 					vars.playlistHandler.playlist_result[self.user_id][self.task_id][0] = playlist_conf.PLAYLIST_COPYRIGHT
 			else:
-				error_string = 'Ошибка: Невозможно обработать запрос. Убедитесь, что запрос корректный, и отправьте его повторно.'
-				# Ошибка авторских прав
-				if er.code == 270:
-					error_string = 'Ошибка: Правообладатель ограничил доступ к данной аудиозаписи. Загрузка прервана.'
-				elif er.code == 15:
-					if self.file_size < 50 * 1024:
-						error_string = 'Ошибка: VK запрещает загрузку треков, вес которых меньше 50 Кб.'
-				elif er.code == 100:
-					if "server is undefined" in er.lower():
-						error_string = 'Ошибка: Невозможно загрузить аудиофайл из-за ошибки серверов VK. Повторите свой запрос чуть позже.'
-				elif er.code == 10:
-					error_string = 'Ошибка: Возникла непредвиденная ошибка со стороны VK. Повторите свой запрос чуть позже.'
+				error_string = 'Ошибка: {error_msg}.'
+				error_msg_default = "Невозможно обработать запрос. Убедитесь, что запрос корректный, и отправьте его повторно"
+				if er.code == 15 and self.file_size < 50 * 1024 :
+					error_string = error_string.format(error_msg = vkapi_errors.get(er.code))
+				elif er.code == 100 and "server is undefined" in er.error['error_msg'].lower():
+					error_string = error_string.format(error_msg = vkapi_errors.get(er.code))
+				else:
+					error_string = error_string.format(error_msg = vkapi_errors.get(er.code, error_msg_default))
 
 				sayOrReply(self.user_id, f'{error_string}', self.msg_reply)
 			# Добавить проверку через sql на успешность загрузки видео
@@ -314,16 +345,15 @@ class AudioWorker(threading.Thread):
 			logger.error(f'Исключение: {er}')
 
 		finally:
-			# Удаление сообщения с прогрессом
-			if self.progress_msg_id:
-				vars.vk_bot.messages.delete(delete_for_all = 1, message_ids = self.progress_msg_id)
-
 			# Удаление загруженного файла
 			if os.path.isfile(self.path):
 				os.remove(self.path)
 				logger.debug(f'Успешно удалил аудио-файл: {self.path}')
 			else:
 				logger.error('Ошибка: Аудио-файл не существует.')
+
+			# Удаление сообщения с прогрессом
+			deleteMsg(self.progress_msg_id)
 
 			if not self._stop:
 				logger.debug('Reached a stop-condition')
@@ -332,13 +362,13 @@ class AudioWorker(threading.Thread):
 					vars.userRequests[self.user_id] += 1
 					if vars.userRequests[self.user_id] == -1:
 						vars.userRequests[self.user_id] = 0
-						vars.vk_bot.messages.delete(delete_for_all = 1, message_ids = self.msg_start)
+						deleteMsg(self.msg_start)
 						vars.playlistHandler.summarize(self.user_id)
 				else:
 					vars.userRequests[self.user_id] -= 1
-					vars.vk_bot.messages.delete(delete_for_all = 1, message_ids = self.msg_start)
+					deleteMsg(self.msg_start)
 				logger.debug('Reached receiving a report')
-				# Отчёт о проделанной обратки
+				# Отчёт о проделанной работе
 				logger.debug(
 					(
 						'Завершено:\n'+
