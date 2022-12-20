@@ -8,6 +8,7 @@ from audiobridge.tools.customErrors import CustomError, specific_errors
 from audiobridge.common.config import Settings, PlaylistStates, ParametersType
 from audiobridge.common import vars
 from audiobridge.tools.sayOrReply import sayOrReply
+from audiobridge.tools.deleteMsg import deleteMsg
 from audiobridge.tools.yt_dlpShell import Yt_dlpShell
 
 
@@ -81,7 +82,7 @@ class PlaylistHandler():
 			sayOrReply(user_id, er, msg_reply)
 
 			# Удаление сообщения с порядком очереди
-			vars.vk_bot.messages.delete(delete_for_all = 1, message_ids = msg_start)
+			deleteMsg(msg_start)
 			# Очистка памяти, т.к. переменная пуста
 			del vars.userRequests[user_id]
 			logger.error(f'Custom: {er}')
@@ -91,7 +92,7 @@ class PlaylistHandler():
 			sayOrReply(user_id, error_string, msg_reply)
 
 			# Удаление сообщения с порядком очереди
-			vars.vk_bot.messages.delete(delete_for_all = 1, message_ids = msg_start)
+			deleteMsg(msg_start)
 			del vars.userRequests[user_id]
 			logger.error(f'Поймал исключение: {er}')
 

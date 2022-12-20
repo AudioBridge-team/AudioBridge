@@ -16,12 +16,20 @@ ytdlp_errors = {
 	"unable to download webpage"                                    : "Некорректный адрес источника",
 	"this video was marked as adult content"                        : "VK заблокировал обработку видео из-за наличия взрослого контента",
 	"unsupported url"                                               : "Данный URL не поддерживается",
-	"the uploader has not made this video available in your country": "Правообладатель ограничил доступ к материалу в данной стране",
+	"the uploader has not made this video available in your country": "Правообладатель ограничил доступ к материалу в стране, где располагается сервер",
+	"is not available in your country due to a legal complaint"     : "Из-за юридической жалобы видео недоступно в стране, в которой располагается сервер",
 	"this video is not available"                                   : "Видео недоступно",
-	"who has blocked it in your country on copyright"               : "Видео содержит заблокированный для нашей страны контент",
+	"who has blocked it in your country on copyright"               : "Видео содержит заблокированный контент для страны, в которой располагается сервер",
 	"since chapter information is unavailable"                      : "Видео не содержит эпизодов, используйте тайминги",
 	"no chapters matching the regex"                                : "Данного эпизода не существует. Проверьте корректность его написания",
 	"video unavailable"                                             : "Видео недоступно"
+}
+# Список ошибок VK API
+vkapi_errors = {
+	270: "Правообладатель ограничил доступ к данной аудиозаписи. Загрузка прервана",
+	15 : "VK запрещает загрузку треков, вес которых меньше 50 Кб",
+	100: "Невозможно загрузить аудиофайл из-за ошибки серверов VK. Повторите свой запрос чуть позже",
+	10 : "Возникла непредвиденная ошибка со стороны VK. Повторите свой запрос чуть позже"
 }
 # Список прочих ошибок
 specific_errors = {
@@ -49,5 +57,5 @@ class CustomError(Exception):
 			text (str): Текст ошибки.
 			code (int): Код ошибки.
 		"""
-		self.txt = text
+		self.txt  = text
 		self.code = code
