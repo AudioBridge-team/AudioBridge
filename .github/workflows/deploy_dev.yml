@@ -5,13 +5,14 @@ name: Deploy-Dev
 # The workflow will run when debugging is pushed into dev branch
 on:
   push:
-    branches: [ dev ]
+    branches:
+      - dev
+      - 'release/*'
 
 # A workflow
 jobs:
   DevDeploy:
     runs-on: ubuntu-latest
-
     steps:
       #Connecting to server
       - name: Connecting to server
