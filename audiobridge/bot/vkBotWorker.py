@@ -97,8 +97,8 @@ class VkBotWorker():
 			sayOrReply(user_id, 'Ошибка: Кол-во ваших запросов в общей очереди не может превышать {0}.'.format(settings_conf.MAX_REQUESTS_QUEUE))
 			return
 		# Проверка на превышения числа возможных аргументов запроса
-		if len(options) > 5:
-			sayOrReply(user_id, 'Ошибка: Слишком много аргументов.', message_id)
+		if len(options) > 4:
+			sayOrReply(user_id, 'Ошибка: Неверный формат запроса. Узнать правильный вы сможете в инструкции (закреплённый пост в группе)', message_id)
 			return
 		# Проверка возможных приложений, если отсутствует какой-либо текст в сообщении
 		if not options:
