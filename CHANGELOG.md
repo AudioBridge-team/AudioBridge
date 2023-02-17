@@ -19,11 +19,13 @@
 * Название класса и файла `AudioTools` заменено на `PlaylistHandler` из-за полной специализации на соответствующих задачах
 * <bot/playlistHandler> Получение элементов плейлиста было переложено на `yt-dlp`
 * Передача запроса теперь осуществляется в форме `dict`
+* <bot/vkBotWorker> Изменён размер максимально запроса (с 5 до 4)
 
 ### Removed
 * <__main__> Удалён `ArgParser` из-за ненадобности
 * <bot/playlistHandler> Удалён метод `_getPlaylistElements`, т.к. его функцию заменил форк `yt-dlp`
 * <bot/audioWorker> Удалены функции `_toSeconds`, `_getAudioInfo`, `_getAudioUrl` из-за того, что их заменил функционал `yt-dlp`
+* <requirements> Удален модуль `youtube_dl`
 
 ### Fixed
 * <bot/queueHandler> Исправлена работа
