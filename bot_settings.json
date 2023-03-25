@@ -2,7 +2,6 @@
     "bot_version"		: "v1.3.5",
     "sync_changelog"    : true,
     "release_update"    : true,
-    "changelog_page_id" : 53593839,
     "max_workers"       : 6,
     "max_units"         : 1,
     "max_requests_queue": 5,

@@ -56,7 +56,7 @@ class VkGroupManager():
         """
         try:
             if vkgroup_cfg.changelog_page_id == -1:
-                raise CustomError("Can't get changelog page id. Changelog wasn't synchronized!")
+                raise CustomError("Changelog page id isn't set. Changelog wasn't synchronized!")
 
             proc = subprocess.Popen("pandoc CHANGELOG.md -t mediawiki", stdout = subprocess.PIPE, stderr = subprocess.PIPE, text = True, shell = True)
             stdout, stderr = proc.communicate()
