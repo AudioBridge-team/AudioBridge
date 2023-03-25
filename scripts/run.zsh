@@ -15,14 +15,14 @@ echo "Debug: Working in \"$(pwd)\"; root dir: \"${root_dir}\"."
 #docker run -w root_dir --name $container_name --detach $container_name
 
 if [ ! "$(docker ps -q -f name=$container_name)" ]; then
-	echo "Docker: Container \"${container_name}\" is not running."
-	if [ "$(docker ps -aq -f status=exited -f name=$container_name)" ]; then
-		echo "Docker: Container \"${container_name}\" is exited. Started."
-		docker run -w root_dir -detach $container_name --name $container_name
-		exit 1
-	else
-		echo 'Debug: Reached docker ps (2).'
-	fi
+    echo "Docker: Container \"${container_name}\" is not running."
+    if [ "$(docker ps -aq -f status=exited -f name=$container_name)" ]; then
+        echo "Docker: Container \"${container_name}\" is exited. Started."
+        docker run -w root_dir -detach $container_name --name $container_name
+        exit 1
+    else
+        echo 'Debug: Reached docker ps (2).'
+    fi
 else
 echo "Warning: Docker container \"${container_name}\" already running!"
 fi
@@ -36,4 +36,3 @@ echo "$(docker ps)"
 echo "$(docker images)"
 
 exit 1
-

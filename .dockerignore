@@ -1,0 +1,7 @@
+# Ignore everything
+*
+# Allow files and directorie
+!audiobridge
+!requirements.txt
+!bot_settings.json
+!CHANGELOG.md

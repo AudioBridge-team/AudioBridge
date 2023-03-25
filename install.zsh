@@ -7,15 +7,15 @@ ENV_PATH="/root/AudioBridge/data/.env."
 #Получение значения версии
 while getopts v:d flag
 do
-	case "${flag}" in
-		d) DEV=true;;
-		*) echo "Invalid option: -$flag";;
-	esac
+    case "${flag}" in
+        d) DEV=true;;
+        *) echo "Invalid option: -$flag";;
+    esac
 done
 
 MODE="prod"
 if [ "$DEV" = true ]; then
-	MODE="dev"
+    MODE="dev"
 fi
 ENV_PATH+="$MODE"
 echo "Update in progress."

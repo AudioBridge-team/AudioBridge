@@ -1,30 +1,28 @@
 {
-	"editor.detectIndentation": false,
-	"editor.insertSpaces": false,
-	"editor.tabSize": 4,
-	"files.encoding": "utf8",
-	"files.eol": "\n",
-	"files.insertFinalNewline": true,
-	"files.trimFinalNewlines": false,
-	"files.trimTrailingWhitespace": true,
-	"files.exclude": {
-		"**/.classpath": true,
-		"**/.DS_Store": true,
-		"**/.factorypath": true,
-		"**/.git": true,
-		"**/.hg": true,
-		"**/.project": true,
-		"**/.settings": true,
-		"**/.svn": true,
-		"**/CVS": true,
-	},
-	"keep-a-changelog.defaultAuthor": "shonqwezon-team",
-	"keep-a-changelog.defaultRepository": "AudioBridge",
-	"keep-a-changelog.dateFormat": "DD/MM/YYYY",
-	"keep-a-changelog.validFiles": [
-
-
-		"changelog"
-	],
-	"autoDocstring.docstringFormat": "google",
+    "editor.detectIndentation": false,
+    "editor.insertSpaces": true,
+    "editor.tabSize": 4,
+    "files.encoding": "utf8",
+    "files.eol": "\n",
+    "files.insertFinalNewline": true,
+    "files.trimTrailingWhitespace": true,
+    "files.exclude": {
+        "**/.classpath": true,
+        "**/.DS_Store": true,
+        "**/.factorypath": true,
+        "**/.git": true,
+        "**/.hg": true,
+        "**/.project": true,
+        "**/.settings": true,
+        "**/.svn": true,
+        "**/CVS": true,
+    },
+    "keep-a-changelog.defaultAuthor": "AudioBridge-team",
+    "keep-a-changelog.defaultRepository": "AudioBridge",
+    "keep-a-changelog.dateFormat": "DD/MM/YYYY",
+    "keep-a-changelog.validFiles": [
+        "changelog"
+    ],
+    "autoDocstring.docstringFormat": "google",
+    "files.trimFinalNewlines": true,
 }

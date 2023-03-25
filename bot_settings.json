@@ -1,13 +1,14 @@
 {
-	"bot_version"		: "v1.3.4",
-	"sync_changelog"    : true,
-	"release_update"    : true,
-	"max_workers"       : 6,
-	"max_units"         : 1,
-	"max_requests_queue": 5,
-	"max_filesize"      : "200 * 1024 * 1024",
-	"msg_period"        : 60,
-	"max_video_duration": "3 * 60 * 60",
-	"max_attempts"      : 3,
-	"time_attempt"      : 1
+    "bot_version"		: "v1.3.5",
+    "sync_changelog"    : true,
+    "release_update"    : true,
+    "changelog_page_id" : 53593839,
+    "max_workers"       : 6,
+    "max_units"         : 1,
+    "max_requests_queue": 5,
+    "max_filesize"      : 209715200,
+    "msg_period"        : 60,
+    "max_video_duration": 10800,
+    "max_attempts"      : 3,
+    "time_attempt"      : 1
 }

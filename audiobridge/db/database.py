@@ -7,10 +7,9 @@ from os.path import realpath, dirname
 import psycopg2
 from psycopg2 import Error
 
-from audiobridge.common import config
+from audiobridge.config.db import cfg as db_cfg
 
 logger = logging.getLogger('logger')
-db_conf = config.Database()
 
 class DataBase():
 	"""Интерфейс для работы с базой данных PostgreSql.
@@ -27,13 +26,13 @@ class DataBase():
 		"""Подключение к базе данных.
 		"""
 		try:
-			logger.debug(f'Connecting to {db_conf.DB_NAME}')
+			logger.debug(f'Connecting to {db_cfg.name}')
 			self.conn = psycopg2.connect(
-				user     = db_conf.PG_USER,
-				password = db_conf.PG_PASSWORD,
-				host     = db_conf.PG_HOST,
-				port     = db_conf.PG_PORT,
-				database = db_conf.DB_NAME)
+				user     = db_cfg.user,
+				password = db_cfg.password,
+				host     = db_cfg.host,
+				port     = db_cfg.port,
+				database = db_cfg.name)
 			self.conn.autocommit=True
 		except (Exception, Error) as er:
 			logger.error(f'Connection to database failed: {er}')

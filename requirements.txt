@@ -1,5 +1,5 @@
 vk_api
 pydub
 psycopg2-binary
-betterconf
+environs
 yt_dlp
