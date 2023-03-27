@@ -15,6 +15,7 @@
 * <config/*> Конфиг разбит на файлы
 * <config/handler> Добавлен объект `WorkerTask` для передачи параметров запроса пользователя
 * <audiobridge/*> Код адаптирован под использование новой структуры конфига
+* <db/scripts/init_tables> Обновлены структуры таблиц
 
 ### Deprecated
 * <requirements> Удалён `betterconf`
