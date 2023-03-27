@@ -1,5 +1,5 @@
 CREATE TABLE if not exists audio_requests (
-    msg_id INTEGER PRIMARY KEY,                 -- id запроса (сообщения в вк)
+    req_id INTEGER PRIMARY KEY,                 -- id запроса (сообщения в вк)
     audio_id INTEGER UNIQUE,                    -- id песни ВК, получаемый при загрузке песни
     status TEXT NOT NULL,                       -- статус обработки песни (будет писаться OK, либо наазвание ошибки)
     user_id INTEGER NOT NULL,                   -- id пользователя отправившего запрос
@@ -16,7 +16,7 @@ CREATE TABLE if not exists users (
     user_id INTEGER PRIMARY KEY,                    -- id пользователя в вк
     role INTEGER NOT NULL,                          -- роль пользователя
     reg_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,   -- дата регистрации пользователя, т.е. отправления первой команды /start
-    last_msg_date TIMESTAMP NOT NULL,               -- дата последнего сообщения
+    last_req_date TIMESTAMP NOT NULL,               -- дата последнего сообщения
     req_count INTEGER NOT NULL,                     -- общее кол-во запросов (сообщений)
     is_promoting BOOLEAN NOT NULL                   -- включён ли режим продвижеия (название группы в авторстве песни)
 );
