@@ -52,7 +52,7 @@ def main():
     vars.vk       = VkBotWorker(vk_bot_auth)
 
     vars.userRequests = dict()
-    vkGroupManager    = VkGroupManager()
+    VkGroupManager()
 
     # Запуск listener
     logger.info('Begin listening.')

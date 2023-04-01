@@ -25,4 +25,6 @@
     ],
     "autoDocstring.docstringFormat": "google",
     "files.trimFinalNewlines": true,
+    "python.linting.pylintEnabled": true,
+    "python.linting.enabled": true,
 }

@@ -10,7 +10,6 @@ ytdlp_errors = {
     "http error 404"                                                : "Некорректный адрес источника",
     "the channel/playlist does not exist"                           : "Данный плейлист не существует",
     "is not a valid specification"                                  : "Некорректный адрес источника",
-    "http error 404"                                                : "Неверные параметры скачивания плейлиста",
     "unable to download webpage"                                    : "Некорректный адрес источника",
     "this video was marked as adult content"                        : "VK заблокировал обработку видео из-за наличия взрослого контента",
     "unsupported url"                                               : "Данный URL не поддерживается",

@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-from environs import Env
 from dataclasses import dataclass
+from environs import Env
 
 
 @dataclass

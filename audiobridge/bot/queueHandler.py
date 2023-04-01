@@ -3,7 +3,6 @@
 
 import logging
 import threading
-from queue import Queue
 
 from audiobridge.bot.audioWorker import AudioWorker
 from audiobridge.tools.sayOrReply import sayOrReply
