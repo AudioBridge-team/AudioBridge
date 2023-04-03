@@ -18,5 +18,5 @@ CREATE TABLE if not exists users (
     reg_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,   -- дата регистрации пользователя, т.е. отправления первой команды /start
     last_req_date TIMESTAMP NOT NULL,               -- дата последнего сообщения
     req_count INTEGER NOT NULL,                     -- общее кол-во запросов (сообщений)
-    is_promoting BOOLEAN NOT NULL                   -- включён ли режим продвижеия (название группы в авторстве песни)
+    is_promoting BOOLEAN NOT NULL                   -- включён ли режим продвижения (название группы в авторстве песни)
 );
