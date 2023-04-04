@@ -22,7 +22,7 @@ CREATE TABLE if not exists convert_requests (
     task_id serial PRIMARY KEY,
     msg_request_id int NOT NULL references vk_messages(msg_id),
     download_url text NOT NULL,
-    audio_id int references vk_audio(audio_id),
+    audio_id int UNIQUE references vk_audio(audio_id),
     status_str text,
     process_time real(2),
     request_date timestamp(0) NOT NULL DEFAULT current_timestamp
