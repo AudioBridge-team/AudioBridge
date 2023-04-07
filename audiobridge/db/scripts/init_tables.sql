@@ -13,6 +13,7 @@ CREATE TABLE if not exists user_settings (
 
 CREATE TABLE if not exists vk_messages (
     msg_id int PRIMARY KEY,
+    msg_type smallint NOT NULL DEFAULT 0,
     author_id int NOT NULL references users(user_id),
     msg_body text NOT NULL,
     msg_date timestamp(0) NOT NULL DEFAULT current_timestamp
