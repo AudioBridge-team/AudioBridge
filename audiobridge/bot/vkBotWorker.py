@@ -84,7 +84,7 @@ class VkBotWorker():
                 logger.debug("Command was processed")
             else:
                 logger.debug("Command doesn't exist")
-                sayOrReply(user_id, "Ошибка: Данной команды не существует.\nВведите /help для просмотра доступных команд.")
+                sayOrReply(user_id, "Ошибка: Данной команды не существует. Введите /help для просмотра доступных команд.")
             return
 
         # Инициализация ячейки конкретного пользователя
