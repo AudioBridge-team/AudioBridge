@@ -19,20 +19,21 @@ CREATE TABLE if not exists vk_messages (
     msg_date timestamp(0) NOT NULL DEFAULT current_timestamp
 );
 
-CREATE TABLE if not exists convert_requests (
-    task_id serial PRIMARY KEY,
-    msg_request_id int NOT NULL references vk_messages(msg_id),
-    download_url text NOT NULL,
-    audio_id int UNIQUE references vk_audio(audio_id),
-    status_str text,
-    process_time real(2),
-    request_date timestamp(0) NOT NULL DEFAULT current_timestamp
-);
 
 CREATE TABLE if not exists vk_audio (
     audio_id int PRIMARY KEY,
     custom_title text,
     custom_author text,
     is_segmented boolean NOT NULL DEFAULT false,
-    audio_duration real(2) NOT NULL
+    audio_duration real NOT NULL
+);
+
+CREATE TABLE if not exists convert_requests (
+    task_id serial PRIMARY KEY,
+    msg_request_id int NOT NULL references vk_messages(msg_id),
+    download_url text NOT NULL,
+    audio_id int UNIQUE references vk_audio(audio_id),
+    status_str text,
+    process_time real,
+    request_date timestamp(0) NOT NULL DEFAULT current_timestamp
 );
