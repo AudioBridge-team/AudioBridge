@@ -8,7 +8,7 @@ import vk_api
 from vk_api.bot_longpoll import VkBotEventType
 
 from audiobridge.utils.myVkBotLongPoll import MyVkBotLongPoll
-from audiobridge.commands.user import UserCommands
+from audiobridge.commands import commands
 from audiobridge.utils.sayOrReply import sayOrReply
 
 from audiobridge.config.bot import cfg as bot_cfg
@@ -39,10 +39,11 @@ class VkBotWorker():
         Returns:
             bool: Успешность обработки команды.
         """
-        command = msg_options[0].lower()
-        if command == UserCommands.CLEAR.value:
-            vars.queue.clear_pool(user_id)
-            return True
+        msg_cmd = msg_options[0].lower()
+        for cmd in commands:
+            if cmd.name == msg_cmd:
+                cmd.run(user_id)
+                return True
         return False
 
     def vk_video_handler(self, video_url: str) -> str:
@@ -71,29 +72,27 @@ class VkBotWorker():
         user_id    = msg_obj.get('peer_id')
         msg_id   = msg_obj.get('id')
         msg_body = str(msg_obj.get('text'))
-        msg_command = msg_obj.get('payload')
+        msg_cmd = msg_obj.get('payload')
 
         # Обработка ответов пользователей на сообщения модераторов
         if msg_obj.get('reply_message'):
             logger.debug(f"Ответ на сообщение модератора/бота: {msg_body}")
             return
 
-        # Обработка команд
-        if msg_command:
-            command = dict(json.loads(msg_command))
+        # Обработка команд (testing)
+        if msg_cmd:
+            command = dict(json.loads(msg_cmd))
             logger.debug(f"Получена команда от пользователя: {command.get('command')}")
             return
 
         options = list(map(str.strip, filter(None, msg_body.split('\n'))))
         logger.debug(f'New message: ({len(options)}) {options}')
         # Обработка команд
-        # if msg_body.startswith('/') or msg_command:
-        #     if self.command_handler(options, user_id):
-        #         logger.debug("Command was processed")
-        #     else:
-        #         logger.debug("Command doesn't exist")
-        #         sayOrReply(user_id, "Ошибка: Данной команды не существует. Введите /help для просмотра доступных команд.")
-        #     return
+        if msg_body.startswith('/') or msg_cmd:
+            if not self.command_handler(options, user_id):
+                logger.debug("Command doesn't exist")
+                sayOrReply(user_id, "Ошибка: Данной команды не существует. Введите /help для просмотра доступных команд.")
+            return
 
         # Инициализация ячейки конкретного пользователя
         if not vars.userRequests.get(user_id):
