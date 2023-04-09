@@ -79,16 +79,14 @@ class VkBotWorker():
             logger.debug(f"Ответ на сообщение модератора/бота: {msg_body}")
             return
 
-        # Обработка команд (testing)
+        # Адаптация команды под общий вид запроса
         if msg_cmd:
-            command = dict(json.loads(msg_cmd))
-            logger.debug(f"Получена команда от пользователя: {command.get('command')}")
-            return
+            msg_body = "/" + dict(json.loads(msg_cmd)).get('command')
 
         options = list(map(str.strip, filter(None, msg_body.split('\n'))))
         logger.debug(f'New message: ({len(options)}) {options}')
         # Обработка команд
-        if msg_body.startswith('/') or msg_cmd:
+        if msg_body.startswith('/'):
             if not self.command_handler(options, user_id):
                 logger.debug("Command doesn't exist")
                 sayOrReply(user_id, "Ошибка: Данной команды не существует. Введите /help для просмотра доступных команд.")
