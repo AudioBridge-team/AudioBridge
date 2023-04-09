@@ -41,9 +41,9 @@ class VkBotWorker():
         """
         msg_cmd = msg_options[0].lower()
         for cmd in commands:
-            if cmd.name == msg_cmd:
-                cmd.run(user_id)
-                return True
+            if cmd.name != msg_cmd[1:]: continue
+            cmd.run(user_id)
+            return True
         return False
 
     def vk_video_handler(self, video_url: str) -> str:
@@ -69,10 +69,10 @@ class VkBotWorker():
         Args:
             msg_obj (dict): Объект сообщения.
         """
-        user_id    = msg_obj.get('peer_id')
+        user_id  = msg_obj.get('peer_id')
         msg_id   = msg_obj.get('id')
         msg_body = str(msg_obj.get('text'))
-        msg_cmd = msg_obj.get('payload')
+        msg_cmd  = msg_obj.get('payload')
 
         # Обработка ответов пользователей на сообщения модераторов
         if msg_obj.get('reply_message'):
