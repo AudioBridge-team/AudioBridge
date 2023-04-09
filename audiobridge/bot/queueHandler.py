@@ -5,7 +5,7 @@ import logging
 import threading
 
 from audiobridge.bot.audioWorker import AudioWorker
-from audiobridge.tools.sayOrReply import sayOrReply
+from audiobridge.utils.sayOrReply import sayOrReply
 
 from audiobridge.config.bot import cfg as bot_cfg
 from audiobridge.config.handler import vars, WorkerTask

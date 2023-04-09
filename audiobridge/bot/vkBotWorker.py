@@ -2,13 +2,14 @@
 # -*- coding: utf-8 -*-
 
 import logging
+import json
 import threading
 import vk_api
 from vk_api.bot_longpoll import VkBotEventType
 
-from audiobridge.tools.myVkBotLongPoll import MyVkBotLongPoll
+from audiobridge.utils.myVkBotLongPoll import MyVkBotLongPoll
 from audiobridge.commands.user import UserCommands
-from audiobridge.tools.sayOrReply import sayOrReply
+from audiobridge.utils.sayOrReply import sayOrReply
 
 from audiobridge.config.bot import cfg as bot_cfg
 from audiobridge.config.handler import vars, WorkerTask
@@ -70,22 +71,29 @@ class VkBotWorker():
         user_id    = msg_obj.get('peer_id')
         msg_id   = msg_obj.get('id')
         msg_body = str(msg_obj.get('text'))
+        msg_command = msg_obj.get('payload')
 
         # Обработка ответов пользователей на сообщения модераторов
         if msg_obj.get('reply_message'):
             logger.debug(f"Ответ на сообщение модератора/бота: {msg_body}")
             return
 
+        # Обработка команд
+        if msg_command:
+            command = dict(json.loads(msg_command))
+            logger.debug(f"Получена команда от пользователя: {command.get('command')}")
+            return
+
         options = list(map(str.strip, filter(None, msg_body.split('\n'))))
         logger.debug(f'New message: ({len(options)}) {options}')
         # Обработка команд
-        if msg_body.startswith('/'):
-            if self.command_handler(options, user_id):
-                logger.debug("Command was processed")
-            else:
-                logger.debug("Command doesn't exist")
-                sayOrReply(user_id, "Ошибка: Данной команды не существует. Введите /help для просмотра доступных команд.")
-            return
+        # if msg_body.startswith('/') or msg_command:
+        #     if self.command_handler(options, user_id):
+        #         logger.debug("Command was processed")
+        #     else:
+        #         logger.debug("Command doesn't exist")
+        #         sayOrReply(user_id, "Ошибка: Данной команды не существует. Введите /help для просмотра доступных команд.")
+        #     return
 
         # Инициализация ячейки конкретного пользователя
         if not vars.userRequests.get(user_id):

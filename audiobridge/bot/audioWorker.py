@@ -11,11 +11,11 @@ import yt_dlp
 import vk_api
 from vk_api.utils import get_random_id
 
-from audiobridge.tools.customErrors import CustomError, vkapi_errors
+from audiobridge.utils.customErrors import CustomError, vkapi_errors
 
-from audiobridge.tools.sayOrReply import sayOrReply
-from audiobridge.tools.deleteMsg import deleteMsg
-from audiobridge.tools.yt_dlpShell import Yt_dlpShell
+from audiobridge.utils.sayOrReply import sayOrReply
+from audiobridge.utils.deleteMsg import deleteMsg
+from audiobridge.utils.yt_dlpShell import Yt_dlpShell
 
 from audiobridge.config.bot import cfg as bot_cfg
 from audiobridge.config.handler import vars, WorkerTask

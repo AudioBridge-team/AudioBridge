@@ -3,7 +3,7 @@
 
 import logging
 
-from audiobridge.tools.customErrors import CustomError, ytdlp_errors
+from audiobridge.utils.customErrors import CustomError, ytdlp_errors
 
 logger = logging.getLogger('logger')
 

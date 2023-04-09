@@ -12,7 +12,7 @@ from audiobridge.bot.queueHandler import QueueHandler
 from audiobridge.bot.playlistHandler import PlaylistHandler
 from audiobridge.bot.vkBotWorker import VkBotWorker
 from audiobridge.bot.vkGroupManager import VkGroupManager
-from audiobridge.tools import loggerSetup
+from audiobridge.utils import loggerSetup
 
 from audiobridge.config.bot import cfg as bot_cfg
 from audiobridge.config.handler import vars
