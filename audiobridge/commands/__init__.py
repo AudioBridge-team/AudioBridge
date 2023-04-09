@@ -1,5 +1,3 @@
-from audiobridge.utils.sayOrReply import sayOrReply
-
 from .user import *
 
 class Help(Command):
@@ -35,5 +33,6 @@ class Help(Command):
 # Список всех команд
 commands = [
     Help(),
+    Start(),
     Stop(),
 ]
