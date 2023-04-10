@@ -3,7 +3,7 @@
 
 from .command import *
 from audiobridge.utils.sayOrReply import sayOrReply
-from audiobridge.keyboards.keyboards import Main
+from audiobridge.keyboards.user import Main
 from audiobridge.config.handler import vars
 
 
