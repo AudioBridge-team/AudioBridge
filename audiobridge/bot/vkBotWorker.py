@@ -2,17 +2,20 @@
 # -*- coding: utf-8 -*-
 
 import logging
+import json
 import threading
 import vk_api
 from vk_api.bot_longpoll import VkBotEventType
 
-from audiobridge.tools.myVkBotLongPoll import MyVkBotLongPoll
-from audiobridge.commands.user import UserCommands
-from audiobridge.tools.sayOrReply import sayOrReply
+from audiobridge.utils.myVkBotLongPoll import MyVkBotLongPoll
+from audiobridge.commands import commands
+from audiobridge.utils.sayOrReply import sayOrReply
 
 from audiobridge.config.bot import cfg as bot_cfg
 from audiobridge.config.handler import vars, WorkerTask
 
+from audiobridge.keyboards.keyboard import keys
+from audiobridge.keyboards import keyboards
 
 logger = logging.getLogger('logger')
 
@@ -38,11 +41,16 @@ class VkBotWorker():
         Returns:
             bool: Успешность обработки команды.
         """
-        if not msg_options:
-            return False
-        command = msg_options[0].lower()
-        if(command == UserCommands.CLEAR.value):
-            vars.queue.clear_pool(user_id)
+        msg_cmd = msg_options[0].lower()[1:]
+        if len(msg_options) > 1:
+            for kb in keyboards:
+                if kb.command != msg_cmd or kb.executable != msg_options[1]: continue
+                sayOrReply(user_id, "Выберите действие:", _keyboard = kb.keyboard(msg_options))
+                return True
+
+        for cmd in commands:
+            if cmd.name != msg_cmd: continue
+            cmd.run(user_id)
             return True
         return False
 
@@ -69,15 +77,33 @@ class VkBotWorker():
         Args:
             msg_obj (dict): Объект сообщения.
         """
-        user_id    = msg_obj.get('peer_id')
-        message_id = msg_obj.get('id')
+        user_id  = msg_obj.get('peer_id')
+        msg_id   = msg_obj.get('id')
+        msg_body = str(msg_obj.get('text'))
+        msg_cmd  = msg_obj.get('payload')
 
-        options = list(map(str.strip, filter(None, msg_obj.get('text').split('\n'))))
+        # Обработка ответов пользователей на сообщения модераторов
+        if msg_obj.get('reply_message'):
+            logger.debug(f"Ответ на сообщение модератора/бота: {msg_body}")
+            return
+
+        options = []
+        # Адаптация команды под общий вид запроса
+        if msg_cmd:
+            cmd_obj = dict(json.loads(msg_cmd))
+            options.append("/" + cmd_obj.get(keys.cmd))
+            options += cmd_obj.get(keys.args, [])
+            msg_body = "/"
+        else:
+            options = list(map(str.strip, filter(None, msg_body.split('\n'))))
+
         logger.debug(f'New message: ({len(options)}) {options}')
 
         # Обработка команд
-        if self.command_handler(options, user_id):
-            logger.debug("Command was processed")
+        if msg_body.startswith('/'):
+            if not self.command_handler(options, user_id):
+                logger.debug("Command doesn't exist")
+                sayOrReply(user_id, "Ошибка: Данной команды не существует. Введите /help для просмотра доступных команд.")
             return
 
         # Инициализация ячейки конкретного пользователя
@@ -85,15 +111,15 @@ class VkBotWorker():
             vars.userRequests[user_id] = 0
         # Проверка на текущую загрузку плейлиста
         if vars.userRequests.get(user_id) < 0:
-            sayOrReply(user_id, 'Ошибка: Пожалуйста, дождитесь окончания загрузки плейлиста.')
+            sayOrReply(user_id, "Ошибка: Пожалуйста, дождитесь окончания загрузки плейлиста.")
             return
         # Проверка на максимальное число запросов за раз
         if vars.userRequests.get(user_id) == bot_cfg.settings.max_requests_queue:
-            sayOrReply(user_id, 'Ошибка: Кол-во ваших запросов в общей очереди не может превышать {0}.'.format(bot_cfg.settings.max_requests_queue))
+            sayOrReply(user_id, "Ошибка: Кол-во ваших запросов в общей очереди не может превышать {0}.".format(bot_cfg.settings.max_requests_queue))
             return
         # Проверка на превышения числа возможных аргументов запроса
         if len(options) > 4:
-            sayOrReply(user_id, 'Ошибка: Неверный формат запроса. Узнать правильный вы сможете в инструкции (закреплённый пост в группе)', message_id)
+            sayOrReply(user_id, "Ошибка: Неверный формат запроса. Узнать правильный вы сможете в инструкции (закреплённый пост в группе)", msg_id)
             return
         # Проверка возможных приложений, если отсутствует какой-либо текст в сообщении
         if not options:
@@ -120,16 +146,16 @@ class VkBotWorker():
 
                 except Exception as er:
                     logger.warning(f'Attachment: {er}')
-                    sayOrReply(user_id, 'Ошибка: Невозможно обработать прикреплённое видео. Пришлите ссылку.', message_id)
+                    sayOrReply(user_id, "Ошибка: Невозможно обработать прикреплённое видео. Пришлите ссылку.", msg_id)
                     return
 
         # Вызов ошибки при наличии прикреплённого YouTube видео
         if bot_cfg.reqIndex.INDEX_PLATFORM_YOUTUBE in options:
-            sayOrReply(user_id, 'Ошибка: Невозможно обработать прикреплённое YouTube видео. Отправьте ссылку в текстовом виде.', message_id)
+            sayOrReply(user_id, "Ошибка: Невозможно обработать прикреплённое YouTube видео. Отправьте ссылку в текстовом виде.", msg_id)
             return
         # Безопасный метод проверки, наподобие list.get()
         if not next(iter(options), '').startswith(bot_cfg.reqIndex.INDEX_URL):
-            sayOrReply(user_id, 'Не обнаружена ссылка для скачивания.', message_id)
+            sayOrReply(user_id, "Не обнаружена ссылка для скачивания.", msg_id)
             return
         # Обработка запроса с плейлистом
         if bot_cfg.reqIndex.INDEX_PLAYLIST in options[0]:
@@ -139,12 +165,12 @@ class VkBotWorker():
                 return
             # Проверка на корректность запроса
             if len(options) > 2:
-                sayOrReply(user_id, "Ошибка: Слишком много параметров для загрузки плейлиста.", message_id)
+                sayOrReply(user_id, "Ошибка: Слишком много параметров для загрузки плейлиста.", msg_id)
                 return
             # Создание задачи + вызов функции фрагментации плейлиста, чтобы свести запрос к обычной единице (одной ссылке)
             vars.userRequests[user_id] = -1
-            msg_start_id = sayOrReply(user_id, 'Запрос добавлен в очередь (плейлист)')
-            task = WorkerTask(msg_start_id, user_id, message_id, options[0])
+            msg_start_id = sayOrReply(user_id, "Запрос добавлен в очередь (плейлист)")
+            task = WorkerTask(msg_start_id, user_id, msg_id, options[0])
             task.pl_type = True
             if len(options) == 2: task.pl_param = options[1].replace(' ', "")
             threading.Thread(target = vars.playlist.extract_elements(task)).start()
@@ -159,13 +185,13 @@ class VkBotWorker():
             logger.debug("Обнаружено Vk video. Получение прямой ссылки...")
             video_url = self.vk_video_handler(options[0])
             if not video_url:
-                sayOrReply(user_id, 'Ошибка: Невозможно обработать прикреплённое видео, т.к. оно скрыто настройками приватности автора', message_id)
+                sayOrReply(user_id, "Ошибка: Невозможно обработать прикреплённое видео, т.к. оно скрыто настройками приватности автора", msg_id)
                 return
             options[0] = video_url
         # Создание задачи и её добавление в обработчик очереди
         vars.userRequests[user_id] += 1
-        msg_start_id = sayOrReply(user_id, 'Запрос добавлен в очередь ({0}/{1})'.format(vars.userRequests.get(user_id), bot_cfg.settings.max_requests_queue))
-        task = WorkerTask(msg_start_id, user_id, message_id, *options)
+        msg_start_id = sayOrReply(user_id, "Запрос добавлен в очередь ({0}/{1})".format(vars.userRequests.get(user_id), bot_cfg.settings.max_requests_queue))
+        task = WorkerTask(msg_start_id, user_id, msg_id, *options)
         vars.queue.add_new_request(task)
 
     def listen_longpoll(self):
@@ -175,13 +201,12 @@ class VkBotWorker():
         self.unanswered_message_handler()
         for event in self.longpoll.listen():
             logger.info(event.type)
-            if event.type != VkBotEventType.MESSAGE_NEW:
+            # Проверка на НОВОЕ сообщение от пользователя, а НЕ от беседы
+            if event.type != VkBotEventType.MESSAGE_NEW or not event.from_user:
                 continue
             msg_obj = event.obj.message
-            # Проверка на сообщение от пользователя, а не беседы
-            # logger.debug(f'Получено новое сообщение: {msg_obj}')
-            if msg_obj.get('from_id') == msg_obj.get('peer_id'):
-                self.message_handler(msg_obj)
+            # logger.debug(f'Получено новое сообщение: {event}')
+            self.message_handler(msg_obj)
 
     def unanswered_message_handler(self):
         """Обработка невыполненных запросов после обновления, краша бота.

@@ -2,9 +2,9 @@
 # -*- coding: utf-8 -*-
 
 import json
-from environs import Env
 from dataclasses import dataclass
 from enum import IntEnum, auto
+from environs import Env
 
 
 @dataclass
@@ -70,7 +70,7 @@ class Bot:
 env = Env()
 env.read_env()
 
-with open("bot_settings.json", "r") as f:
+with open("bot_settings.json", "r", encoding="utf-8") as f:
     settings_json = json.load(f)
 
 cfg = Bot(

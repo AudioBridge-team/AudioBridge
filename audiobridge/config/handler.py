@@ -12,13 +12,13 @@ class WorkerTask:
     user_id     : int  # id пользователя
     msg_reply   : int  # id сообщения запроса пользователя
     url         : str  # Ссылка на песню
-    song_name   : str = None  # Название песни
-    song_author : str = None  # Автор песни
-    interval    : str = None  # Временной интервал
+    song_name   : str  = None  # Название песни
+    song_author : str  = None  # Автор песни
+    interval    : str  = None  # Временной интервал
     pl_type     : bool = False # Если True, то запрос является плейлистом
-    pl_param    : str = ''  # Параметры для скачивания плейлиста (количество и/или номера песен в плейлисте)
-    pl_element  : int = None # Порядковый номер элемента в плейлисте
-    pl_size     : int = None  # Размер плейлиста
+    pl_param    : str  = ''    # Параметры скачивания плейлиста (кол-во или номера песен в нём)
+    pl_element  : int  = None  # Порядковый номер элемента в плейлисте
+    pl_size     : int  = None  # Размер плейлиста
 
 
 @dataclass

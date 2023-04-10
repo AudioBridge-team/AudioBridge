@@ -3,7 +3,7 @@
 
 import logging
 import subprocess
-from audiobridge.tools.customErrors import CustomError
+from audiobridge.utils.customErrors import CustomError
 
 from audiobridge.config.bot import cfg as bot_cfg
 from audiobridge.config.vkGroup import cfg as vkgroup_cfg
