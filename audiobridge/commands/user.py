@@ -3,8 +3,9 @@
 
 from .command import *
 from audiobridge.utils.sayOrReply import sayOrReply
-from audiobridge.keyboards.user import Main
 from audiobridge.config.handler import vars
+
+from audiobridge.keyboards.user import Main
 
 
 class Start(Command):
@@ -22,7 +23,7 @@ class Start(Command):
 Помимо этого вы также можете загружать целые плейлисты и конкретные отрезки из видео!
 Подробнее обо всем этом вы можете ознакомиться в закреплённом посте в группе или по ссылке: vk.com/saveaudio?w=page-212269992_56497954
         """
-        sayOrReply(*args, msg, _keyboard=Main().keyboard())
+        sayOrReply(*args, msg, _keyboard = Main().keyboard())
 
 class Stop(Command):
     """Общедоступная команда, которая останавляет загрузку всех песен и очищает очередь загрузки пользователя.
