@@ -14,6 +14,8 @@ from audiobridge.utils.sayOrReply import sayOrReply
 from audiobridge.config.bot import cfg as bot_cfg
 from audiobridge.config.handler import vars, WorkerTask
 
+from audiobridge.keyboards.keyboard import keys
+from audiobridge.keyboards import keyboards
 
 logger = logging.getLogger('logger')
 
@@ -39,9 +41,15 @@ class VkBotWorker():
         Returns:
             bool: Успешность обработки команды.
         """
-        msg_cmd = msg_options[0].lower()
+        msg_cmd = msg_options[0].lower()[1:]
+        if len(msg_options) > 1:
+            for kb in keyboards:
+                if kb.command != msg_cmd or kb.executable != msg_options[1]: continue
+                sayOrReply(user_id, "Выберите действие:", _keyboard = kb.keyboard(msg_options))
+                return True
+
         for cmd in commands:
-            if cmd.name != msg_cmd[1:]: continue
+            if cmd.name != msg_cmd: continue
             cmd.run(user_id)
             return True
         return False
@@ -79,12 +87,18 @@ class VkBotWorker():
             logger.debug(f"Ответ на сообщение модератора/бота: {msg_body}")
             return
 
+        options = []
         # Адаптация команды под общий вид запроса
         if msg_cmd:
-            msg_body = "/" + dict(json.loads(msg_cmd)).get('command')
+            cmd_obj = dict(json.loads(msg_cmd))
+            options.append("/" + cmd_obj.get(keys.cmd))
+            options += cmd_obj.get(keys.args, [])
+            msg_body = "/"
+        else:
+            options = list(map(str.strip, filter(None, msg_body.split('\n'))))
 
-        options = list(map(str.strip, filter(None, msg_body.split('\n'))))
         logger.debug(f'New message: ({len(options)}) {options}')
+
         # Обработка команд
         if msg_body.startswith('/'):
             if not self.command_handler(options, user_id):
@@ -191,7 +205,7 @@ class VkBotWorker():
             if event.type != VkBotEventType.MESSAGE_NEW or not event.from_user:
                 continue
             msg_obj = event.obj.message
-            # logger.debug(f'Получено новое сообщение: {msg_obj}')
+            # logger.debug(f'Получено новое сообщение: {event}')
             self.message_handler(msg_obj)
 
     def unanswered_message_handler(self):
