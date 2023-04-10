@@ -29,5 +29,5 @@ class Help(Command):
 commands = [
     Help(),
     Start(),
-    Stop(),
+    Stop()
 ]
