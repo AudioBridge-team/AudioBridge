@@ -3,19 +3,15 @@
 
 from .command import *
 from audiobridge.utils.sayOrReply import sayOrReply
+from audiobridge.keyboards.keyboards import Main
 from audiobridge.config.handler import vars
 
 
 class Start(Command):
-    def __init__(self):
-        """Описание команды.
-        """
-        super().__init__(
-            name        = "start",
-            description = "Ознакомиться с базовым функционалом бота",
-            category    = CommandCategory.API,
-            adminOnly   = False
-        )
+    name        = "start"
+    description = "Ознакомиться с базовым функционалом бота"
+    category    = CommandCategory.API
+    adminOnly   = False
 
     def run(self, *args):
         msg = """Для того чтобы загрузить песню со сторонней площадки необходимо правильно составить запрос:
@@ -26,7 +22,7 @@ class Start(Command):
 Помимо этого вы также можете загружать целые плейлисты и конкретные отрезки из видео!
 Подробнее обо всем этом вы можете ознакомиться в закреплённом посте в группе или по ссылке: vk.com/saveaudio?w=page-212269992_56497954
         """
-        sayOrReply(*args, msg)
+        sayOrReply(*args, msg, _keyboard=Main().keyboard())
 
 class Stop(Command):
     """Общедоступная команда, которая останавляет загрузку всех песен и очищает очередь загрузки пользователя.
@@ -34,15 +30,10 @@ class Stop(Command):
     Args:
         Command (_type_): Класс, описывающий структуру пользовательской команды.
     """
-    def __init__(self):
-        """Описание команды.
-        """
-        super().__init__(
-            name        = "stop",
-            description = "Остановить загрузку всех песен",
-            category    = CommandCategory.QUEUE,
-            adminOnly   = False
-        )
+    name        = "stop"
+    description = "Остановить загрузку всех песен"
+    category    = CommandCategory.QUEUE
+    adminOnly   = False
 
     def run(self, *args):
         vars.queue.clear_pool(*args)

@@ -6,15 +6,10 @@ class Help(Command):
     Args:
         Command (_type_): Класс, описывающий структуру пользовательской команды.
     """
-    def __init__(self):
-        """Описание команды.
-        """
-        super().__init__(
-            name        = "help",
-            description = "Список доступных команд",
-            category    = CommandCategory.API,
-            adminOnly   = False
-        )
+    name        = "help"
+    description = "Список доступных команд"
+    category    = CommandCategory.API
+    adminOnly   = False
 
     def run(self, *args):
         # Обращение к бд за ролью

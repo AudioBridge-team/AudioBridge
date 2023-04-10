@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+from dataclasses import dataclass
 from enum import IntEnum, auto
 
 class CommandCategory(IntEnum):
@@ -22,22 +23,14 @@ class CommandCategory(IntEnum):
         obj.description = description
         return obj
 
+@dataclass(init=False)
 class Command:
     """Класс-родитель, описывающий скелет пользовательских команд.
     """
-    def __init__(self, name: str, description: str, category: CommandCategory, adminOnly: bool):
-        """Описание команды.
-
-        Args:
-            name (str): Название.
-            description (str): Описание.
-            category (CommandCategory): Категория.
-            adminOnly (bool): Уровень доступа.
-        """
-        self.name        = name
-        self.description = description
-        self.category    = category
-        self.adminOnly   = adminOnly
+    name       : str
+    description: str
+    category   : CommandCategory
+    adminOnly  : bool
 
     def run(self, *args):
         """Функция для конкретной команды.
