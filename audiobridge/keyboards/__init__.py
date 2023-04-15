@@ -13,7 +13,7 @@ class Back(Keyboard):
 keyboards = [
     Main(),
     Queue(),
-    Account(),
+    Settings(),
     Other(),
     Manual(),
     Back()

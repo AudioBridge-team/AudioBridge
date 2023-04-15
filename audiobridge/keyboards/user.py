@@ -8,10 +8,10 @@ class Main(Keyboard):
     def keyboard(self, *args):
         keyboard = VkKeyboard()
 
-        keyboard.add_button("Управление очередью", color=VkKeyboardColor.PRIMARY, payload={ keys.cmd : Queue.command, keys.args : [Queue.executable] })
+        keyboard.add_button("Управление очередью", color=VkKeyboardColor.PRIMARY, payload={ keys.CMD : Queue.command, keys.ARGS : [Queue.executable] })
         keyboard.add_line()
-        keyboard.add_button("Аккаунт", payload={ keys.cmd : Account.command, keys.args : [Account.executable] })
-        keyboard.add_button("Прочее", payload={ keys.cmd : Other.command, keys.args : [Other.executable] })
+        keyboard.add_button("Настройки", payload={ keys.CMD : Settings.command, keys.ARGS : [Settings.executable] })
+        keyboard.add_button("Прочее", payload={ keys.CMD : Other.command, keys.ARGS : [Other.executable] })
 
         return keyboard.get_keyboard()
 
@@ -21,20 +21,20 @@ class Queue(Keyboard):
     def keyboard(self, *args):
         keyboard = VkKeyboard()
 
-        keyboard.add_button("Остановить загрузку", payload={ keys.cmd : "stop" })
+        keyboard.add_button("Остановить загрузку", color=VkKeyboardColor.NEGATIVE, payload={ keys.CMD : "stop" })
         keyboard.add_line()
-        keyboard.add_button("Назад", color=VkKeyboardColor.PRIMARY, payload={ keys.cmd : "back", keys.args : [False, Main.command] })
+        keyboard.add_button("Назад", color=VkKeyboardColor.PRIMARY, payload={ keys.CMD : "back", keys.ARGS : [False, Main.command] })
 
         return keyboard.get_keyboard()
 
 
-class Account(Keyboard):
-    command: str = "account"
+class Settings(Keyboard):
+    command: str = "settings"
 
     def keyboard(self, *args):
         keyboard = VkKeyboard()
 
-        keyboard.add_button("Назад", color=VkKeyboardColor.PRIMARY, payload={ keys.cmd : "back", keys.args : [False, Main.command] })
+        keyboard.add_button("Назад", color=VkKeyboardColor.PRIMARY, payload={ keys.CMD : "back", keys.ARGS : [False, Main.command] })
 
         return keyboard.get_keyboard()
 
@@ -44,10 +44,10 @@ class Other(Keyboard):
     def keyboard(self, *args):
         keyboard = VkKeyboard()
 
-        keyboard.add_button("Список команд", payload={ keys.cmd : "help" })
-        keyboard.add_openlink_button("Инструкция", link=Manual.link, payload={ keys.cmd : Manual.command, keys.args : [Manual.executable] })
+        keyboard.add_button("Список команд", payload={ keys.CMD : "help" })
+        keyboard.add_openlink_button("Инструкция", link=Manual.link, payload={ keys.CMD : Manual.command, keys.ARGS : [Manual.executable] })
         keyboard.add_line()
-        keyboard.add_button("Назад", color=VkKeyboardColor.PRIMARY, payload={ keys.cmd : "back", keys.args : [False, Main.command] })
+        keyboard.add_button("Назад", color=VkKeyboardColor.PRIMARY, payload={ keys.CMD : "back", keys.ARGS : [False, Main.command] })
 
         return keyboard.get_keyboard()
 

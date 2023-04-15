@@ -3,7 +3,7 @@
 
 import json
 from dataclasses import dataclass
-from enum import IntEnum, auto
+from enum import Enum, IntEnum, auto
 from environs import Env
 
 
@@ -33,11 +33,19 @@ class Authentication:
 class RequestIndex:
     """Показатели типа запроса.
     """
-    INDEX_PLATFORM_YOUTUBE = "YouTube"
-    INDEX_PLAYLIST         = "/playlist"
-    INDEX_URL              = "http"
-    INDEX_YOUTUBE_SHORTS   = "/shorts/"
-    INDEX_VK_VIDEO         = "vk.com/video"
+    INDEX_PLATFORM_YOUTUBE : str = "YouTube"
+    INDEX_PLAYLIST         : str = "/playlist"
+    INDEX_URL              : str = "http"
+    INDEX_YOUTUBE_SHORTS   : str = "/shorts/"
+    INDEX_VK_VIDEO         : str = "vk.com/video"
+
+class DynamicLinksIndex(Enum):
+    """Показатели динамических ссылок.
+
+    Args:
+        Enum (_type_): Dynamic link index.
+    """
+    SOUNDCLOUD = "on.soundcloud.com"
 
 class PlaylistStates(IntEnum):
     """Состояние загрузки элемента из плейлиста.
@@ -63,6 +71,7 @@ class Bot:
     settings      : Settings
     auth          : Authentication
     reqIndex      : RequestIndex
+    dynLinksIndex : DynamicLinksIndex
     playlistStates: PlaylistStates
     customoErrCode: CustomErrorCode
 
@@ -91,6 +100,7 @@ cfg = Bot(
         agent_token = env.str('AGENT_TOKEN')
     ),
     reqIndex       = RequestIndex,
+    dynLinksIndex  = DynamicLinksIndex,
     playlistStates = PlaylistStates,
     customoErrCode = CustomErrorCode
 )

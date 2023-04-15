@@ -91,8 +91,8 @@ class VkBotWorker():
         # Адаптация команды под общий вид запроса
         if msg_cmd:
             cmd_obj = dict(json.loads(msg_cmd))
-            options.append("/" + cmd_obj.get(keys.cmd))
-            options += cmd_obj.get(keys.args, [])
+            options.append("/" + cmd_obj.get(keys.CMD))
+            options += cmd_obj.get(keys.ARGS, [])
             msg_body = "/"
         else:
             options = list(map(str.strip, filter(None, msg_body.split('\n'))))
@@ -119,10 +119,11 @@ class VkBotWorker():
             return
         # Проверка на превышения числа возможных аргументов запроса
         if len(options) > 4:
-            sayOrReply(user_id, "Ошибка: Неверный формат запроса. Узнать правильный вы сможете в инструкции (закреплённый пост в группе)", msg_id)
+            sayOrReply(user_id, "Ошибка: Неверный формат запроса. Узнать правильный вы можете в инструкции (закреплённый пост в группе)", msg_id)
             return
         # Проверка возможных приложений, если отсутствует какой-либо текст в сообщении
         if not options:
+            options = ['']
             attachment_info = msg_obj.get('attachments')
             # logger.debug(attachment_info)
             # Обработка приложений к сообщению
@@ -139,10 +140,10 @@ class VkBotWorker():
 
                         video = f'{video_owner_id}_{video_id}'
                         logger.debug(f'Attachment video: {video} (platform: {video_platform})')
-                        options = [ f'https://{bot_cfg.reqIndex.INDEX_VK_VIDEO}{video}' ] if video_platform != bot_cfg.reqIndex.INDEX_PLATFORM_YOUTUBE else [ video_platform ]
+                        options[0] = f'https://{bot_cfg.reqIndex.INDEX_VK_VIDEO}{video}' if video_platform != bot_cfg.reqIndex.INDEX_PLATFORM_YOUTUBE else video_platform
 
                     elif attachment_type == 'link':
-                        options = [ attachment_info[0].get('link').get('url') ]
+                        options[0] = attachment_info[0].get('link').get('url')
 
                 except Exception as er:
                     logger.warning(f'Attachment: {er}')
@@ -154,8 +155,12 @@ class VkBotWorker():
             sayOrReply(user_id, "Ошибка: Невозможно обработать прикреплённое YouTube видео. Отправьте ссылку в текстовом виде.", msg_id)
             return
         # Безопасный метод проверки, наподобие list.get()
-        if not next(iter(options), '').startswith(bot_cfg.reqIndex.INDEX_URL):
-            sayOrReply(user_id, "Не обнаружена ссылка для скачивания.", msg_id)
+        if not options[0].startswith(bot_cfg.reqIndex.INDEX_URL):
+            sayOrReply(user_id, "Ошибка: Не обнаружена ссылка для скачивания.", msg_id)
+            return
+        # Проверка на динамическую ссылку
+        if any(index.value in options[0] for index in bot_cfg.dynLinksIndex):
+            sayOrReply(user_id, "Ошибка: Ссылка является динамической. Скопируйте ссылку на данную песню по-другому.", msg_id)
             return
         # Обработка запроса с плейлистом
         if bot_cfg.reqIndex.INDEX_PLAYLIST in options[0]:
@@ -200,7 +205,7 @@ class VkBotWorker():
         logger.debug("Started.")
         self.unanswered_message_handler()
         for event in self.longpoll.listen():
-            logger.info(event.type)
+            # logger.info(event.type)
             # Проверка на НОВОЕ сообщение от пользователя, а НЕ от беседы
             if event.type != VkBotEventType.MESSAGE_NEW or not event.from_user:
                 continue

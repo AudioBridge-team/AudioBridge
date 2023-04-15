@@ -5,10 +5,9 @@ from vk_api.keyboard import *
 from dataclasses import dataclass
 
 
-@dataclass(frozen=True)
 class KeyboardKeys:
-    cmd: str = "command"
-    args: str = "args"
+    CMD : str = "command"
+    ARGS: str = "args"
 
 keys = KeyboardKeys
 
