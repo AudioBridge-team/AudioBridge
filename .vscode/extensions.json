@@ -1,7 +1,7 @@
 {
-	"recommendations": [
-		"gesugao-san.general-purpose-extension-pack",
-		"donjayamanne.python-extension-pack",
-		"VisualStudioExptTeam.intellicode-api-usage-examples"
-	]
+    "recommendations": [
+        "gesugao-san.general-purpose-extension-pack",
+        "donjayamanne.python-extension-pack",
+        "VisualStudioExptTeam.intellicode-api-usage-examples"
+    ]
 }

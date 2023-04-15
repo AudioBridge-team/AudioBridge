@@ -5,6 +5,40 @@
 и этот проект придерживается [Semantic Versioning].
 
 ## [Unreleased]
+## [1.3.5] - 21-03-2023
+
+## [1.2.6] — 23-08-2022
+### Added
+* <.dockerignore> Добавлен облегчения образа `Docker`
+* <.pylintrc> Включён `pylint` для повышения стилизации и читаемости кода
+* <bot/vkBotWorker> Добавлено игнорирование ответов пользователей на сообщения в чате для возможности общения с модератором, оставления заметок
+* <commands/__init__> Добавлена инициализция списка всех команд
+* <commands/command> Добавлены структуры, необходимые для описания пользовательских команд
+* <commands/__init__> Добавлена команда `/help`, выводящая список доступных команд для конкретного пользователя
+* <bot/vkBotWorker> Добавлена поддержка "клавиатурных" команд (кнопки в меню)
+* <keyboards/*> Добавлены клавиатуры
+
+### Changed
+* <Dockerfile> Изменена логика развёртывания `Docker` для повышения скорости
+* <config/*> Конфиг разбит на файлы
+* <config/handler> Добавлен объект `WorkerTask` для передачи параметров запроса пользователя
+* <audiobridge/*> Код адаптирован под использование новой структуры конфига
+* <db/scripts/init_tables> Обновлены структуры таблиц
+* <bot/vkBotWorker> Переработана обработка команд
+* <tools/> Переименован в `utils`
+* <commands/user> Переписан под новую динамическую структуру
+
+### Deprecated
+* <requirements> Удалён `betterconf`
+
+### Removed
+* <common/vars> Удалён из-за перехода на новую структуру конфига
+* <common/config> Удалён из-за перехода на новую структуру конфига
+
+### Fixed
+* <tools/loggerSetup> Исправлена ошибка "застывшего" времени в логах (теперь время обновляется)
+* Во всех файлах настроены единые отступы (space)
+
 ## [1.3.4] - 02-12-2022
 ### Added
 * <tools/customErrors> Создан единый список ошибок `yt-dlp` и их ключей, для улучшения читаемости кода
@@ -193,19 +227,20 @@
 [semantic versioning]: https://semver.org/spec/v2.0.0.html
 
 <!-- Versions -->
-[unreleased]: https://github.com/shonqwezon-team/AudioBridge/compare/prod...dev
-[1.3.4]: https://github.com/shonqwezon-team/AudioBridge/compare/v1.3.3...v1.3.4
-[1.3.3]: https://github.com/shonqwezon-team/AudioBridge/compare/v1.3.2...v1.3.3
-[1.3.2]: https://github.com/shonqwezon-team/AudioBridge/compare/v1.3.1...v1.3.2
-[1.3.1]: https://github.com/shonqwezon-team/AudioBridge/compare/v1.3.0...v1.3.1
-[1.3.0]: https://github.com/shonqwezon-team/AudioBridge/compare/v1.2.9...v1.3.0
-[1.2.9]: https://github.com/shonqwezon-team/AudioBridge/compare/v1.2.8...v1.2.9
-[1.2.8]: https://github.com/shonqwezon-team/AudioBridge/compare/v1.2.7...v1.2.8
-[1.2.7]: https://github.com/shonqwezon-team/AudioBridge/compare/v1.2.6...v1.2.7
-[1.2.6]: https://github.com/shonqwezon-team/AudioBridge/compare/v1.2.5...v1.2.6
-[1.2.5]: https://github.com/shonqwezon-team/AudioBridge/compare/v1.2.4...v1.2.5
-[1.2.4]: https://github.com/shonqwezon-team/AudioBridge/compare/v1.2.3...v1.2.4
-[1.2.3]: https://github.com/shonqwezon-team/AudioBridge/compare/v1.1.7...v1.2.3
-[1.1.7]: https://github.com/shonqwezon-team/AudioBridge/compare/v1.1.2...v1.1.7
-[1.1.2]: https://github.com/shonqwezon-team/AudioBridge/compare/v1.0.0...v1.1.2
-[1.0.0]: https://github.com/shonqwezon-team/AudioBridge/releases/tag/v1.0.0
+[unreleased]: https://github.com/AudioBridge-team/AudioBridge/compare/prod...dev
+[1.3.5]: https://github.com/AudioBridge-team/AudioBridge/compare/v1.3.4...v1.3.5
+[1.3.4]: https://github.com/AudioBridge-team/AudioBridge/compare/v1.3.3...v1.3.4
+[1.3.3]: https://github.com/AudioBridge-team/AudioBridge/compare/v1.3.2...v1.3.3
+[1.3.2]: https://github.com/AudioBridge-team/AudioBridge/compare/v1.3.1...v1.3.2
+[1.3.1]: https://github.com/AudioBridge-team/AudioBridge/compare/v1.3.0...v1.3.1
+[1.3.0]: https://github.com/AudioBridge-team/AudioBridge/compare/v1.2.9...v1.3.0
+[1.2.9]: https://github.com/AudioBridge-team/AudioBridge/compare/v1.2.8...v1.2.9
+[1.2.8]: https://github.com/AudioBridge-team/AudioBridge/compare/v1.2.7...v1.2.8
+[1.2.7]: https://github.com/AudioBridge-team/AudioBridge/compare/v1.2.6...v1.2.7
+[1.2.6]: https://github.com/AudioBridge-team/AudioBridge/compare/v1.2.5...v1.2.6
+[1.2.5]: https://github.com/AudioBridge-team/AudioBridge/compare/v1.2.4...v1.2.5
+[1.2.4]: https://github.com/AudioBridge-team/AudioBridge/compare/v1.2.3...v1.2.4
+[1.2.3]: https://github.com/AudioBridge-team/AudioBridge/compare/v1.1.7...v1.2.3
+[1.1.7]: https://github.com/AudioBridge-team/AudioBridge/compare/v1.1.2...v1.1.7
+[1.1.2]: https://github.com/AudioBridge-team/AudioBridge/compare/v1.0.0...v1.1.2
+[1.0.0]: https://github.com/AudioBridge-team/AudioBridge/releases/tag/v1.0.0

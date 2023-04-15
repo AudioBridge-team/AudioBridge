@@ -1,41 +1,40 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-from enum import Enum
+from .command import *
+from audiobridge.utils.sayOrReply import sayOrReply
+from audiobridge.config.handler import vars
+
+from audiobridge.keyboards.user import Main
 
 
-class UserCommands(Enum):
-	"""Команды для всех пользователей.
+class Start(Command):
+    name        = "start"
+    description = "Ознакомиться с базовым функционалом бота"
+    category    = CommandCategory.API
+    adminOnly   = False
 
-	Args:
-		Enum (Enum): Enum.
+    def run(self, *args):
+        msg = """Для того чтобы загрузить песню со сторонней площадки необходимо правильно составить запрос:
+1. Ссылка на видео/песню
+2. Название песни (по желанию)
+3. Автор песни (по желанию)
 
-	Returns:
-		str: Описание команды
-	"""
-	HELP    = "/help",    "Вывести все команды"												#вывести все команды
-	CLEAR   = "/clear",   "Остановить выполнение текущего запроса и очистить очередь"		#остановить обработку запроса и очистить очередь
-	VERSION = "/version", "Узнать версию бота"												#получить официальную версию бота
+Помимо этого вы также можете загружать целые плейлисты и конкретные отрезки из видео!
+Подробнее обо всем этом вы можете ознакомиться в закреплённом посте в группе или по ссылке: vk.com/saveaudio?w=page-212269992_56497954
+        """
+        sayOrReply(*args, msg, _keyboard = Main().keyboard())
 
-	def __new__(cls, *args, **kwds):
-		obj = object.__new__(cls)
-		obj._value_ = args[0]
-		return obj
+class Stop(Command):
+    """Общедоступная команда, которая останавляет загрузку всех песен и очищает очередь загрузки пользователя.
 
-	def __init__(self, _: str, description: str = None):
-		"""Инициализация команды.
+    Args:
+        Command (_type_): Класс, описывающий структуру пользовательской команды.
+    """
+    name        = "stop"
+    description = "Остановить загрузку всех песен"
+    category    = CommandCategory.QUEUE
+    adminOnly   = False
 
-		Args:
-			_ (str): Название команды.
-			description (str, optional): Описание команды. Defaults to None.
-		"""
-		self._description_ = description
-
-	@property
-	def description(self):
-		"""Параметр описания команды.
-
-		Returns:
-			str: Описание команды.
-		"""
-		return self._description_
+    def run(self, *args):
+        vars.queue.clear_pool(*args)

@@ -24,7 +24,7 @@ jobs:
           script: |
             cd /root/AudioBridge
             rm -rf prod
-            git clone -b prod --single-branch git@github.com:shonqwezon-team/AudioBridge.git prod
+            git clone -b prod --single-branch git@github.com:AudioBridge-team/AudioBridge.git prod
             cd prod
             chmod u+x install.zsh
             ./install.zsh

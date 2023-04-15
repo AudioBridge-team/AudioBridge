@@ -12,31 +12,31 @@ root_dir=$(dirname $PWD)
 container_name="vkbot_container"
 
 if ! [ -x "${run_script}" ]; then
-	echo "Warning: Script \"${run_script}\" can't be executed, applying chmod..."
-	#if [[ $UID != 0 ] || [ $USER != root ]]; then
-	if [ $USER != root ]; then
-		echo "${USER} cannot write the file \"${run_script}\"."
-		echo "Fatal: I'm not root. Can't use chmod."
-		exit 1
-	fi
-	# sudo -u $USER test -w $run_script || {}
-	chmod +x "$run_script"
-	echo "Chmod applied."
+    echo "Warning: Script \"${run_script}\" can't be executed, applying chmod..."
+    #if [[ $UID != 0 ] || [ $USER != root ]]; then
+    if [ $USER != root ]; then
+        echo "${USER} cannot write the file \"${run_script}\"."
+        echo "Fatal: I'm not root. Can't use chmod."
+        exit 1
+    fi
+    # sudo -u $USER test -w $run_script || {}
+    chmod +x "$run_script"
+    echo "Chmod applied."
 fi
 
 echo "Script \"${run_script}\" - OK, killing docker container..."
 if [ ! "$(docker ps -q -f name=$container_name)" ]; then
-	kill_result=$(docker rm --force $container_name) # cleanup
-	echo "Debug: kill_result=${kill_result}"
-	if ![ $kill_result ]; then
-		echo "Container was killed."
-	else
-		echo "Container was not killed!"
-	fi
+    kill_result=$(docker rm --force $container_name) # cleanup
+    echo "Debug: kill_result=${kill_result}"
+    if ![ $kill_result ]; then
+        echo "Container was killed."
+    else
+        echo "Container was not killed!"
+    fi
 
-	if [ "$(docker ps -aq -f status=exited -f name=$container_name)" ]; then
-		echo 'Debug: Reached docker ps (1).'
-	fi
+    if [ "$(docker ps -aq -f status=exited -f name=$container_name)" ]; then
+        echo 'Debug: Reached docker ps (1).'
+    fi
 else
 echo "Warning: Docker container was not running!"
 fi
@@ -52,4 +52,3 @@ echo "Executing run script."
 ./run.zsh
 
 #return 1
-

@@ -5,13 +5,14 @@ name: Deploy-Dev
 # The workflow will run when debugging is pushed into dev branch
 on:
   push:
-    branches: [ dev ]
+    branches:
+      - dev
+      - 'release/*'
 
 # A workflow
 jobs:
   DevDeploy:
     runs-on: ubuntu-latest
-
     steps:
       #Connecting to server
       - name: Connecting to server
@@ -24,7 +25,7 @@ jobs:
           script: |
             cd /root/AudioBridge
             rm -rf dev
-            git clone -b dev --single-branch git@github.com:shonqwezon-team/AudioBridge.git dev
+            git clone -b dev --single-branch git@github.com:AudioBridge-team/AudioBridge.git dev
             cd dev
             chmod u+x install.zsh
             ./install.zsh -d
