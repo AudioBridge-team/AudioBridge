@@ -6,7 +6,7 @@
     "max_units"         : 1,
     "max_requests_queue": 5,
     "max_filesize"      : 209715200,
-    "msg_period"        : 180,
+    "msg_period"        : 120,
     "max_video_duration": 10800,
     "max_attempts"      : 3,
     "time_attempt"      : 1

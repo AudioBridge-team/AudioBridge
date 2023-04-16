@@ -130,8 +130,8 @@ class AudioWorker(threading.Thread):
         # Обработка возникшей в процессе загрузки ошибки
         if stdout: yt_dlpShell.define_error_type(stdout)
 
-        msg = "Загрузка файла завершена. Началась обработка" + pl_suffix
-        vars.api.bot.messages.edit(peer_id = self.user_id, message = msg, message_id = self.progress_msg_id)
+        # msg = "Загрузка песни завершена. Началась обработка" + pl_suffix
+        # vars.api.bot.messages.edit(peer_id = self.user_id, message = msg, message_id = self.progress_msg_id)
         logger.debug(f'Скачивание видео завершено')
 
     def _analyzeTitle(self, video_title: str, channel: str) -> tuple:
@@ -322,24 +322,17 @@ class AudioWorker(threading.Thread):
                 if er.code == 270 and self.task_id:
                     vars.playlist.playlist_result[self.user_id][self.task_id][0] = bot_cfg.playlistStates.PLAYLIST_COPYRIGHT
             else:
-                error_string = 'Ошибка: {error_msg}.'
-                error_msg_default = "Невозможно обработать запрос. Убедитесь, что запрос корректный, и отправьте его повторно"
-                if er.code == 15 and self.file_size < 50 * 1024 :
-                    error_string = error_string.format(error_msg = vkapi_errors.get(er.code))
-                elif er.code == 100 and "server is undefined" in er.error['error_msg'].lower():
-                    error_string = error_string.format(error_msg = vkapi_errors.get(er.code))
-                else:
-                    error_string = error_string.format(error_msg = vkapi_errors.get(er.code, error_msg_default))
-
-                sayOrReply(self.user_id, f'{error_string}', self.msg_reply)
+                err_msg_default = "Невозможно обработать запрос. Убедитесь, что запрос корректный, и отправьте его повторно"
+                err_str = 'Ошибка: {error_msg}.'.format(error_msg = vkapi_errors.get(er.code, err_msg_default))
+                sayOrReply(self.user_id, err_str, self.msg_reply)
             # Добавить проверку через sql на успешность загрузки видео
             logger.error(f'VK API: \n\tCode: {er.code}\n\tBody: {er}')
 
         except Exception as er:
             # Обработка ошибок, не относящихся к компонентам плейлиста
             if not self._playlist:
-                error_string = 'Ошибка: Невозможно обработать запрос. Убедитесь, что запрос корректный, и отправьте его повторно.'
-                sayOrReply(self.user_id, error_string, self.msg_reply)
+                err_str = 'Ошибка: Невозможно обработать запрос. Убедитесь, что запрос корректный, и отправьте его повторно.'
+                sayOrReply(self.user_id, err_str, self.msg_reply)
             logger.error(f'Исключение: {er}')
 
         finally:
