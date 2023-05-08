@@ -5,6 +5,53 @@
 и этот проект придерживается [Semantic Versioning].
 
 ## [Unreleased]
+## [1.3.6] - 22-04-2023
+
+### Added
+* <db/scripts/init_triggers> Созданы триггеры для упрощения работы с БД (автоматизации некоторых действий)
+* <db/database> Создана функция `insert_message` для добавления информации о сообщении в таблицу `vk_messages`
+* <db/database> Создана функция `_insert_user` для добавления нового пользователя в таблицу `users`
+* <db/database> Создана функция `set_error_code` для установки ошибки обработки сообщения в таблице `vk_messages`
+* <db/database> Создана функция `set_user_token` для добавления токена пользователя в таблицу `vk_messages`
+* <db/database> Создана функция `select_user_data` для получения карточки пользователя из таблицы `users`
+* <db/database> Создана функция `set_user_setting` для установки определённой настройки пользователя в таблицу `user_serttings`
+* <db/database> Создана функция `select_user_settings` для получения настроек пользователя из таблицы `user_serttings`
+* <db/database> Создана функция `init_convert_request` для добавления основных полей задачи пользователя в таблице `convert_requests`
+* <db/database> Создана функция `complete_convert_request` для добавления оставшихся полей в таблице `convert_requests`
+* <db/database> Создана функция `insert_audio` для добавления информации о загруженной песни в таблицу `vk_audio`
+* <db/database> Создана функция `select_original_audio` для получения информации о загруженной ранее песни из таблицы `vk_audio`
+* <db/dbEnums> Созданы перечисления для удобства работы с базой данных
+
+* <commands/user> Добавлена команда `/skip` для пропуска загрузки текущего трека
+* <commands/user> Добавлена команда `/set_agent (true/false)` для включения/выключения режима агента (загрузка песни через собсвтенный аккаунт)
+
+* <keyboards/user> Добавлена кнопка `Авторизоваться в боте`
+* <bot/userAuthServer> Создан класс `UserAuthHandler` для поднятия веб-сервера, необходимого для получения токена пользователя (т.е. его авторизации)
+
+* <utils/errorHandler/*> Создан модуль для классификации, масштабирования и управления ошибками, и дальнейшей их записи в базу данных
+* <bot/vkBotWorker> Добавлена возможность переименовывания ранее загруженных песен
+* <bot/vkBotWorker> Добавлено сохранение сообщений в базу данных
+
+* <bot/audioWorker> Добавлена возможность "быстрой обработки" песен: отправка уже готовой песни, если ранее её кто-то загружал через бота
+* <bot/audioWorker> Добавлена возможность загрузки песни через аккаунт самого пользователя (это необходимо как для удоства, так и для обхода лимита загружаемых песен в день)
+
+### Changed
+* <db/scripts/init_tables> Изменены типы и ограничения некоторых столбцов
+* <bot_settings> Период обновления сообщения со статусом загрузки песни уменьшен до 1 минуты
+* <bot/vkBotWorker> Изменена логика обработки нового сообщения
+* <bot/queueHandler> В функцию `ack_request` из <bot/audioWorker> перенесена работа над обновлением текущей очереди запросов пользователя
+
+### Deprecated
+* <bot/vkBotWorker> Изменение YouTube Shorts запроса под обычный, т.к. в обновленной версии модуля `yt-dlp` доабвлена их поддержка
+* <config/bot> Удаление показателя YouTube Shorts
+
+### Removed
+* <config/bot> Удалён класс показателей запросов `RequestIndex`
+* <keyboards/keyboard> Удалён параметр `executable` из-за его ненадобности
+
+### Fixed
+* <bot/vkBotWorker> Исправлена обработка прикреплённых видео. Благодаря возможности авторизации теперь их можно обрабатывать
+
 ## [1.3.5] - 21-03-2023
 
 ### Added
@@ -227,6 +274,7 @@
 
 <!-- Versions -->
 [unreleased]: https://github.com/AudioBridge-team/AudioBridge/compare/prod...dev
+[1.3.6]: https://github.com/AudioBridge-team/AudioBridge/compare/v1.3.5...v1.3.6
 [1.3.5]: https://github.com/AudioBridge-team/AudioBridge/compare/v1.3.4...v1.3.5
 [1.3.4]: https://github.com/AudioBridge-team/AudioBridge/compare/v1.3.3...v1.3.4
 [1.3.3]: https://github.com/AudioBridge-team/AudioBridge/compare/v1.3.2...v1.3.3

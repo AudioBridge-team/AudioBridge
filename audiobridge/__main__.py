@@ -7,11 +7,12 @@ from datetime import date
 
 import vk_api
 
-from audiobridge.db.database import DataBase
+from audiobridge.db.database import Database
 from audiobridge.bot.queueHandler import QueueHandler
 from audiobridge.bot.playlistHandler import PlaylistHandler
 from audiobridge.bot.vkBotWorker import VkBotWorker
 from audiobridge.bot.vkGroupManager import VkGroupManager
+from audiobridge.bot.userAuthServer import run_auth_service
 from audiobridge.utils import loggerSetup
 
 from audiobridge.config.bot import cfg as bot_cfg
@@ -30,21 +31,21 @@ def main():
     logger.info('Program started.')
 
     # Инициализация класса для подключение к базе данных
-    vars.db = DataBase()
+    vars.db = Database()
 
     logger.info(f'Filesystem encoding: {sys.getfilesystemencoding()}, Preferred encoding: {locale.getpreferredencoding()}')
     logger.info(f'Current version {bot_cfg.auth.version}, Bot Group ID: {bot_cfg.auth.id}')
     logger.info('Logging into VKontakte...')
 
     # Интерфейс для работы с аккаунтом агента (который необходим для загрузки аудио)
-    m_api = Api
-    vk_agent_auth        = vk_api.VkApi(token = bot_cfg.auth.agent_token)
+    m_api              = Api
+    vk_agent_auth      = vk_api.VkApi(token = bot_cfg.auth.agent_token)
     m_api.agent_upload = vk_api.VkUpload(vk_agent_auth)
     m_api.agent        = vk_agent_auth.get_api()
 
     # Интерфейс для работы с ботом
     vk_bot_auth = vk_api.VkApi(token = bot_cfg.auth.token)
-    m_api.bot = vk_bot_auth.get_api()
+    m_api.bot   = vk_bot_auth.get_api()
 
     vars.api      = m_api
     vars.queue    = QueueHandler()
@@ -53,6 +54,8 @@ def main():
 
     vars.userRequests = dict()
     VkGroupManager()
+
+    run_auth_service()
 
     # Запуск listener
     logger.info('Begin listening.')

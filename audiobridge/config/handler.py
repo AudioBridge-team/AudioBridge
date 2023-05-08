@@ -19,6 +19,7 @@ class WorkerTask:
     pl_param    : str  = ''    # Параметры скачивания плейлиста (кол-во или номера песен в нём)
     pl_element  : int  = None  # Порядковый номер элемента в плейлисте
     pl_size     : int  = None  # Размер плейлиста
+    vk_user_auth: vk_api.VkApi  = None  # Токен пользователя
 
 
 @dataclass
@@ -34,7 +35,7 @@ class Handler:
     queue       : 'audiobridge.bot.QueueHandler'
     playlist    : 'audiobridge.bot.PlaylistHandler'
     vk          : 'audiobridge.bot.VkBotWorker'
-    db          : 'audiobridge.bot.DataBase'
+    db          : 'audiobridge.bot.Database'
 
 
 vars = Handler

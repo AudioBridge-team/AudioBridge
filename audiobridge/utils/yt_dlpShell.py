@@ -3,7 +3,7 @@
 
 import logging
 
-from audiobridge.utils.customErrors import CustomError, ytdlp_errors
+from audiobridge.utils.errorHandler import *
 
 logger = logging.getLogger('logger')
 
@@ -37,8 +37,9 @@ class Yt_dlpShell():
             CustomError: Передача пользовательской ошибки в тело родителя данного класса.
         """
         stderr = stderr.strip().lower()
-        for error_key in ytdlp_errors:
-            if error_key in stderr:
-                raise CustomError(f"Ошибка: {ytdlp_errors.get(error_key)}.")
+        for error in ErrorType.ytdlp:
+            if error == ErrorType.ytdlp.UNDEFINED: continue
+            if error.key in stderr:
+                raise CustomError(error)
         if force_error:
-            raise CustomError(f"Произошла неизвестная ошибка при обработке запроса. Обратитесь к разработчикам.")
+            raise CustomError(ErrorType.ytdlp.UNDEFINED)

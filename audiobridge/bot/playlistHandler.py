@@ -4,7 +4,7 @@
 import logging
 import yt_dlp
 
-from audiobridge.utils.customErrors import CustomError, specific_errors
+from audiobridge.utils.errorHandler import *
 from audiobridge.utils.sayOrReply import sayOrReply
 from audiobridge.utils.deleteMsg import deleteMsg
 from audiobridge.utils.yt_dlpShell import Yt_dlpShell
@@ -58,7 +58,7 @@ class PlaylistHandler():
             pl_info = yt_dlp.YoutubeDL(ydl_opts).extract_info(task.url, download=False)
             for entry in pl_info['entries']:
                 if not entry: continue
-                url = entry.get("url", None)
+                url   = entry.get("url", None)
                 title = entry.get("title", None)
                 if not (url and title): continue
                 urls.append([url, title])
@@ -66,32 +66,38 @@ class PlaylistHandler():
                 duration = entry.get("duration", None)
                 totalTime += int(float(duration))
                 if totalTime > bot_cfg.settings.max_video_duration:
-                    raise CustomError(f'Ошибка: {specific_errors.get("MAX_VIDEO_DURATION")}')
+                    raise CustomError(ErrorType.plProc.EXCEED_DURATION)
 
             if not urls:
-                raise CustomError('Ошибка: В плейлисте отсутствуют доступные видео для загрузки.')
+                raise CustomError(ErrorType.plProc.NO_AVAILABLE_PARTS)
             vars.api.bot.messages.edit(peer_id = user_id, message = f'Запрос добавлен в очередь (плейлист: {len(urls)})', message_id = msg_start)
 
         except CustomError as er:
-            sayOrReply(user_id, er, msg_reply)
+            sayOrReply(user_id, er.description, msg_reply)
+            # Запись ошибки в таблицу `vk_messages`
+            vars.db.set_error_code(msg_reply, er.code)
 
             # Удаление сообщения с порядком очереди
             deleteMsg(msg_start)
-            # Очистка памяти, т.к. переменная пуста
+            # Очистка памяти
             del vars.userRequests[user_id]
             logger.error(f'Custom: {er}')
 
         except Exception as er:
-            error_string = 'Ошибка: Невозможно обработать плейлист. Убедитесь, что запрос корректный и отправьте его повторно.'
+            error_string = "Ошибка: Невозможно обработать плейлист. Убедитесь, что запрос корректный и отправьте его повторно."
             sayOrReply(user_id, error_string, msg_reply)
+            # Запись ошибки в таблицу `vk_messages`
+            vars.db.set_error_code(msg_reply, er)
 
             # Удаление сообщения с порядком очереди
             deleteMsg(msg_start)
+            # Очистка памяти
             del vars.userRequests[user_id]
             logger.error(f'Поймал исключение: {er}')
 
         else:
-            self.playlist_result[user_id] = {MSG_REPLY : msg_reply}  # Отчёт скачивания плейлиста
+            # Отчёт скачивания плейлиста
+            self.playlist_result[user_id] = {MSG_REPLY : msg_reply}
             task.pl_size = len(urls)
             for i, url in enumerate(urls):
                 self.playlist_result[user_id][i+1] = [bot_cfg.playlistStates.PLAYLIST_UNSTATED, url[1]]
@@ -101,6 +107,7 @@ class PlaylistHandler():
                 sub_task.url = url[0]
                 sub_task.pl_element = i+1
 
+                # Добавление в очередь разбитого на подзадачи запроса
                 vars.queue.add_new_request(sub_task)
 
     def summarize(self, user_id: int):
@@ -110,32 +117,32 @@ class PlaylistHandler():
             user_id (_type_): Идентификатор пользователя.
         """
         try:
-            if self.playlist_result.get(user_id):
-                msg_summary = ""
-                summary     = {}
-                msg_reply      = self.playlist_result[user_id][MSG_REPLY]
+            if not self.playlist_result.get(user_id): return
+            msg_summary = ""
+            summary     = {}
+            msg_reply      = self.playlist_result[user_id][MSG_REPLY]
 
-                for task_id, info in self.playlist_result[user_id].items():
-                    if task_id == MSG_REPLY:
-                        continue
-                    if not summary.get(info[0]):
-                        summary[info[0]] = [info[1]]
-                    else:
-                        summary[info[0]].append(info[1])
-                logger.debug(f'Сводка по плейлисту: {summary}')
+            for task_id, info in self.playlist_result[user_id].items():
+                if task_id == MSG_REPLY:
+                    continue
+                if not summary.get(info[0]):
+                    summary[info[0]] = [info[1]]
+                else:
+                    summary[info[0]].append(info[1])
+            logger.debug(f'Сводка по плейлисту: {summary}')
 
-                if summary.get(bot_cfg.playlistStates.PLAYLIST_SUCCESSFUL):
-                    msg_summary += 'Успешно:\n'
-                    for title in summary[bot_cfg.playlistStates.PLAYLIST_SUCCESSFUL]: msg_summary += ('• ' + title + '\n')
-                if summary.get(bot_cfg.playlistStates.PLAYLIST_COPYRIGHT):
-                    msg_summary += '\nЗаблокировано из-за авторских прав:\n'
-                    for title in summary[bot_cfg.playlistStates.PLAYLIST_COPYRIGHT]: msg_summary += ('• ' + title + '\n')
-                if summary.get(bot_cfg.playlistStates.PLAYLIST_UNSTATED):
-                    msg_summary += '\nНе загружено:\n'
-                    for title in summary[bot_cfg.playlistStates.PLAYLIST_UNSTATED]: msg_summary += ('• ' + title + '\n')
-                del self.playlist_result[user_id]
-                sayOrReply(user_id, msg_summary, msg_reply)
+            if summary.get(bot_cfg.playlistStates.PLAYLIST_SUCCESSFUL):
+                msg_summary += 'Успешно:\n'
+                for title in summary[bot_cfg.playlistStates.PLAYLIST_SUCCESSFUL]: msg_summary += ('• ' + title + '\n')
+            if summary.get(bot_cfg.playlistStates.PLAYLIST_COPYRIGHT):
+                msg_summary += '\nЗаблокировано из-за авторских прав:\n'
+                for title in summary[bot_cfg.playlistStates.PLAYLIST_COPYRIGHT]: msg_summary += ('• ' + title + '\n')
+            if summary.get(bot_cfg.playlistStates.PLAYLIST_UNSTATED):
+                msg_summary += '\nНе загружено:\n'
+                for title in summary[bot_cfg.playlistStates.PLAYLIST_UNSTATED]: msg_summary += ('• ' + title + '\n')
+            del self.playlist_result[user_id]
+            sayOrReply(user_id, msg_summary, msg_reply)
 
         except Exception as er:
             logger.error(er)
-            sayOrReply(user_id, 'Ошибка: Не удалось загрузить отчёт.')
+            sayOrReply(user_id, "Ошибка: Не удалось загрузить отчёт.")
