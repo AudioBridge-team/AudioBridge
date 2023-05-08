@@ -46,14 +46,6 @@ class DynamicLinksIndex(Enum):
     """
     SOUNDCLOUD = "on.soundcloud.com"
 
-class DynamicLinksIndex(Enum):
-    """Показатели динамических ссылок.
-
-    Args:
-        Enum (_type_): Dynamic link index.
-    """
-    SOUNDCLOUD = "on.soundcloud.com"
-
 class PlaylistStates(IntEnum):
     """Состояние загрузки элемента из плейлиста.
 

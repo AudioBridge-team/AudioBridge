@@ -112,7 +112,7 @@ class VkBotWorker():
             vk_api.VkApi: Api пользователя.
         """
         vk_user_auth : vk_api.VkApi = None
-        user_token = vars.db.select_user_data(user_id).get(UserData.TOKEN())
+        user_token = vars.db.select_user_data(user_id).get(UserData.TOKEN)
         try:
             if user_token: vk_user_auth = vk_api.VkApi(token = user_token)
             else: logger.debug("User token is NULL")
