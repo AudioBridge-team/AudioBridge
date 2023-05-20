@@ -19,7 +19,7 @@ from audiobridge.utils.yt_dlpShell import Yt_dlpShell
 
 from audiobridge.config.bot import cfg as bot_cfg
 from audiobridge.config.handler import vars, WorkerTask
-from audiobridge.db.dbEnums import UserSettings
+from audiobridge.db.dbEnums import UserSettings, VkAudio
 
 
 logger      = logging.getLogger('logger')
@@ -206,7 +206,22 @@ class AudioWorker(threading.Thread):
         else:
             vars.api.bot.messages.send(peer_id = self.user_id, attachment = attachment, reply_to = self.msg_reply, random_id = get_random_id())
 
-    def _check_existence(self) -> int:
+    def _save_audio(self, audio_obj: dict, api_agent: vk_api.vk_api.VkApiMethod, new_owner: int):
+        new_audio_id = 0
+        try:
+            new_audio_id = api_agent.audio.add(audio_id=audio_obj.get(VkAudio.AUDIO_ID), owner_id=audio_obj.get(VkAudio.OWNER_ID))
+        except vk_api.exceptions.ApiError as er:
+            if er.code == 15:
+                logger.warning(f"User has closed his audio libriary. Run new uploading...\nDescription: {er}")
+            else: logger.error(f"Unexpected error during saving audio ({er.code}):\nDescription: {er}")
+        else:
+            # Словарь для последущей записи песни в таблицу `vk_aduio`
+            audio_obj[VkAudio.AUDIO_ID] = new_audio_id
+            audio_obj[VkAudio.OWNER_ID] = new_owner
+            vars.db.insert_audio(audio_obj)
+        return new_audio_id
+
+    def _check_existence(self, is_agent: bool) -> int:
         """Проверка существования запроса с таким же url.
 
         Returns:
@@ -214,17 +229,28 @@ class AudioWorker(threading.Thread):
         """
         # Отменяем проверку, если текущий запрос содержит новые тайминги для песни
         if self.interval: return None
-        audio_obj = vars.db.select_original_audio(self.url)
+        audio_obj = vars.db.select_original_audio(self.url, self.user_id)
         if not audio_obj: return None
         # Редактируем название песни
-        audio_id = audio_obj[0]
-        owner_id = audio_obj[1]
-        if self.song_name and self.song_author:
-            vars.api.agent.audio.edit(audio_id=audio_id, owner_id=owner_id, title=self.song_name, artist=self.song_author)
-        elif self.song_name:
-            vars.api.agent.audio.edit(audio_id=audio_id, owner_id=owner_id, title=self.song_name)
-        # Отправляем ответное сообщение с песней
-        self._vk_send_audio(audio_id, owner_id)
+        audio_id       = audio_obj.get(VkAudio.AUDIO_ID)
+        owner_id       = audio_obj.get(VkAudio.OWNER_ID)
+        api_agent = vars.api.agent
+        if is_agent:
+            api_agent = self.vk_user_auth.get_api()
+            if owner_id != self.user_id:
+                audio_id = self._save_audio(audio_obj, api_agent, self.user_id)
+                owner_id = self.user_id
+        elif owner_id != bot_cfg.auth.agent_id:
+            audio_id = self._save_audio(audio_obj, api_agent, bot_cfg.auth.agent_id)
+            owner_id = bot_cfg.auth.agent_id
+
+        if audio_id:
+            if self.song_name and self.song_author:
+                api_agent.audio.edit(audio_id=audio_id, owner_id=owner_id, title=self.song_name, artist=self.song_author)
+            elif self.song_name:
+                api_agent.audio.edit(audio_id=audio_id, owner_id=owner_id, title=self.song_name)
+            # Отправляем ответное сообщение с песней
+            self._vk_send_audio(audio_id, owner_id)
         return audio_id
 
     def run(self):
@@ -236,8 +262,9 @@ class AudioWorker(threading.Thread):
         logger.info('AudioWorker: Запуск.')
         task_values = dict()
         task_start_time = time.time()
+        user_settiings : dict = vars.db.select_user_settings(self.user_id)
         try:
-            audio_id = self._check_existence()
+            audio_id = self._check_existence(user_settiings.get(UserSettings.IS_AGENT))
             # Завершаем задачу, если песня содержится в таблице `vk_audio`
             if audio_id:
                 task_values['audio_id'] = audio_id
@@ -280,7 +307,7 @@ class AudioWorker(threading.Thread):
             audioSection = ""
             if self.interval:
                 audio_interval = self.interval
-                is_interval = (audio_interval.replace('-', '', 1).replace(':', '').replace(' ', '').isnumeric() and audio_interval.count('-') == 1)
+                is_interval = (audio_interval.replace('-', '').replace(':', '').replace(' ', '').isnumeric() and audio_interval.count('-') == 1)
                 if is_interval:
                     audio_interval = audio_interval.replace(' ', '')
                     timestamps = []
@@ -334,8 +361,6 @@ class AudioWorker(threading.Thread):
             if self.file_size > bot_cfg.settings.max_filesize:
                 raise CustomError(ErrorType.audioProc.HIGH_REAL_SIZE)
             else:
-                # Словарь для последущей записи песни в таблицу `vk_aduio`
-                audio_values = dict()
                 if self.song_name:   title  = self.song_name
                 if self.song_author: author = self.song_author
                 if len(title) > 50:  title  = title[0:51]
@@ -346,16 +371,18 @@ class AudioWorker(threading.Thread):
                 # Загрузка аудиозаписи на сервера VK + её отправка получателю
                 agent_upload = vars.api.agent_upload
                 if self.vk_user_auth:
-                    if dict(vars.db.select_user_settings(self.user_id)).get(UserSettings.IS_AGENT):
+                    if user_settiings.get(UserSettings.IS_AGENT):
                         agent_upload = vk_api.VkUpload(self.vk_user_auth)
                 audio_obj : dict = agent_upload.audio(self.path, author, title)
                 audio_id       = audio_obj.get('id')
                 audio_owner_id = audio_obj.get('owner_id')
 
-                audio_values['audio_id']       = audio_id
-                audio_values['owner_id']       = audio_owner_id
-                audio_values['audio_duration'] = audio_obj.get('duration')
-                audio_values['is_segmented']   = bool(self.interval)
+                # Словарь для последущей записи песни в таблицу `vk_aduio`
+                audio_values = dict()
+                audio_values[VkAudio.AUDIO_ID]       = audio_id
+                audio_values[VkAudio.OWNER_ID]       = audio_owner_id
+                audio_values[VkAudio.AUDIO_DURATION] = audio_obj.get('duration')
+                audio_values[VkAudio.IS_SEGMENTED]   = bool(self.interval)
 
                 if vars.db.insert_audio(audio_values):
                     task_values['audio_id'] = audio_id

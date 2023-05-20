@@ -58,16 +58,20 @@ class QueueHandler():
             # Если запрошен пропуск только текущей задачи
             if only_current:
                 # Остановка последнего запущенного воркера и быстрое подтверждение его завершения
+                track_name = "текущего трека"
                 if user_workers:
-                    current_task = user_workers[-1]
+                    current_task : AudioWorker = user_workers[-1]
+                    if current_task.song_name:
+                        track_name = f'трека "{current_task.song_name}"'
                     current_task.stop()
                     self.ack_request(user_id, current_task)
-                sayOrReply(user_id, "Загрузка текущего трека пропущена")
+                sayOrReply(user_id, f'Загрузка {track_name} пропущена')
                 return
             # Удаление из очереди всех запросов с id пользователя
             self._pool_req = list(filter(lambda obj: obj.user_id != user_id, self._pool_req))
             if user_workers:
                 # Остановка всех запущенных воркеров (подтверждение здесь не нужно, т.к. объект пользователя удалён)
+                worker : AudioWorker # type preannotation
                 for worker in user_workers:
                     worker.stop()
                     deleteMsg(worker.msg_start)
@@ -139,6 +143,7 @@ class QueueHandler():
         logger.debug(f"Current workers size: {self.size_workers()}/{bot_cfg.settings.max_workers}")
         # Проверка на превышение кол-ва максимально возможных воркеров и наличие запросов в очереди
         if (self.size_workers() >= bot_cfg.settings.max_workers) or (not self.size_queue()): return
+        task : WorkerTask
         for task in self._pool_req:
             user_id = task.user_id
             # Если пользователь имеет активные запросы

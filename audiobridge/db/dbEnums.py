@@ -29,3 +29,11 @@ class UserSettings:
     USER_ID      : str = 'user_id'
     IS_PROMOTING : str = 'is_promoting'
     IS_AGENT     : str = 'is_agent'
+
+class VkAudio:
+    """Название полей в таблице `vk_audio`.
+    """
+    AUDIO_ID       : str = 'audio_id'
+    OWNER_ID       : str = 'owner_id'
+    IS_SEGMENTED   : str = 'is_segmented'
+    AUDIO_DURATION : str = 'audio_duration'

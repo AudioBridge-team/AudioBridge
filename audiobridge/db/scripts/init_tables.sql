@@ -9,7 +9,7 @@ CREATE TABLE if not exists users (
 CREATE TABLE if not exists user_settings (
     user_id int PRIMARY KEY references users(user_id),
     is_promoting boolean NOT NULL DEFAULT true,
-    is_agent boolean NOT NULL DEFAULT true
+    is_agent boolean NOT NULL DEFAULT false
 );
 
 

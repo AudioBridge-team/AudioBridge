@@ -3,6 +3,7 @@
 
 import logging
 import yt_dlp
+import copy
 
 from audiobridge.utils.errorHandler import *
 from audiobridge.utils.sayOrReply import sayOrReply
@@ -56,14 +57,15 @@ class PlaylistHandler():
             ydl_opts['playlist_items'] = task.pl_param
             # Извлечение полной информации о всех доступных и недоступных видео из плейлиста
             pl_info = yt_dlp.YoutubeDL(ydl_opts).extract_info(task.url, download=False)
+            entry : dict
             for entry in pl_info['entries']:
                 if not entry: continue
-                url   = entry.get("url", None)
-                title = entry.get("title", None)
-                if not (url and title): continue
+                url      = entry.get("url")
+                title    = entry.get("title")
+                duration = entry.get("duration")
+                if not (url and title and duration): continue
                 urls.append([url, title])
 
-                duration = entry.get("duration", None)
                 totalTime += int(float(duration))
                 if totalTime > bot_cfg.settings.max_video_duration:
                     raise CustomError(ErrorType.plProc.EXCEED_DURATION)
@@ -87,7 +89,7 @@ class PlaylistHandler():
             error_string = "Ошибка: Невозможно обработать плейлист. Убедитесь, что запрос корректный и отправьте его повторно."
             sayOrReply(user_id, error_string, msg_reply)
             # Запись ошибки в таблицу `vk_messages`
-            vars.db.set_error_code(msg_reply, er)
+            vars.db.set_error_code(msg_reply, str(er))
 
             # Удаление сообщения с порядком очереди
             deleteMsg(msg_start)
@@ -103,7 +105,7 @@ class PlaylistHandler():
                 self.playlist_result[user_id][i+1] = [bot_cfg.playlistStates.PLAYLIST_UNSTATED, url[1]]
                 vars.userRequests[user_id] -= 1
 
-                sub_task = task
+                sub_task = copy.copy(task)
                 sub_task.url = url[0]
                 sub_task.pl_element = i+1
 

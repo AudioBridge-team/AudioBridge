@@ -144,6 +144,7 @@ class Database():
             logger.error(f"Unexpected error: {er}")
         else:
             logger.debug(f"User token has been successfully set")
+            self.set_user_setting(user_id, UserSettings.IS_AGENT, True)
 
     def select_user_data(self, user_id: int) -> dict:
         """Получение определённой информации пользователя.
@@ -298,7 +299,7 @@ class Database():
             logger.debug(f"Audio has been successfully inserted")
         return status
 
-    def select_original_audio(self, download_url: str) -> tuple:
+    def select_original_audio(self, download_url: str, owner_id: int) -> dict:
         """Выбор объекта песни, ранее загруженной в вк.
 
         Args:
@@ -307,18 +308,30 @@ class Database():
         Returns:
             tuple: Объект песни.
         """
-        audio_obj = tuple()
+        values  = tuple()
+        columns = list()
         try:
-            query_audio_id = "SELECT DISTINCT ON (audio_id) audio_id FROM convert_requests WHERE (audio_id IS NOT NULL) and (download_url = %s)"
-            insert_query = sql.SQL("SELECT * FROM vk_audio WHERE (NOT is_segmented) and (audio_id = ({}))").format(sql.SQL(query_audio_id))
+            query_audio_ids = sql.SQL("SELECT DISTINCT ON (audio_id) audio_id FROM convert_requests WHERE (audio_id IS NOT NULL) and (download_url = %s)")
+            with_owner_query = sql.SQL("SELECT * FROM vk_audio WHERE (NOT is_segmented) and (audio_id = ANY(%s)) and (owner_id = %s)")
+            without_owner_query = sql.SQL("SELECT * FROM vk_audio WHERE (NOT is_segmented) and (audio_id = ANY(%s)) LIMIT 1")
             with self.conn.cursor() as curs:
-                curs.execute(insert_query, (download_url,))
-                audio_obj = curs.fetchone()
-
+                curs.execute(query_audio_ids, (download_url,))
+                audio_ids = curs.fetchall()
+                curs.execute(with_owner_query, (audio_ids, owner_id))
+                values = curs.fetchone()
+                if not values:
+                    curs.execute(without_owner_query, (audio_ids,))
+                    values = curs.fetchone()
+                columns = list(curs.description)
         except Error as er:
             logger.error(f"Can't get audio\nCode: {er.pgcode}\nBody :{er}")
         except Exception as er:
             logger.error(f"Unexpected error: {er}")
         else:
-            logger.debug(f"Audio object has been successfully selected: {audio_obj}")
-        return audio_obj
+            logger.debug(f"Audio object has been successfully selected: {values}")
+
+        res = {}
+        if not values: return res
+        for i, col in enumerate(columns):
+            res[col.name] = values[i]
+        return res

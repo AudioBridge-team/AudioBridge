@@ -27,6 +27,7 @@ class Authentication:
     version    : str
     id         : int
     token      : str
+    agent_id   : int
     agent_token: str
 
 @dataclass
@@ -87,6 +88,7 @@ cfg = Bot(
         version     = settings_json.get("bot_version", "v1.0.0"),
         id          = env.int('BOT_ID'),
         token       = env.str('BOT_TOKEN'),
+        agent_id    = env.int('AGENT_ID'),
         agent_token = env.str('AGENT_TOKEN')
     ),
     authServer     = UserAuthServer(
