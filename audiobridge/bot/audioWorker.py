@@ -72,9 +72,10 @@ class AudioWorker(threading.Thread):
 
         self.vk_user_auth = task.vk_user_auth # Приготовленное api пользователя для загрузки сразу же в его аккаунт
 
-        self.path    = ""                     # Путь сохранения файла
         # Запись основных полей в таблицу `convert_requests`
         self.task_id = vars.db.init_convert_request(self.msg_reply, self.url)
+
+        self.path    = str(self.task_id)      # Путь сохранения файла
 
         logger.debug(f'Получена задача ({self.task_id}): {task}')
 
@@ -192,7 +193,7 @@ class AudioWorker(threading.Thread):
         return title, author
 
     def _vk_send_audio(self, audio_id: int, audio_owner: int):
-        """Функция ддля отправки сообщенния с прикреплённой аудиозаписью
+        """Функция для отправки сообщенния с прикреплённой аудиозаписью
 
         Args:
             audio_id (int): Id ранее загруженной песни в вк.
@@ -200,11 +201,11 @@ class AudioWorker(threading.Thread):
         """
         attachment = f'audio{audio_owner}_{audio_id}'
         if self._playlist:
-            vars.api.bot.messages.send(peer_id = self.user_id, attachment = attachment, random_id = get_random_id())
+            vars.api.bot.messages.send(user_id = self.user_id, attachment = attachment, random_id = get_random_id())
             # Обновление статуса компонента плейлиста в отчёте
             vars.playlist.playlist_result[self.user_id][self.pl_element][0] = bot_cfg.playlistStates.PLAYLIST_SUCCESSFUL
         else:
-            vars.api.bot.messages.send(peer_id = self.user_id, attachment = attachment, reply_to = self.msg_reply, random_id = get_random_id())
+            vars.api.bot.messages.send(user_id = self.user_id, attachment = attachment, reply_to = self.msg_reply, random_id = get_random_id())
 
     def _save_audio(self, audio_obj: dict, api_agent: vk_api.vk_api.VkApiMethod, new_owner: int):
         new_audio_id = 0
@@ -229,7 +230,7 @@ class AudioWorker(threading.Thread):
         """
         # Отменяем проверку, если текущий запрос содержит новые тайминги для песни
         if self.interval: return None
-        audio_obj = vars.db.select_original_audio(self.url, self.user_id)
+        audio_obj = vars.db.select_original_audio(self.url, self.user_id if is_agent else bot_cfg.auth.agent_id)
         if not audio_obj: return None
         # Редактируем название песни
         audio_id       = audio_obj.get(VkAudio.AUDIO_ID)
@@ -262,6 +263,7 @@ class AudioWorker(threading.Thread):
         logger.info('AudioWorker: Запуск.')
         task_values = dict()
         task_start_time = time.time()
+        if not self.task_id: self.path = str(int(task_start_time))
         user_settiings : dict = vars.db.select_user_settings(self.user_id)
         try:
             audio_id = self._check_existence(user_settiings.get(UserSettings.IS_AGENT))
@@ -297,8 +299,7 @@ class AudioWorker(threading.Thread):
                 raise CustomError(ErrorType.audioProc.NO_INFO)
 
             audio_duration = int(audioInfo.get("duration", 0))
-            self.path = audioInfo.get("id", None)
-            if not (audio_duration and self.path):
+            if not (audio_duration and audioInfo.get("id")):
                 raise CustomError(ErrorType.audioProc.NO_INFO)
             title, author = self._analyzeTitle(audioInfo.get("title"), audioInfo.get("channel"))
             logger.debug(f"Информация об аудио успешно получена: {audio_duration}, {title}, {author}")
@@ -342,7 +343,7 @@ class AudioWorker(threading.Thread):
             if self.file_size * 0.85 > bot_cfg.settings.max_filesize:
                 raise CustomError(ErrorType.audioProc.HIGH_PREV_SIZE)
 
-            self.path = str(self.user_id) + self.path
+            self.path = str(self.user_id) + "_" + self.path
             download_string = download_string.format(
                 path=self.path,
                 url=self.url,
@@ -350,12 +351,11 @@ class AudioWorker(threading.Thread):
                 attempts=bot_cfg.settings.max_attempts,
                 sleep=bot_cfg.settings.time_attempt
             )
-            self.path += ".mp3"
 
             # Скачивание аудио
             self._downloadAudio(download_string)
             # Получение реального размера файла
-            self.file_size = os.path.getsize(self.path)
+            self.file_size = os.path.getsize(self.path + ".mp3")
             # Проверка размера файла (необходимо из-за внутренних ограничений VK)
             logger.debug(f"Фактический размер файла: {round(self.file_size / 1024**2, 2)} Mb")
             if self.file_size > bot_cfg.settings.max_filesize:
@@ -370,10 +370,9 @@ class AudioWorker(threading.Thread):
                     raise CustomError(ErrorType.audioProc.STOP_THREAD)
                 # Загрузка аудиозаписи на сервера VK + её отправка получателю
                 agent_upload = vars.api.agent_upload
-                if self.vk_user_auth:
-                    if user_settiings.get(UserSettings.IS_AGENT):
-                        agent_upload = vk_api.VkUpload(self.vk_user_auth)
-                audio_obj : dict = agent_upload.audio(self.path, author, title)
+                if user_settiings.get(UserSettings.IS_AGENT):
+                    agent_upload = vk_api.VkUpload(self.vk_user_auth)
+                audio_obj : dict = agent_upload.audio(self.path + ".mp3", author, title)
                 audio_id       = audio_obj.get('id')
                 audio_owner_id = audio_obj.get('owner_id')
 
@@ -419,11 +418,11 @@ class AudioWorker(threading.Thread):
 
         finally:
             # Удаление загруженного файла
-            if os.path.isfile(self.path):
-                os.remove(self.path)
-                logger.debug(f'Успешно удалил аудио-файл: {self.path}')
-            else:
-                logger.warning('Аудиофайл не существует')
+            for filename in os.listdir():
+                if not filename.startswith(self.path): continue
+                os.remove(filename)
+                logger.debug(f'Успешно удалил аудио-файл: {filename}')
+                break
 
             # Удаление сообщения с прогрессом
             deleteMsg(self.progress_msg_id)

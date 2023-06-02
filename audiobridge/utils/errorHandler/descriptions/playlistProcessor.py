@@ -7,7 +7,7 @@ from audiobridge.config.bot import cfg as bot_cfg
 
 
 class PlaylistProcessor(Enum):
-    EXCEED_DURATION    = f"Суммарная продолжительность будущих аудиозаписей не может превышать {bot_cfg.settings.max_video_duration // 3600} часа!"
+    EXCEED_DURATION    = f"Суммарная продолжительность будущих аудиозаписей не может превышать {bot_cfg.settings.max_video_duration // 3600} часа"
     NO_AVAILABLE_PARTS = "В плейлисте отсутствуют доступные видео для загрузки"
 
     def __new__(cls, description: str):

@@ -8,7 +8,7 @@ class Ytdlp(Enum):
     UNDEFINED       = "",                                                               "Возникла непредвиденная ошибка при обработке запроса. Обратитесь к разработчикам"
     BAD_URL         = "is not a valid url",                                             "Некорректный адрес источника"
     HTTP_404        = "http error 404",                                                 "Некорректный адрес источника"
-    NO_PLAYLIST     = "the channel/playlist does not exist",                            "Данный плейлист не существует"
+    NO_PLAYLIST     = "playlist does not exist",                                        "Данный плейлист не существует"
     BAD_SPECIF      = "is not a valid specification",                                   "Некорректный адрес источника"
     UNABLE_DOWNLAOD = "unable to download webpage",                                     "Некорректный адрес источника"
     ADULT_CONTENT   = "this video was marked as adult content",                         "VK заблокировал обработку видео из-за наличия взрослого контента"
@@ -20,6 +20,8 @@ class Ytdlp(Enum):
     BAD_TIMINGS     = "since chapter information is unavailable",                       "Видео не содержит эпизодов, используйте тайминги"
     BAD_EPISODE     = "no chapters matching the regex",                                 "Данного эпизода не существует. Проверьте корректность его написания"
     UNAVAILABLE_2   = "video unavailable",                                              "Видео недоступно"
+    NO_FORMATS      = "no video formats found",                                         "Невозможно скачать видео"
+
 
     def __new__(cls, key: str, description: str):
         obj             = object.__new__(cls)

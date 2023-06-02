@@ -59,7 +59,7 @@ class SetAgent(Command):
         Command (_type_): Класс, описывающий структуру пользовательской команды.
     """
     name        = "set_agent"
-    description = "Включить/выключить режим агента. Команда принимает на вход 1 аргумент (true, false)"
+    description = "Включить/выключить режим агента. Команда принимает на вход 1 аргумент (true/false) через пробел"
     category    = CommandCategory.SETTINGS
 
     def run(self, *args):

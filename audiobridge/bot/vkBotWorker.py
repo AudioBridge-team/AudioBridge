@@ -137,8 +137,8 @@ class VkBotWorker():
         Returns:
             list: Массив с параматрами для загрузки.
         """
-        res = ['']
-        if not attachment_info: return res
+        res = ''
+        if not attachment_info: raise CustomError(ErrorType.userReq.NO_URL)
         try:
             attachment_type = attachment_info[0].get('type')
             logger.debug(f"Attachments info: ({len(attachment_info)}) {attachment_type}")
@@ -159,10 +159,10 @@ class VkBotWorker():
 
                 items = api_agent.video.get(videos = video).get('items')
                 if not items: raise CustomError(ErrorType.userReq.PRIVATE_ATTACH)
-                res[0] = items[0].get('player')
+                res = items[0].get('player')
 
             elif attachment_type == 'link':
-                res[0] = attachment_info[0].get('link').get('url')
+                res = attachment_info[0].get('link').get('url')
 
         except CustomError as er:
             raise er
@@ -171,6 +171,8 @@ class VkBotWorker():
             logger.warning(f'Attachment: {er}')
             raise CustomError(ErrorType.userReq.CANT_HANDLE_ATTACH)
 
+        if not res.startswith("http"):
+            raise CustomError(ErrorType.userReq.NO_URL)
         return res
 
 
@@ -186,7 +188,7 @@ class VkBotWorker():
 
         user_id  = msg_obj.get('peer_id')
         msg_id   = msg_obj.get('id')
-        msg_body = str(msg_obj.get('text'))
+        msg_body = str(msg_obj.get('text', ''))
         msg_kb  = msg_obj.get('payload')
 
         task : WorkerTask = None
@@ -223,15 +225,14 @@ class VkBotWorker():
                 logger.debug("Command has been successfully handled")
                 return
 
-            user_requests = vars.userRequests.get(user_id, 0)
             # Инициализация ячейки конкретного пользователя
-            if not user_requests: vars.userRequests[user_id] = 0
+            if user_id not in vars.userRequests: vars.userRequests[user_id] = 0
             # Проверка на текущую загрузку плейлиста
-            if user_requests < 0:
+            if vars.userRequests[user_id] < 0:
                 raise CustomError(ErrorType.userReq.WAIT_FOR_PLAYLIST)
             # Проверка на максимальное число запросов за раз
-            if user_requests == bot_cfg.settings.max_requests_queue:
-                CustomError(ErrorType.userReq.EXCEED_REQUEST_LIMIT)
+            if vars.userRequests[user_id] >= bot_cfg.settings.max_requests_queue:
+                raise CustomError(ErrorType.userReq.EXCEED_REQUEST_LIMIT)
             # Проверка на превышения числа возможных аргументов запроса
             if len(options) > 4:
                 raise CustomError(ErrorType.userReq.BAD_REQUEST_FORMAT)
@@ -239,11 +240,12 @@ class VkBotWorker():
             vk_user_auth = self._get_user_auth(user_obj.get(UserData.TOKEN))
             # Проверка возможных приложений, если отсутствует какой-либо текст в сообщении
             if not options:
-                options = self.attachment_handler(msg_obj.get('attachments'), vk_user_auth)
+                options.append(self.attachment_handler(msg_obj.get('attachments'), vk_user_auth))
                 msg_body = options[0]
 
             if not options[0].startswith("http"):
-                raise CustomError(ErrorType.userReq.NO_URL)
+                options.insert(0, self.attachment_handler(msg_obj.get('attachments'), vk_user_auth))
+                msg_body = options[0] + '\n' + msg_body
             # Проверка на динамическую ссылку
             if any(index.value in options[0] for index in bot_cfg.dynLinksIndex):
                 raise CustomError(ErrorType.userReq.DYNAMIC_LINK)
@@ -251,7 +253,7 @@ class VkBotWorker():
             # Обработка запроса с плейлистом
             if "/playlist" in options[0]:
                 # Проверка на отсутствие других задач от данного пользователя
-                if user_requests:
+                if vars.userRequests[user_id]:
                     raise CustomError(ErrorType.userReq.BUSY_PLAYLIST_QUEUE)
                 # Проверка на корректность запроса
                 if len(options) > 2:
@@ -268,7 +270,7 @@ class VkBotWorker():
 
             # Создание задачи и её добавление в обработчик очереди
             vars.userRequests[user_id] += 1
-            msg_start_id = sayOrReply(user_id, "Запрос добавлен в очередь ({0}/{1})".format(user_requests + 1, bot_cfg.settings.max_requests_queue))
+            msg_start_id = sayOrReply(user_id, "Запрос добавлен в очередь ({0}/{1})".format(vars.userRequests[user_id], bot_cfg.settings.max_requests_queue))
             task = WorkerTask(msg_start_id, user_id, msg_id, *options)
             msg_type = MessageType.AUDIO
 
