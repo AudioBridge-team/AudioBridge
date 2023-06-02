@@ -3,7 +3,7 @@
 
 import logging
 import subprocess
-from audiobridge.utils.customErrors import CustomError
+from audiobridge.utils.errorHandler import *
 
 from audiobridge.config.bot import cfg as bot_cfg
 from audiobridge.config.vkGroup import cfg as vkgroup_cfg
@@ -56,14 +56,14 @@ class VkGroupManager():
         """
         try:
             if vkgroup_cfg.changelog_page_id == -1:
-                raise CustomError("Changelog page id isn't set. Changelog wasn't synchronized!")
+                raise CustomError(ErrorType.vkGroup.NO_CHANGELOG_ID)
 
             proc = subprocess.Popen("pandoc CHANGELOG.md -t mediawiki", stdout = subprocess.PIPE, stderr = subprocess.PIPE, text = True, shell = True)
             stdout, stderr = proc.communicate()
             if stderr:
-                raise CustomError(f"Can't convert .md to .wiki: {stderr}")
+                raise CustomError(ErrorType.vkGroup.CANT_CONVERT, stderr)
             if not stdout:
-                raise CustomError('CHANGELOG.wiki is empty!')
+                raise CustomError(ErrorType.vkGroup.EMPTY_CHANGELOG)
 
             vars.api.agent.pages.save(text=self._fix_wiki_for_vk(stdout), page_id=vkgroup_cfg.changelog_page_id, group_id=bot_cfg.auth.id)
             logger.debug("Changelog was synchronized successfully!")
@@ -71,6 +71,6 @@ class VkGroupManager():
                 logger.debug("Releasing post with new update...")
 
         except CustomError as er:
-            logger.error(f'Custom: {er}')
+            logger.error(f'Custom: {er.description} {er.details}')
         except Exception as er:
             logger.error(f"Can't update vk changelog: {er}")

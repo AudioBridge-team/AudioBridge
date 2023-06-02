@@ -17,4 +17,4 @@ def sayOrReply(user_id: int, _message: str, _reply_to: int = None, _keyboard: Vk
     Returns:
         int: Идентификатор отправленного сообщения.
     """
-    return vars.api.bot.messages.send(peer_id = user_id, message = _message, reply_to = _reply_to, keyboard = _keyboard, random_id = get_random_id())
+    return vars.api.bot.messages.send(user_id = user_id, message = _message, reply_to = _reply_to, keyboard = _keyboard, random_id = get_random_id())

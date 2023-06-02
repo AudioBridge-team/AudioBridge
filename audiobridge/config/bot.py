@@ -27,17 +27,17 @@ class Authentication:
     version    : str
     id         : int
     token      : str
+    agent_id   : int
     agent_token: str
 
-
-class RequestIndex:
-    """Показатели типа запроса.
+@dataclass
+class UserAuthServer:
+    """Данные для запуска веб-сервера, обрабатываюзего авторизацию пользователей, и вк мини-апп.
     """
-    INDEX_PLATFORM_YOUTUBE : str = "YouTube"
-    INDEX_PLAYLIST         : str = "/playlist"
-    INDEX_URL              : str = "http"
-    INDEX_YOUTUBE_SHORTS   : str = "/shorts/"
-    INDEX_VK_VIDEO         : str = "vk.com/video"
+    app_id     : int
+    app_secret : str
+    host       : str
+    port       : int
 
 class DynamicLinksIndex(Enum):
     """Показатели динамических ссылок.
@@ -57,23 +57,14 @@ class PlaylistStates(IntEnum):
     PLAYLIST_COPYRIGHT  = auto()
     PLAYLIST_UNSTATED   = auto()
 
-class CustomErrorCode(IntEnum):
-    """Код причины настраиваемой ошибки.
-
-    Args:
-        IntEnum (IntEnum): Code of custom error.
-    """
-    STOP_THREAD = auto()  # Умышленная остановка загрузки пользователем
-
 
 @dataclass
 class Bot:
     settings      : Settings
     auth          : Authentication
-    reqIndex      : RequestIndex
+    authServer    : UserAuthServer
     dynLinksIndex : DynamicLinksIndex
     playlistStates: PlaylistStates
-    customoErrCode: CustomErrorCode
 
 
 env = Env()
@@ -97,10 +88,15 @@ cfg = Bot(
         version     = settings_json.get("bot_version", "v1.0.0"),
         id          = env.int('BOT_ID'),
         token       = env.str('BOT_TOKEN'),
+        agent_id    = env.int('AGENT_ID'),
         agent_token = env.str('AGENT_TOKEN')
     ),
-    reqIndex       = RequestIndex,
+    authServer     = UserAuthServer(
+        app_id     = env.int('APP_ID'),
+        app_secret = env.str('APP_SECRET'),
+        host       = env.str('SERVER_HOST'),
+        port       = env.int('SERVER_PORT'),
+    ),
     dynLinksIndex  = DynamicLinksIndex,
-    playlistStates = PlaylistStates,
-    customoErrCode = CustomErrorCode
+    playlistStates = PlaylistStates
 )

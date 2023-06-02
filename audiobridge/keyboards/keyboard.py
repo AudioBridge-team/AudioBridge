@@ -13,8 +13,11 @@ keys = KeyboardKeys
 
 @dataclass(init=False)
 class Keyboard:
+    """Класс-шаблон для клавиатур.
+    """
     command: str
-    executable: bool = False
 
     def keyboard(self, *args):
+        """Функция, описывающая клавиатуру.
+        """
         raise NotImplementedError()

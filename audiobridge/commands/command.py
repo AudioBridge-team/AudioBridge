@@ -4,6 +4,8 @@
 from dataclasses import dataclass
 from enum import IntEnum, auto
 
+from audiobridge.db.dbEnums import UserRoles
+
 class CommandCategory(IntEnum):
     """Категория команды.
 
@@ -13,13 +15,13 @@ class CommandCategory(IntEnum):
     Returns:
         Enum: Порядковый номер и описание категории команды.
     """
-    API      = auto(), "Работа с ботом"
-    QUEUE    = auto(), "Управление загрузками"
-    SETTINGS = auto(), "Настройка аккаунта"
+    API      = "Работа с ботом"
+    QUEUE    = "Управление загрузками"
+    SETTINGS = "Настройка аккаунта"
 
-    def __new__(cls, value: int, description: str):
+    def __new__(cls, description: str):
         obj             = int.__new__(cls)
-        obj._value_     = value
+        obj._value_     = auto()
         obj.description = description
         return obj
 
@@ -30,7 +32,7 @@ class Command:
     name       : str
     description: str
     category   : CommandCategory
-    adminOnly  : bool
+    userRole   : UserRoles = UserRoles.USER
 
     def run(self, *args):
         """Функция для конкретной команды.

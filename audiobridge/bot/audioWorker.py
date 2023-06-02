@@ -11,7 +11,7 @@ import yt_dlp
 import vk_api
 from vk_api.utils import get_random_id
 
-from audiobridge.utils.customErrors import CustomError, vkapi_errors
+from audiobridge.utils.errorHandler import *
 
 from audiobridge.utils.sayOrReply import sayOrReply
 from audiobridge.utils.deleteMsg import deleteMsg
@@ -19,6 +19,7 @@ from audiobridge.utils.yt_dlpShell import Yt_dlpShell
 
 from audiobridge.config.bot import cfg as bot_cfg
 from audiobridge.config.handler import vars, WorkerTask
+from audiobridge.db.dbEnums import UserSettings, VkAudio
 
 
 logger      = logging.getLogger('logger')
@@ -51,10 +52,34 @@ class AudioWorker(threading.Thread):
             task (list): Пользовательский запрос.
         """
         super(AudioWorker, self).__init__()
-        self._stop     = False
-        self._task     = task
 
-    def _getAudioBitrate(self, url: str, attempts = 0) -> int:
+        self._stop       = False
+        self.msg_start   = task.msg_start    # id сообщения с размером очереди (необходимо для удаления в конце обработки запроса)
+        self.user_id     = task.user_id
+        self.msg_reply   = task.msg_reply    # id сообщения пользователя (необходимо для ответа на него)
+        self.url         = task.url
+        self.song_name   = task.song_name
+        self.song_author = task.song_author
+        self.interval    = task.interval
+
+
+        self.progress_msg_id = 0             # id сообщения с прогрессом загрузки
+        self._playlist       = task.pl_type  # Если True, то запрос является плейлистом
+
+        if self._playlist:
+            self.pl_element = task.pl_element # Порядковый номер элемента в плейлисте
+            self.pl_size    = task.pl_size    # Размер плейлиста
+
+        self.vk_user_auth = task.vk_user_auth # Приготовленное api пользователя для загрузки сразу же в его аккаунт
+
+        # Запись основных полей в таблицу `convert_requests`
+        self.task_id = vars.db.init_convert_request(self.msg_reply, self.url)
+
+        self.path    = str(self.task_id)      # Путь сохранения файла
+
+        logger.debug(f'Получена задача ({self.task_id}): {task}')
+
+    def _getAudioBitrate(self, attempts = 0) -> int:
         """Извлечение битрейта аудио.
 
         Args:
@@ -69,13 +94,13 @@ class AudioWorker(threading.Thread):
         """
         # Выход из рекурсии, если пользователь отменил выполнение запроса
         if self._stop:
-            raise CustomError(code=bot_cfg.customoErrCode.STOP_THREAD)
+            raise CustomError(ErrorType.audioProc.STOP_THREAD)
         # Выход из рекурсии, если превышено число попыток выполнения команды
         if attempts == bot_cfg.settings.max_attempts:
             logger.warning("Can't get real audio bitrate, return default volume.")
             return 128
         # Проверка на существование прямой ссылки
-        proc = subprocess.Popen(cmdAudioBitrate(url), stderr = subprocess.PIPE, text = True, shell = True)
+        proc = subprocess.Popen(cmdAudioBitrate(self.url), stderr = subprocess.PIPE, text = True, shell = True)
         audioInfo = proc.communicate()[1].strip()
         # Данная ошибка может произойти неожиданно, поэтому приходится повторять попытку выполнения команды через определённое время
         pos_bitrate = audioInfo.find("bitrate:")
@@ -83,7 +108,7 @@ class AudioWorker(threading.Thread):
             attempts += 1
             logger.error(f"Ошибка получения информации об аудио ({attempts}):\n{audioInfo}")
             time.sleep(bot_cfg.settings.time_attempt)
-            return self._getAudioBitrate(url, attempts)
+            return self._getAudioBitrate(attempts)
 
         bitrate = audioInfo[pos_bitrate:].split(' ')[1].strip()
         # Проверка наличия результатов работы команды
@@ -91,7 +116,7 @@ class AudioWorker(threading.Thread):
             attempts += 1
             logger.error(f"Отсутствует битрейт ({attempts})")
             time.sleep(bot_cfg.settings.time_attempt)
-            return self._getAudioBitrate(url, attempts)
+            return self._getAudioBitrate(attempts)
         logger.debug(f"Битрейт получен ({attempts}): {bitrate}")
         # Выход из рекурсии, если информация была успешно получена
         return int(bitrate)
@@ -105,8 +130,10 @@ class AudioWorker(threading.Thread):
         Raises:
             CustomError: Пользовательская ошибка.
         """
+        if self._stop:
+            raise CustomError(ErrorType.audioProc.STOP_THREAD)
         logger.debug(f'Скачивание видео началось')
-        pl_suffix = f" [{self.task_id}/{self.task_size}]" if self._playlist else ""
+        pl_suffix = f" [{self.pl_element}/{self.pl_size}]" if self._playlist else ""
 
         self.progress_msg_id = sayOrReply(self.user_id, 'Загрузка началась' + pl_suffix, self.msg_reply)
         last_msg_time = time.time()
@@ -114,7 +141,7 @@ class AudioWorker(threading.Thread):
         line = str(proc.stderr.readline())
         while line:
             if self._stop:
-                raise CustomError(code=bot_cfg.customoErrCode.STOP_THREAD)
+                raise CustomError(ErrorType.audioProc.STOP_THREAD)
             if "size=" in line.lower():
                 # Обновление сообщения с процессом загрузки по интервалы (необходимо для предотвращения непреднамеренного спама)
                 if round(time.time() - last_msg_time) >= bot_cfg.settings.msg_period:
@@ -165,6 +192,68 @@ class AudioWorker(threading.Thread):
             author = "Unknown"
         return title, author
 
+    def _vk_send_audio(self, audio_id: int, audio_owner: int):
+        """Функция для отправки сообщенния с прикреплённой аудиозаписью
+
+        Args:
+            audio_id (int): Id ранее загруженной песни в вк.
+            audio_owner (int): Id владельца этой песни.
+        """
+        attachment = f'audio{audio_owner}_{audio_id}'
+        if self._playlist:
+            vars.api.bot.messages.send(user_id = self.user_id, attachment = attachment, random_id = get_random_id())
+            # Обновление статуса компонента плейлиста в отчёте
+            vars.playlist.playlist_result[self.user_id][self.pl_element][0] = bot_cfg.playlistStates.PLAYLIST_SUCCESSFUL
+        else:
+            vars.api.bot.messages.send(user_id = self.user_id, attachment = attachment, reply_to = self.msg_reply, random_id = get_random_id())
+
+    def _save_audio(self, audio_obj: dict, api_agent: vk_api.vk_api.VkApiMethod, new_owner: int):
+        new_audio_id = 0
+        try:
+            new_audio_id = api_agent.audio.add(audio_id=audio_obj.get(VkAudio.AUDIO_ID), owner_id=audio_obj.get(VkAudio.OWNER_ID))
+        except vk_api.exceptions.ApiError as er:
+            if er.code == 15:
+                logger.warning(f"User has closed his audio libriary. Run new uploading...\nDescription: {er}")
+            else: logger.error(f"Unexpected error during saving audio ({er.code}):\nDescription: {er}")
+        else:
+            # Словарь для последущей записи песни в таблицу `vk_aduio`
+            audio_obj[VkAudio.AUDIO_ID] = new_audio_id
+            audio_obj[VkAudio.OWNER_ID] = new_owner
+            vars.db.insert_audio(audio_obj)
+        return new_audio_id
+
+    def _check_existence(self, is_agent: bool) -> int:
+        """Проверка существования запроса с таким же url.
+
+        Returns:
+            int: Id ранее загруженной аудизаписи.
+        """
+        # Отменяем проверку, если текущий запрос содержит новые тайминги для песни
+        if self.interval: return None
+        audio_obj = vars.db.select_original_audio(self.url, self.user_id if is_agent else bot_cfg.auth.agent_id)
+        if not audio_obj: return None
+        # Редактируем название песни
+        audio_id       = audio_obj.get(VkAudio.AUDIO_ID)
+        owner_id       = audio_obj.get(VkAudio.OWNER_ID)
+        api_agent = vars.api.agent
+        if is_agent:
+            api_agent = self.vk_user_auth.get_api()
+            if owner_id != self.user_id:
+                audio_id = self._save_audio(audio_obj, api_agent, self.user_id)
+                owner_id = self.user_id
+        elif owner_id != bot_cfg.auth.agent_id:
+            audio_id = self._save_audio(audio_obj, api_agent, bot_cfg.auth.agent_id)
+            owner_id = bot_cfg.auth.agent_id
+
+        if audio_id:
+            if self.song_name and self.song_author:
+                api_agent.audio.edit(audio_id=audio_id, owner_id=owner_id, title=self.song_name, artist=self.song_author)
+            elif self.song_name:
+                api_agent.audio.edit(audio_id=audio_id, owner_id=owner_id, title=self.song_name)
+            # Отправляем ответное сообщение с песней
+            self._vk_send_audio(audio_id, owner_id)
+        return audio_id
+
     def run(self):
         """Запуск воркера в отдельном потоке.
 
@@ -172,27 +261,16 @@ class AudioWorker(threading.Thread):
             CustomError: Вызов ошибки с настраиваемым содержанием.
         """
         logger.info('AudioWorker: Запуск.')
+        task_values = dict()
+        task_start_time = time.time()
+        if not self.task_id: self.path = str(int(task_start_time))
+        user_settiings : dict = vars.db.select_user_settings(self.user_id)
         try:
-            # id сообщения с размером очереди (необходимо для удаления в конце обработки запроса)
-            self.msg_start       = self._task.msg_start
-            # id пользователя
-            self.user_id         = self._task.user_id
-            # id сообщения пользователя (необходимо для ответа на него)
-            self.msg_reply       = self._task.msg_reply
-
-            # id сообщения с прогрессом загрузки
-            self.progress_msg_id = 0
-            # Если True, то запрос является плейлистом
-            self._playlist       = self._task.pl_type
-
-            if self._playlist:
-                # Порядковый номер элемента в плейлисте
-                self.task_id   = self._task.pl_element
-                # Размер плейлиста
-                self.task_size = self._task.pl_size
-            # Путь сохранения файла
-
-            self.path            = ""
+            audio_id = self._check_existence(user_settiings.get(UserSettings.IS_AGENT))
+            # Завершаем задачу, если песня содержится в таблице `vk_audio`
+            if audio_id:
+                task_values['audio_id'] = audio_id
+                return
 
             download_string = " ".join([
                 'yt-dlp',
@@ -212,28 +290,25 @@ class AudioWorker(threading.Thread):
                 '-stats"',
                 '{interval}',
                 '{url!r}'])
+            title           = ""
+            author          = ""
 
-            logger.debug(f'Получена задача: {self._task}')
-
-            audio_duration = 0
-            author = ""
             # Получение необходимой информации об аудио
-            audioInfo = yt_dlp.YoutubeDL(ydl_opts).extract_info(self._task.url, download=False)
+            audioInfo = yt_dlp.YoutubeDL(ydl_opts).extract_info(self.url, download=False)
             if not audioInfo:
-                raise CustomError("Ошибка: Невозможно получить информацию о видео.")
+                raise CustomError(ErrorType.audioProc.NO_INFO)
 
             audio_duration = int(audioInfo.get("duration", 0))
-            self.path = audioInfo.get("id", None)
-            if not (audio_duration and self.path):
-                raise CustomError("Ошибка: Невозможно получить информацию о видео.")
-            self.title, author = self._analyzeTitle(audioInfo.get("title"), audioInfo.get("channel"))
-            logger.debug(f"Информация об аудио успешно получена: {audio_duration}, {self.title}, {author}")
+            if not (audio_duration and audioInfo.get("id")):
+                raise CustomError(ErrorType.audioProc.NO_INFO)
+            title, author = self._analyzeTitle(audioInfo.get("title"), audioInfo.get("channel"))
+            logger.debug(f"Информация об аудио успешно получена: {audio_duration}, {title}, {author}")
 
             # Обработка времени среза в случае, если оно указано
             audioSection = ""
-            if self._task.interval:
-                audio_interval = self._task.interval
-                is_interval = (audio_interval.replace('-', '', 1).replace(':', '').replace(' ', '').isnumeric() and audio_interval.count('-') == 1)
+            if self.interval:
+                audio_interval = self.interval
+                is_interval = (audio_interval.replace('-', '').replace(':', '').replace(' ', '').isnumeric() and audio_interval.count('-') == 1)
                 if is_interval:
                     audio_interval = audio_interval.replace(' ', '')
                     timestamps = []
@@ -241,12 +316,12 @@ class AudioWorker(threading.Thread):
                         if not timestamp:
                             continue
                         if timestamp.count(':') > 3:
-                            raise CustomError('Ошибка: Неверный формат времени среза.')
+                            raise CustomError(ErrorType.audioProc.BAD_TIME_FORMAT)
                         in_seconds = 0
                         for i, tmt in enumerate(reversed(list(map(int, timestamp.split(':'))))):
                             in_seconds += tmt * 60**i
                         if in_seconds > audio_duration:
-                            raise CustomError('Ошибка: Некорректное время среза.')
+                            raise CustomError(ErrorType.audioProc.INCORRECT_TIME)
                         timestamps.append(in_seconds)
                     interval_duration = audio_duration
                     if len(timestamps) == 1:
@@ -254,81 +329,87 @@ class AudioWorker(threading.Thread):
                         else: interval_duration -= timestamps[0]
                     else: interval_duration = timestamps[1] - timestamps[0]
                     if interval_duration <= 0 or interval_duration > audio_duration:
-                        raise CustomError('Ошибка: Некорректная продолжительность среза.')
+                        raise CustomError(ErrorType.audioProc.INCORRECT_DURATION)
                     audio_duration = interval_duration
                     audio_interval = '*' + audio_interval
                 audioSection = f'--force-keyframes-at-cuts --download-sections "{audio_interval}"'
             logger.debug(f"Актуальная длительность видео: {audio_duration}")
 
             # Приблизительный вес файла
-            self.file_size = audio_duration * self._getAudioBitrate(self._task.url) * 128 #  F (bytes) = t (s) * bitrate (kb / s) * 1024 // 8
+            self.file_size = audio_duration * self._getAudioBitrate() * 128 #  F (bytes) = t (s) * bitrate (kb / s) * 1024 // 8
 
             # Проверка размера файла (необходимо из-за внутренних ограничений VK)
             logger.debug(f"Предварительный размер файла: {round(self.file_size / 1024**2, 2)} Mb")
             if self.file_size * 0.85 > bot_cfg.settings.max_filesize:
-                raise CustomError('Ошибка: Размер аудиозаписи превышает 200 Мб!')
+                raise CustomError(ErrorType.audioProc.HIGH_PREV_SIZE)
 
-            self.path = str(self.user_id) + self.path
+            self.path = str(self.user_id) + "_" + self.path
             download_string = download_string.format(
                 path=self.path,
-                url=self._task.url,
+                url=self.url,
                 interval=audioSection,
                 attempts=bot_cfg.settings.max_attempts,
                 sleep=bot_cfg.settings.time_attempt
             )
-            self.path += ".mp3"
 
             # Скачивание аудио
             self._downloadAudio(download_string)
             # Получение реального размера файла
-            self.file_size = os.path.getsize(self.path)
+            self.file_size = os.path.getsize(self.path + ".mp3")
             # Проверка размера файла (необходимо из-за внутренних ограничений VK)
             logger.debug(f"Фактический размер файла: {round(self.file_size / 1024**2, 2)} Mb")
             if self.file_size > bot_cfg.settings.max_filesize:
-                raise CustomError('Размер аудиозаписи превышает 200 Мб!')
+                raise CustomError(ErrorType.audioProc.HIGH_REAL_SIZE)
             else:
-                if self._task.song_name:
-                    self.title = self._task.song_name
-                if self._task.song_author:
-                    author = self._task.song_author
-                if len(self.title) > 50:
-                    self.title = self.title[0:51]
+                if self.song_name:   title  = self.song_name
+                if self.song_author: author = self.song_author
+                if len(title) > 50:  title  = title[0:51]
+                if len(author) > 50: author = author[0:51]
                 # Остановка загрузки аудио в Вк, если пользователь отменил выполнение запроса
                 if self._stop:
-                    raise CustomError(code=bot_cfg.customoErrCode.STOP_THREAD)
+                    raise CustomError(ErrorType.audioProc.STOP_THREAD)
                 # Загрузка аудиозаписи на сервера VK + её отправка получателю
-                audio_obj = vars.api.agent_upload.audio(self.path, author, self.title)
-                audio_id = audio_obj.get('id')
+                agent_upload = vars.api.agent_upload
+                if user_settiings.get(UserSettings.IS_AGENT):
+                    agent_upload = vk_api.VkUpload(self.vk_user_auth)
+                audio_obj : dict = agent_upload.audio(self.path + ".mp3", author, title)
+                audio_id       = audio_obj.get('id')
                 audio_owner_id = audio_obj.get('owner_id')
-                attachment = f'audio{audio_owner_id}_{audio_id}'
 
-                if self._playlist:
-                    vars.api.bot.messages.send(peer_id = self.user_id, attachment = attachment, random_id = get_random_id())
-                    # Обновление статуса компонента плейлиста в отчёте
-                    vars.playlist.playlist_result[self.user_id][self.task_id][0] = bot_cfg.playlistStates.PLAYLIST_SUCCESSFUL
-                else:
-                    vars.api.bot.messages.send(peer_id = self.user_id, attachment = attachment, reply_to = self.msg_reply, random_id = get_random_id())
+                # Словарь для последущей записи песни в таблицу `vk_aduio`
+                audio_values = dict()
+                audio_values[VkAudio.AUDIO_ID]       = audio_id
+                audio_values[VkAudio.OWNER_ID]       = audio_owner_id
+                audio_values[VkAudio.AUDIO_DURATION] = audio_obj.get('duration')
+                audio_values[VkAudio.IS_SEGMENTED]   = bool(self.interval)
+
+                if vars.db.insert_audio(audio_values):
+                    task_values['audio_id'] = audio_id
+
+                self._vk_send_audio(audio_id, audio_owner_id)
 
         except CustomError as er:
             # Обработка ошибок, не относящихся к преднамеренной остановке потока
-            if er.code != bot_cfg.customoErrCode.STOP_THREAD:
-                if not self._playlist:
-                    sayOrReply(self.user_id, er, self.msg_reply)
-                logger.error(f'Custom: {er}')
+            task_values['error_description'] = er.code
+            if (er.code != ErrorType.audioProc.STOP_THREAD.value) and (not self._playlist):
+                sayOrReply(self.user_id, er.description, self.msg_reply)
+            logger.error(f'Custom: {er}')
 
         except vk_api.exceptions.ApiError as er:
+            task_values['error_description'] = er.code
             if self._playlist:
                 # Ошибка авторских прав
-                if er.code == 270 and self.task_id:
-                    vars.playlist.playlist_result[self.user_id][self.task_id][0] = bot_cfg.playlistStates.PLAYLIST_COPYRIGHT
+                if er.code == 270 and self.pl_element:
+                    vars.playlist.playlist_result[self.user_id][self.pl_element][0] = bot_cfg.playlistStates.PLAYLIST_COPYRIGHT
             else:
                 err_msg_default = "Невозможно обработать запрос. Убедитесь, что запрос корректный, и отправьте его повторно"
-                err_str = 'Ошибка: {error_msg}.'.format(error_msg = vkapi_errors.get(er.code, err_msg_default))
+                err_str = f'Ошибка: {vkapi_errors.get(er.code, err_msg_default)}.'
                 sayOrReply(self.user_id, err_str, self.msg_reply)
-            # Добавить проверку через sql на успешность загрузки видео
+            # Добавить проверку через sql на успешность загрузки видео — UPD: забыл зачем
             logger.error(f'VK API: \n\tCode: {er.code}\n\tBody: {er}')
 
         except Exception as er:
+            task_values['error_description'] = str(er)
             # Обработка ошибок, не относящихся к компонентам плейлиста
             if not self._playlist:
                 err_str = 'Ошибка: Невозможно обработать запрос. Убедитесь, что запрос корректный, и отправьте его повторно.'
@@ -337,64 +418,20 @@ class AudioWorker(threading.Thread):
 
         finally:
             # Удаление загруженного файла
-            if os.path.isfile(self.path):
-                os.remove(self.path)
-                logger.debug(f'Успешно удалил аудио-файл: {self.path}')
-            else:
-                logger.error('Ошибка: Аудио-файл не существует.')
+            for filename in os.listdir():
+                if not filename.startswith(self.path): continue
+                os.remove(filename)
+                logger.debug(f'Успешно удалил аудио-файл: {filename}')
+                break
 
             # Удаление сообщения с прогрессом
             deleteMsg(self.progress_msg_id)
-
-            if not self._stop:
-                logger.debug('Reached a stop-condition')
-                # Удаление сообщения с порядком очереди
-                if vars.userRequests[self.user_id] < 0:
-                    vars.userRequests[self.user_id] += 1
-                    if vars.userRequests[self.user_id] == -1:
-                        vars.userRequests[self.user_id] = 0
-                        deleteMsg(self.msg_start)
-                        vars.playlist.summarize(self.user_id)
-                else:
-                    vars.userRequests[self.user_id] -= 1
-                    deleteMsg(self.msg_start)
-                logger.debug('Reached receiving a report')
-                # Отчёт о проделанной работе
-                logger.debug(
-                    (
-                        'Завершено:\n'+
-                        '\tЗадача: {0}\n' +
-                        '\tПуть: {1}\n' +
-                        '\tОчередь текущего пользователя ({2}): {3}\n' +
-                        '\tОчередь текущего worker\'а: {4}'
-                    ).format(
-                        self._task,
-                        self.path,
-                        self.user_id,
-                        vars.userRequests[self.user_id],
-                        vars.queue.size_queue
-                    )
-                )
-                # Очистка памяти, в случае пустой переменной
-                if not vars.userRequests[self.user_id]:
-                    del vars.userRequests[self.user_id]
-                # Подтверждение выполненной задачи потоком
-                vars.queue.ack_request(self.user_id, threading.current_thread())
-            else:
-                # Отчёт о проделанной обратки
-                logger.debug(
-                    (
-                        'Завершено:\n'+
-                        '\tЗадача: {0}\n' +
-                        '\tПуть: {1}\n' +
-                        '\tОчередь текущего пользователя ({2}): null\n' +
-                        '\tОчередь текущего worker\'а: null'
-                    ).format(
-                        self._task,
-                        self.path,
-                        self.user_id
-                    )
-                )
+            # Запись оставшихся полей в таблицу `convert_requests`
+            task_values['process_time'] = round(time.time() - task_start_time, 2)
+            if self.task_id: vars.db.complete_convert_request(self.task_id, task_values)
+            else: logger.error("task_id is null, can't complete convert request")
+            # Подтверждение запроса и переход с следующему, если задача ранее не была остановлена
+            if not self._stop: vars.queue.ack_request(self.user_id, threading.current_thread())
 
     def stop(self):
         """Вынужденная остановка воркера.
