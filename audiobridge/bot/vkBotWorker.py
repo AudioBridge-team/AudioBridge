@@ -201,7 +201,7 @@ class VkBotWorker():
                 options += cmd_obj.get(keys.ARGS, [])
                 msg_body = options[0]
             else:
-                options = list(map(str.strip, filter(None, msg_body.split('\n'))))
+                options = list(filter(None, map(str.strip, msg_body.split('\n'))))
 
             logger.debug(f'New message: ({len(options)}) {options}')
             user_obj = vars.db.select_user_data(user_id)
