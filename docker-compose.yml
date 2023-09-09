@@ -17,7 +17,8 @@ services:
     build:
       context: .
     restart: always
-    network_mode: host
+    ports:
+      - ${SERVER_PORT}:${SERVER_PORT}
     volumes:
       - ../data/logs:/AudioBridge/data/logs
     env_file:
