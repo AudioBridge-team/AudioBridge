@@ -62,6 +62,6 @@ class UserAuthServer(BaseHTTPRequestHandler):
 def run_auth_service():
     """Запуск веб-сервера.
     """
-    http_server = HTTPServer((bot_cfg.authServer.host, bot_cfg.authServer.port), UserAuthServer)
+    http_server = HTTPServer(("0.0.0.0", bot_cfg.authServer.port), UserAuthServer)
     logger.debug(f"Web-server started on {bot_cfg.authServer.host}:{http_server.server_port}")
     threading.Thread(target = http_server.serve_forever, name = "UserAuthServer").start()
