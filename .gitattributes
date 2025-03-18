@@ -15,4 +15,3 @@
 *.yml           text eol=lf
 CODEOWNERS      text eol=lf
 LICENSE         text eol=lf
-

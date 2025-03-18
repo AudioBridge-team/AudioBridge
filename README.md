@@ -60,4 +60,3 @@
 <p align="center">
   <img src="http://2ip.io/bar/ip3.gif"/>
 </p>
-
