@@ -1,38 +1,32 @@
 #!/usr/bin/env bash
 # -*- coding: utf-8 -*-
 
-set -e
-# Any subsequent(*) commands which fail will cause the shell script to exit immediately
-
+set -euo pipefail  # Включаем строгий режим: завершение при ошибках, неопределенных переменных и ошибках в пайпах
 
 echo 'Starting up Docker container...'
 
-root_dir=$(dirname $PWD)
-container_name="vkbot_container"
+readonly root_dir=$(dirname "$PWD")  # Используем readonly для неизменяемых переменных
+readonly container_name="vkbot_container"
 
 echo "Debug: Working in \"$(pwd)\"; root dir: \"${root_dir}\"."
 
-#docker run -w root_dir --name $container_name --detach $container_name
-
-if [ ! "$(docker ps -q -f name=$container_name)" ]; then
-    echo "Docker: Container \"${container_name}\" is not running."
-    if [ "$(docker ps -aq -f status=exited -f name=$container_name)" ]; then
-        echo "Docker: Container \"${container_name}\" is exited. Started."
-        docker run -w root_dir -detach $container_name --name $container_name
-        exit 1
-    else
-        echo 'Debug: Reached docker ps (2).'
-    fi
-else
-echo "Warning: Docker container \"${container_name}\" already running!"
+# Проверяем, запущен ли контейнер
+if docker ps -q -f name="${container_name}" > /dev/null; then
+    echo "Warning: Docker container \"${container_name}\" is already running!"
+    exit 0  # Выходим, если контейнер уже запущен
 fi
 
-#echo "cleaning up..."
-#docker rm --force $container_name
-#docker run -w . -detach $container_name --name $container_name
+# Проверяем, существует ли контейнер, но остановлен
+if docker ps -aq -f status=exited -f name="${container_name}" > /dev/null; then
+    echo "Docker: Container \"${container_name}\" is stopped. Starting it..."
+    docker start "${container_name}"  # Запускаем существующий контейнер
+else
+    echo "Docker: Container \"${container_name}\" does not exist. Creating and starting it..."
+    docker run -d --name "${container_name}" -w "${root_dir}" "${container_name}"  # Создаем и запускаем новый контейнер
+fi
 
 echo "Docker status:"
-echo "$(docker ps)"
-echo "$(docker images)"
+docker ps  # Показываем статус контейнеров
+docker images  # Показываем список образов
 
-exit 1
+exit 0  # Успешное завершение скрипта

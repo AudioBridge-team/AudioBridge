@@ -1,54 +1,72 @@
 #!/usr/bin/env bash
 # -*- coding: utf-8 -*-
 
-set -e
-# Any subsequent(*) commands which fail will cause the shell script to exit immediately
-
+set -euo pipefail  # Включаем строгий режим: завершение при ошибках, неопределенных переменных и ошибках в пайпах
 
 echo 'Update in progress.'
 
-run_script="run.zsh"
-root_dir=$(dirname $PWD)
-container_name="vkbot_container"
+readonly run_script="run.zsh"
+readonly root_dir=$(dirname "$PWD")
+readonly container_name="vkbot_container"
 
+# Проверка и установка прав на выполнение скрипта
 if ! [ -x "${run_script}" ]; then
-    echo "Warning: Script \"${run_script}\" can't be executed, applying chmod..."
-    #if [[ $UID != 0 ] || [ $USER != root ]]; then
-    if [ $USER != root ]; then
-        echo "${USER} cannot write the file \"${run_script}\"."
-        echo "Fatal: I'm not root. Can't use chmod."
+    echo "Warning: Script \"${run_script}\" is not executable, applying chmod..."
+
+    if [ "$USER" != "root" ]; then
+        echo "Fatal: Current user is not root. Can't apply chmod."
         exit 1
     fi
-    # sudo -u $USER test -w $run_script || {}
+
     chmod +x "$run_script"
     echo "Chmod applied."
 fi
 
-echo "Script \"${run_script}\" - OK, killing docker container..."
-if [ ! "$(docker ps -q -f name=$container_name)" ]; then
-    kill_result=$(docker rm --force $container_name) # cleanup
-    echo "Debug: kill_result=${kill_result}"
-    if ![ $kill_result ]; then
-        echo "Container was killed."
-    else
-        echo "Container was not killed!"
-    fi
+echo "Script \"${run_script}\" - OK, killing Docker container..."
 
-    if [ "$(docker ps -aq -f status=exited -f name=$container_name)" ]; then
-        echo 'Debug: Reached docker ps (1).'
+# Убиваем и удаляем контейнер, если он запущен
+if docker ps -q -f name="$container_name" > /dev/null; then
+    echo "Stopping and removing container \"${container_name}\"..."
+    if docker rm --force "$container_name" > /dev/null; then
+        echo "Container \"${container_name}\" was killed and removed."
+    else
+        echo "Error: Failed to kill and remove container \"${container_name}\"."
+        exit 1
     fi
 else
-echo "Warning: Docker container was not running!"
+    echo "Warning: Docker container \"${container_name}\" is not running."
 fi
+
+# Сборка Docker-образа
 echo "Docker container killed, (re)building..."
-docker build -t $container_name $root_dir
-echo "(Re)building - OK, removing images from the host node:"
-echo "$(docker images --filter 'dangling=true')"
-docker rmi --force $(docker images --filter "dangling=true" -q --no-trunc)
-echo "Removing images - OK, update done."
+if docker build -t "$container_name" "$root_dir"; then
+    echo "(Re)building - OK."
+else
+    echo "Error: Failed to build Docker image."
+    exit 1
+fi
 
-echo "Executing run script."
-# run your container
-./run.zsh
+# Удаление dangling images
+echo "Removing dangling images from the host node..."
+dangling_images=$(docker images --filter "dangling=true" -q --no-trunc)
+if [ -n "$dangling_images" ]; then
+    echo "Found dangling images:"
+    echo "$dangling_images"
+    docker rmi --force "$dangling_images"
+    echo "Dangling images removed."
+else
+    echo "No dangling images found."
+fi
 
-#return 1
+echo "Update done."
+
+# Запуск скрипта
+echo "Executing run script..."
+if ./"$run_script"; then
+    echo "Run script executed successfully."
+else
+    echo "Error: Run script failed."
+    exit 1
+fi
+
+exit 0  # Успешное завершение скрипта
